@@ -5,11 +5,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from starhope.book_import import assemble_book, extract_book, validate_batch, build_book_prompt
+from starhope.book_import import assemble_book, extract_book, validate_batch, build_book_prompt, looks_like_answer_key
 from starhope.ai_providers import resolve_text_provider
 from starhope.task_manager import TaskCancelled
 
-METADATA = {"question_types": ["detailed_answer", "single_choice"], "difficulties": ["normal", "challenge"]}
+METADATA = {"question_types": ["detailed_answer", "single_choice", "fill_in_blank"],
+            "difficulties": ["normal", "challenge"]}
 PROVIDER = resolve_text_provider("SILICONFLOW/test-model", {"SILICONFLOW_API_KEY": "fake-no-network"})
 
 
@@ -74,19 +75,104 @@ def test_invalid_source_and_envelope_are_rejected(bad):
     with pytest.raises(ValueError): validate_batch(value, pages, [1], METADATA)
 
 
-def test_context_page_records_are_skipped_without_losing_core_records():
+def test_context_page_records_are_kept_with_core_records():
     pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 7)]
     value = packet([row(page=5), row(page=2, number="习题2")])
     adopted, notes, _context, _incomplete = validate_batch(value, pages, [1, 2, 3, 4], METADATA)
-    assert [item["start_page"] for item in adopted] == [2]
-    assert any("上下文页" in note and "第5页" in note for note in notes)
+    assert [item["start_page"] for item in adopted] == [5, 2]
+    assert adopted[0]["_source_owned"] is False
+    assert adopted[1]["_source_owned"] is True
+    assert not any("上下文页" in note for note in notes)
 
 
-def test_batch_with_only_context_records_completes_empty():
+def test_batch_with_only_context_records_is_accepted():
     pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 7)]
-    adopted, notes, _context, _incomplete = validate_batch(packet([row(page=6)]), pages, [1, 2, 3, 4], METADATA)
-    assert adopted == []
-    assert any("上下文页" in note and "第6页" in note for note in notes)
+    adopted, notes, _context, _incomplete = validate_batch(
+        packet([row(page=6)]), pages, [1, 2, 3, 4], METADATA)
+    assert [item["start_page"] for item in adopted] == [6]
+    assert not any("上下文页" in note for note in notes)
+
+
+def test_leading_answer_block_is_not_recorded_as_a_question():
+    pages = [{"page_number": 1, "markdown": "原文"}]
+    value = packet([row(page=1, number="1", content="答案：$2$")])
+    adopted, _notes, _context, _incomplete = validate_batch(value, pages, [1], METADATA)
+    assert adopted[0]["kind"] == "answer"
+    assert adopted[0]["_answer_reclassified"] is True
+    assert adopted[0]["question_type"] == "" and adopted[0]["difficulty"] == ""
+
+    numbered = packet([row(page=1, number="1", content="1. 答案：A")])
+    adopted, _notes, _context, _incomplete = validate_batch(numbered, pages, [1], METADATA)
+    assert adopted[0]["kind"] == "answer"
+
+    ordinary = packet([row(page=1, number="2", content="解方程 $x+1=0$")])
+    adopted, _notes, _context, _incomplete = validate_batch(ordinary, pages, [1], METADATA)
+    assert adopted[0]["kind"] == "question"
+    assert "_answer_reclassified" not in adopted[0]
+
+
+def test_bare_parenthesized_choice_and_fill_answers_are_answer_keys():
+    for content in ("1.（D）", "（A、B）", "2. (3)", "A"):
+        assert looks_like_answer_key(content), content
+    assert not looks_like_answer_key("1. 求 $A$ 的值")
+    pages = [{"page_number": 1, "markdown": "原文"}]
+    for content in ("1.（D）", "1.（3）"):
+        adopted, _notes, _context, _incomplete = validate_batch(
+            packet([row(page=1, number="1", content=content)]), pages, [1], METADATA)
+        assert adopted[0]["kind"] == "answer"
+
+
+def test_trailing_choice_answer_moves_out_of_the_stem():
+    pages = [{"page_number": 1, "markdown": "原文"}]
+    value = packet([row(page=1, number="1", question_type="single_choice",
+                        content="已知 $x>0$，则下列结论正确的是（ D ）")])
+    adopted, _notes, _context, _incomplete = validate_batch(value, pages, [1], METADATA)
+    assert adopted[0]["kind"] == "question"
+    assert adopted[0]["answer_markdown"] == "D"
+    assert "（ D ）" not in adopted[0]["content"]
+    assert adopted[0]["_parenthesis_answer_extracted"] is True
+
+    interval = packet([row(page=1, number="2", question_type="single_choice",
+                           content="定义域为（0，1）")])
+    adopted, _notes, _context, _incomplete = validate_batch(interval, pages, [1], METADATA)
+    assert adopted[0]["answer_markdown"] == ""
+    assert adopted[0]["content"] == "定义域为（0，1）"
+
+
+def test_trailing_fill_blank_answer_moves_out_of_the_stem():
+    pages = [{"page_number": 1, "markdown": "原文"}]
+    value = packet([row(page=1, number="1", question_type="fill_in_blank",
+                        content=r"已知 $a=2$，则 $b=$\fillin（3）")])
+    adopted, _notes, _context, _incomplete = validate_batch(value, pages, [1], METADATA)
+    assert adopted[0]["answer_markdown"] == "3"
+    assert adopted[0]["content"].endswith(r"\fillin")
+    assert adopted[0]["_parenthesis_answer_extracted"] is True
+
+    two_blanks = packet([row(page=1, number="2", question_type="fill_in_blank",
+                             content=r"$a=$\fillin，$b=$\fillin（3）")])
+    adopted, _notes, _context, _incomplete = validate_batch(two_blanks, pages, [1], METADATA)
+    assert adopted[0]["answer_markdown"] == ""
+    assert "（3）" in adopted[0]["content"]
+
+
+def test_misclassified_answer_pairs_with_its_question_and_is_not_a_card():
+    pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 9)]
+    def post(provider, payload, **kwargs):
+        data = json.loads(payload["messages"][1]["content"])
+        if data["core_pages"][0] == 1:
+            return reply(packet([
+                row(page=1, number="1", content="求 $1+1$ 的值"),
+                row(page=2, number="1", content="答案：$2$"),
+            ]))
+        return reply(packet([]))
+    diagnostics = {}
+    questions = extract_book(pages, title="书", subject="数学", provider=PROVIDER, metadata=METADATA,
+                             diagnostics=diagnostics, post=post)
+    assert len(questions) == 1
+    assert questions[0]["answer_markdown"].startswith("答案：")
+    report = diagnostics["book_import"]
+    assert report["answer_records_reclassified"] == 1
+    assert report["questions"] == 1
 
 
 def test_cross_page_context_ownership_and_original_answer_pairing():
@@ -172,22 +258,41 @@ def test_malformed_incomplete_record_is_rejected():
         validate_batch(packet([], incomplete=[{"kind": "question"}]), pages, [1], METADATA)
 
 
-def test_context_echo_does_not_fail_the_owning_batch():
+def test_context_records_are_kept_across_batches():
     pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 9)]
     calls = []
     def post(provider, payload, **kwargs):
         data = json.loads(payload["messages"][1]["content"])
         calls.append(data)
         if data["core_pages"][0] == 1:
-            return reply(packet([row(page=5), row(page=2)]))
+            return reply(packet([row(page=5), row(page=2, number="习题2")]))
         return reply(packet([]))
     diagnostics = {}
     questions = extract_book(pages, title="书", subject="数学", provider=PROVIDER, metadata=METADATA,
                              diagnostics=diagnostics, post=post)
-    assert len(questions) == 1 and questions[0]["book_pages"] == [2]
+    assert {item["book_identity"]["number"] for item in questions} == {"习题1", "习题2"}
     first = diagnostics["book_import"]["batches"][0]
-    assert first["status"] == "completed" and first["records"] == 1
-    assert any("上下文页" in note for note in diagnostics["book_import"]["unresolved"])
+    assert first["status"] == "completed" and first["records"] == 2
+    assert diagnostics["book_import"]["context_page_records"] == 1
+
+
+def test_overlapping_batches_dedupe_to_the_core_owned_complete_record():
+    pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 9)]
+    calls = []
+    def post(provider, payload, **kwargs):
+        data = json.loads(payload["messages"][1]["content"])
+        calls.append(data)
+        if data["core_pages"][0] == 1:
+            return reply(packet([row(page=5, content="短题干")]))
+        if data["core_pages"][0] == 5:
+            return reply(packet([row(page=5, content="完整题干内容")]))
+        return reply(packet([]))
+    diagnostics = {}
+    questions = extract_book(pages, title="书", subject="数学", provider=PROVIDER, metadata=METADATA,
+                             diagnostics=diagnostics, post=post)
+    assert len(questions) == 1
+    assert questions[0]["content"] == "完整题干内容"
+    assert diagnostics["book_import"]["deduplicated_records"] == 1
 
 
 def test_cancellation_and_oversized_input_never_start_a_paid_request():
