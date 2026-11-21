@@ -20,7 +20,7 @@ from starhope.paths import SCHEMA_SNAPSHOT_DIR
 from starhope.sub_knowledge import normalize_sub_knowledge
 
 
-LATEST_SCHEMA_VERSION = 16
+LATEST_SCHEMA_VERSION = 17
 LEGACY_REQUIRED_TABLES = {
     "questions",
     "question_curriculums",
@@ -383,6 +383,16 @@ def _ensure_tikz_asset_columns(connection) -> dict[str, int]:
             )
         stats[f"added_{column}"] = int(added)
     return stats
+
+
+def _ensure_subject_columns(connection):
+    columns = {row[1] for row in connection.exec_driver_sql('PRAGMA table_info("questions")')}
+    additions = {"subject": "VARCHAR(30) NOT NULL DEFAULT '数学'",
+                 "subject_topics": "TEXT NOT NULL DEFAULT ''"}
+    for name, definition in additions.items():
+        if name not in columns:
+            connection.exec_driver_sql(f"ALTER TABLE questions ADD COLUMN {name} {definition}")
+    connection.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_questions_subject ON questions(subject)")
 
 
 def _ensure_figure_layout_columns(connection) -> dict[str, int]:
@@ -1000,6 +1010,7 @@ def _rebuild_relationship_tables(engine: Engine) -> dict[str, int]:
             if violations:
                 raise RuntimeError(f"迁移后仍存在外键异常: {violations[:5]}")
 
+            _ensure_subject_columns(connection)
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1045,6 +1056,7 @@ def _upgrade_derived_schema(engine: Engine) -> dict[str, int]:
                 _ensure_question_fingerprint_table(connection)
             )
             _validate_figure_layout_schema(connection)
+            _ensure_subject_columns(connection)
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1119,6 +1131,7 @@ def _upgrade_v6_or_v7_fingerprint_schema(
             question_order_stats = _ensure_question_order_schema(connection)
             _ensure_library_import_receipts(connection)
             _validate_figure_layout_schema(connection)
+            _ensure_subject_columns(connection)
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1164,6 +1177,9 @@ def migrate_database(
             _validate_document_import_receipts(connection)
             _validate_library_import_receipts(connection)
             _validate_question_order_schema(connection)
+            columns = {row[1] for row in connection.exec_driver_sql('PRAGMA table_info("questions")')}
+            if not {"subject", "subject_topics"}.issubset(columns):
+                raise RuntimeError("数据库缺少学科标注字段")
         return {"from_version": current, "to_version": current, "backup": None}
 
     if not table_names:

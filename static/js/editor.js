@@ -82,7 +82,7 @@ function bindSidebarSearchInput(input) {
 function setupBankSearchControls() {
     const input = document.getElementById('searchInput');
     if (input) bindSidebarSearchInput(input);
-    for (const id of ['filterType', 'filterDifficulty', 'filterSort']) {
+    for (const id of ['filterSubject', 'filterType', 'filterDifficulty', 'filterSort']) {
         document.getElementById(id)?.addEventListener('change', runSidebarSearchImmediately);
     }
 }
@@ -1178,6 +1178,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 answer_markdown: document.getElementById('editAnswerMarkdown').value,
                 review: document.getElementById('editReview').value,
                 question_type: document.getElementById('editQType').value,
+                ...readSubjectEditor(),
                 difficulty: document.getElementById('editDifficulty').value,
                 source: document.getElementById('editSource').value,
                 category_compulsory: document.getElementById('editCompulsory').value,
@@ -1205,6 +1206,8 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 answer_markdown: snapshot.answer_markdown,
                 review: snapshot.review,
                 question_type: snapshot.question_type,
+                subject: snapshot.subject || '数学',
+                subject_topics: snapshot.subject_topics || '',
                 difficulty: snapshot.difficulty,
                 source: snapshot.source,
                 category_compulsory: snapshot.category_compulsory,
@@ -1344,6 +1347,8 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                    currentAnswer === snapshot.answer_markdown &&
                    currentReview === snapshot.review &&
                    currentType === snapshot.question_type &&
+                   readSubjectEditor().subject === (snapshot.subject || '数学') &&
+                   readSubjectEditor().subject_topics === (snapshot.subject_topics || '') &&
                    currentDifficulty === snapshot.difficulty &&
                    currentSource === snapshot.source &&
                    currentComp === snapshot.category_compulsory &&
@@ -1544,6 +1549,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             [['editContent', '题干'], ['editCompulsory', '学段'], ['editChapter', '章节']].forEach(([id, label]) => {
                 const input = document.getElementById(id);
                 if (!input) return;
+                if (id !== 'editContent' && readSubjectEditor().subject !== '数学') { input.setAttribute('aria-invalid', 'false'); return; }
                 const empty = !input.value.trim();
                 if (empty) missing.push(label);
                 input.setAttribute('aria-invalid', empty && modal.dataset.validationAttempted === 'true' ? 'true' : 'false');
@@ -1706,7 +1712,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             const label = document.getElementById('bankFilterToggleText');
             const clear = document.getElementById('clearBankFiltersBtn');
             if (!label || !clear) return;
-            const selected = ['filterCompulsory', 'filterChapter', 'filterKnowledge', 'filterType', 'filterDifficulty', 'filterSource']
+            const selected = ['filterCompulsory', 'filterChapter', 'filterKnowledge', 'filterSubject', 'filterType', 'filterDifficulty', 'filterSource']
                 .map(id => document.getElementById(id)).filter(element => element && element.value);
             const subdivisions = getFilterSubKnowledge();
             const searchRules = getBankSearchRules();
@@ -1727,7 +1733,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             KnowledgePointState.setFilter('bank', {knowledge_point_codes: [], knowledge_point_mode:'any',
                 knowledge_point_role:'main', knowledge_point_status:'all', knowledge_point_unlabeled:false});
             renderKnowledgePointPicker('bank');
-            ['filterCompulsory', 'filterChapter', 'filterKnowledge', 'filterType', 'filterDifficulty', 'filterSource'].forEach(id => {
+            ['filterCompulsory', 'filterChapter', 'filterKnowledge', 'filterSubject', 'filterType', 'filterDifficulty', 'filterSource'].forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.value = '';
             });
@@ -2037,6 +2043,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 classification_by_version: {...(previousDraft.classification_by_version || {}), ...editorClassificationVersionSnapshot()},
                 saved_question_id: EditorState.questionId || previousDraft.saved_question_id || null,
                 saved_sub_knowledge_by_version: previousDraft.saved_sub_knowledge_by_version || originalQuestionState?.sub_knowledge_by_version || {},
+                ...readSubjectEditor(),
                 difficulty: difficulty,
                 source: source,
                 answer_markdown: answerMarkdown,
@@ -2102,6 +2109,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             // Populate form fields
             document.getElementById('editContent').value = draft.content || '';
             setEditorMetadataValue(document.getElementById('editQType'), draft.question_type || 'single_choice');
+            hydrateSubjectEditor(draft);
             setEditorMetadataValue(document.getElementById('editDifficulty'), draft.difficulty || 'easy_error');
             document.getElementById('editSource').value = draft.source || '';
             document.getElementById('editAnswerMarkdown').value = draft.answer_markdown || '';
@@ -2225,6 +2233,8 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 drafts = drafts.filter(item => item.question_type === qtype);
             }
             
+            const subject = document.getElementById('filterSubject')?.value;
+            if (subject) drafts = drafts.filter(item => (item.subject || '数学') === subject);
             // Filter by difficulty
             if (difficulty) {
                 drafts = drafts.filter(item => item.difficulty === difficulty);
@@ -2261,7 +2271,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             const searchRules = getBankSearchRules();
             if (searchRules.length) {
                 drafts = drafts.filter(item => searchRules.every(({field, operator, keyword}) => {
-                    const fields = field === 'all' ? ['content', 'answer_markdown', 'review', 'source', 'tags'] : [field];
+                    const fields = field === 'all' ? ['content', 'answer_markdown', 'review', 'source', 'tags', 'subject', 'subject_topics'] : [field];
                     const needle = keyword.toLowerCase();
                     const match = fields.some(key => {
                         const value = String(item[key] || '');
@@ -2840,6 +2850,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             getBankSearchRules().forEach(({field, operator, keyword}) =>
                 params.append('search_rule', JSON.stringify({field, operator, keyword})));
             if (qtype) params.append('qtype', qtype);
+            if (document.getElementById('filterSubject')?.value) params.append('subject', document.getElementById('filterSubject').value);
             if (difficulty) params.append('difficulty', difficulty);
             if (compulsory) params.append('compulsory', compulsory);
             if (chapter) params.append('chapter', chapter);
@@ -2955,6 +2966,10 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                             </div>
                         `;
                         
+                        const subjectBadge = document.createElement('span');
+                        subjectBadge.className = 'text-xs text-slate-500';
+                        subjectBadge.textContent = [item.subject || '数学', item.subject_topics || ''].filter(Boolean).join(' · ').replace(/\n/g, '、');
+                        itemCard.append(subjectBadge);
                         renderKnowledgePointBadges(itemCard, item.knowledge_points || [], KnowledgePointState.filter('bank'), true);
                         // Render KaTeX inline for this card
                         try {
@@ -3128,12 +3143,16 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
             badges.innerHTML = `
                 ${seqBadge}
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700">学科：${escapeEditorMetaText(readSubjectEditor().subject)}</span>
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700">题型：${escapeEditorMetaText(getTypeText(editQType.value))}</span>
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${diffColor}">难度：${escapeEditorMetaText(getDifficultyText(editDifficulty.value))}</span>
                 ${createdAtBadge}
                 ${paperTagsHtml}
             `;
-            renderKnowledgePointBadges(badges, KnowledgePointState.snapshot(), KnowledgePointState.filter('bank'));
+            readSubjectEditor().subject_topics.split('\n').filter(Boolean).forEach(name => {
+                const point = document.createElement('span'); point.className = 'text-[10px] px-2 py-0.5 rounded-md bg-brand-50 text-brand-700'; point.textContent = name; badges.append(point);
+            });
+            if (readSubjectEditor().subject === '数学') renderKnowledgePointBadges(badges, KnowledgePointState.snapshot(), KnowledgePointState.filter('bank'));
             sourceEl.textContent = `来源: ${editSource.value || '本地教研录入'}`;
         }
         window.renderEditorPaperMeta = renderEditorPaperMeta;
@@ -3420,6 +3439,8 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
             editQType.addEventListener('change', renderEditorPaperMeta);
             editDifficulty.addEventListener('change', renderEditorPaperMeta);
+            document.getElementById('editSubject')?.addEventListener('change', renderEditorPaperMeta);
+            document.getElementById('editSubjectTopics')?.addEventListener('input', renderEditorPaperMeta);
             editSource.addEventListener('input', renderEditorPaperMeta);
             if (editTags) editTags.addEventListener('input', renderEditorPaperMeta);
             

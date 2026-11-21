@@ -584,6 +584,7 @@ async def app_lifespan(_app: FastAPI):
             import asyncio
 
             await asyncio.to_thread(DATABASE_EXPORT_QUEUE.close)
+        SUBJECT_TASKS.shutdown(wait=False)
         DOCUMENT_TASKS.shutdown(wait=False)
 
 
@@ -924,7 +925,7 @@ def read_index():
         
         # Inject dynamic cache-busting version parameter based on file mtime
         js_files = [
-            "api.js", "editor.js", "ocr.js", "import.js", "document-import-session.js",
+            "api.js", "subject-annotations.js", "editor.js", "ocr.js", "import.js", "document-import-session.js",
             "paper.js", "dashboard.js", "workspace.js", "qa-data.js", "qa.js",
         ]
         for js in js_files:
@@ -3029,6 +3030,8 @@ def import_library_transfer(
             pass
 
 
+from starhope.subject_annotations import create_subject_router, SUBJECT_TASKS
+app.include_router(create_subject_router(get_db, load_metadata=lambda: METADATA_CACHE, on_saved=_sharing_post_commit_export))
 app.include_router(_LIBRARY_TRANSFER_UPLOAD_ROUTER)
 
 app.include_router(create_agent_router(
@@ -3061,6 +3064,7 @@ def list_questions(
     qtype: str = None,
     question_type: str = None,
     difficulty: str = None,
+    subject: str = None,
     source: str = None,
     page: Optional[int] = None,
     page_size: int = 20,
@@ -3115,6 +3119,8 @@ def list_questions(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         if type_val:
             query = query.filter(Question.question_type == type_val)
+        if subject:
+            query = query.filter(Question.subject == subject)
         if difficulty:
             query = query.filter(Question.difficulty == difficulty)
         if source:
@@ -3838,6 +3844,8 @@ def create_question(
     sub_knowledge: str = Form("[]"),
     knowledge_points: Optional[str] = Form(None),
     expected_version_code: Optional[str] = Form(None),
+    subject: Optional[str] = Form(None),
+    subject_topics: Optional[str] = Form(None),
     difficulty: str = Form(...),
     source: str = Form(""),
     answer_markdown: str = Form(""),
@@ -3878,6 +3886,8 @@ def create_question(
                 "related_question_id":related_question_id,"sub_knowledge":sub_knowledge,"knowledge_points":knowledge_points})
         if existing_question_id is not None:
             return committed_question_response(db, db.get(Question, existing_question_id), existing_question_id, operation="project_import_replay")
+        from starhope.subject_annotations import normalize_annotation
+        normalized_subject = normalize_annotation(subject or "数学", subject_topics or "")
         parsed_sub_knowledge = normalize_sub_knowledge(sub_knowledge)
         parsed_knowledge_points = normalize_question_points(
             json.loads(knowledge_points) if knowledge_points is not None else [], db,
@@ -3939,6 +3949,7 @@ def create_question(
             figure_size=figure_size,
             tags=tags
         )
+        db_question.subject, db_question.subject_topics = normalized_subject
         db_question.image_layouts = rewrite_image_layout_paths(image_layouts, asset_path_map)
         db_question.image_paths = parsed_img_paths
         db_question.content_tikz_assets = parsed_content_tikz_assets
@@ -4071,6 +4082,8 @@ def update_question(
     sub_knowledge: Optional[str] = Form(None),
     knowledge_points: Optional[str] = Form(None),
     expected_version_code: Optional[str] = Form(None),
+    subject: Optional[str] = Form(None),
+    subject_topics: Optional[str] = Form(None),
     difficulty: str = Form(...),
     source: str = Form(""),
     answer_markdown: str = Form(""),
@@ -4100,6 +4113,8 @@ def update_question(
     duplicate_warning = ""
     old_images = list(db_question.image_paths)
     try:
+        from starhope.subject_annotations import normalize_annotation
+        normalized_subject = normalize_annotation(subject if subject is not None else db_question.subject, (subject_topics or "") if subject is not None or subject_topics is not None else db_question.subject_topics)
         parsed_sub_knowledge = normalize_sub_knowledge(sub_knowledge) if sub_knowledge is not None else None
         parsed_knowledge_points = (
             normalize_question_points(json.loads(knowledge_points), db)
@@ -4146,6 +4161,7 @@ def update_question(
         
         # 1. Fallback if third level is empty, default to chapter
             
+        db_question.subject, db_question.subject_topics = normalized_subject
         db_question.content = content
         db_question.question_type = question_type
         db_question.category_compulsory = category_compulsory
@@ -6485,6 +6501,8 @@ def run_pdf_parsing_task(
     pdf_mineru_figures="system",
     pdf_ocr_engine="existing",
     pdf_parse_model="",
+    pdf_document_kind="paper",
+    book_subject="数学",
 ):
     """PDF parsing with bounded OCR concurrency and cooperative cancellation."""
 
@@ -6661,9 +6679,11 @@ def run_pdf_parsing_task(
             if total_pages == 0:
                 raise ValueError("此 PDF 没有有效页面，或者格式已损坏！")
             target_page_indices = parse_page_range(page_range, total_pages)
-            if len(target_page_indices) > MAX_PDF_TASK_PAGES:
+            from starhope.book_import import MAX_BOOK_PAGES
+            page_limit = MAX_BOOK_PAGES if pdf_document_kind == "book" else MAX_PDF_TASK_PAGES
+            if len(target_page_indices) > page_limit:
                 raise ValueError(
-                    f"单次最多解析 {MAX_PDF_TASK_PAGES} 页，请填写较小的页码范围。"
+                    f"单次最多解析 {page_limit} 页，请填写较小的页码范围。"
                 )
 
             for page_num in target_page_indices:
@@ -7091,7 +7111,11 @@ def run_pdf_parsing_task(
                     )
             diagnostics["pdf_page_pipeline"] = pipeline_report
             report_detail_preparation()
-            if page_errors:
+            if page_errors and pdf_document_kind == "book":
+                # Keep the hole visible to the book extractor. An exam-only
+                # same-page draft cannot safely identify chapters or answers.
+                diagnostics["pdf_failed_pages"] = sorted(page_errors, key=lambda item: item["page_number"])
+            elif page_errors:
                 diagnostics["pdf_failed_pages"] = sorted(page_errors, key=lambda item: item["page_number"])
                 check_pdf_cancelled()
                 if not any(text is not None for text in ocr_results):
@@ -7305,6 +7329,31 @@ def run_pdf_parsing_task(
         paper_title = str(options.get("paper_title") or "").strip()
         if not paper_title:
             paper_title = extract_title_from_latex(full_latex_content) or os.path.splitext(filename)[0]
+        if pdf_document_kind == "book":
+            from starhope.book_import import extract_book
+            model = pdf_parse_model or os.getenv("PREFER_PARSE_MODEL") or os.getenv("DEEPSEEK_PARSE_MODEL", "deepseek-flash")
+            provider = resolve_text_provider(model)
+            if not provider.api_key:
+                raise ValueError("请先在系统设置中配置拆题模型和API Key。")
+            book_pages = [{"page_number": number + 1, "markdown": str(ocr_results[index] or "")}
+                          for index, number in enumerate(target_page_indices)]
+            def book_progress(offset, message):
+                DOCUMENT_TASKS.update(task_id, log=message,
+                    progress=80 + int(18 * offset / max(1, len(book_pages))))
+            questions = extract_book(book_pages, title=paper_title, subject=book_subject,
+                provider=provider, metadata={key: [row["value"] for row in METADATA_CACHE[key]]
+                    for key in ("question_types", "difficulties")}, diagnostics=diagnostics,
+                check_cancelled=check_pdf_cancelled, progress=book_progress, post=post_chat_completion)
+            questions = post_process_pdf_parsed_questions(questions, paper_title, task_id,
+                                                          source_body_preserved=True)
+            report = diagnostics["book_import"]
+            pending = len(report["unresolved"]) + len(report["unmatched_answers"])
+            DOCUMENT_TASKS.complete(task_id, data=questions, partial=bool(pending),
+                log=f"书籍已提取 {len(questions)} 道题，配对 {report['matched_answers']} 份集中答案；请校对后批量入库。",
+                generate_answers=False, document_type="pdf", diagnostics=diagnostics,
+                page_images=list(page_urls), page_numbers=[number + 1 for number in target_page_indices],
+                temp_assets=list(dict.fromkeys(temp_assets)))
+            return
         source_content = (re.sub(r"<!-- STARHOPE_PDF_PAGE:\d+ -->", "", full_latex_content)
                           if layout_result is not None else full_latex_content)
         locked_source, math_locks = (
@@ -7646,7 +7695,8 @@ def _queue_document_upload(content, filename, document_type, client_request_id, 
 
 PDF_MINERU_FIGURE_MODES = frozenset({"system", "mineru", "existing"})
 PDF_OCR_ENGINES = frozenset({"existing", "mineru"})
-PDF_OPTIONAL_SETTINGS = frozenset({"whole_page_ocr_dpi", "pdf_mineru_figures", "pdf_ocr_engine", "pdf_parse_model"})
+PDF_OPTIONAL_SETTINGS = frozenset({"whole_page_ocr_dpi", "pdf_mineru_figures", "pdf_ocr_engine", "pdf_parse_model",
+                                   "pdf_document_kind", "book_subject"})
 
 
 def _valid_pdf_split_model(value):
@@ -7668,11 +7718,20 @@ def upload_pdf_task(
     pdf_mineru_figures: str = Form("system"),
     pdf_ocr_engine: str = Form("existing"),
     pdf_parse_model: str = Form(""),
+    pdf_document_kind: str = Form("paper"),
+    book_subject: str = Form("数学"),
 ):
     try:
         from starhope.mineru_api import mineru_api_token
 
         client_request_id = _document_request_id(client_request_id)
+        from starhope.subject_annotations import normalize_annotation
+        if pdf_document_kind not in {"paper", "book"}:
+            raise HTTPException(400, "PDF文档类型无效。")
+        try:
+            book_subject, _ = normalize_annotation(book_subject, "")
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
         if pdf_strategy not in PDF_STRATEGIES:
             return JSONResponse(content={"status": "error", "message": "不支持的 PDF 解析策略。"}, status_code=400)
         if (whole_page_ocr_dpi not in {150, 300} or pdf_mineru_figures not in PDF_MINERU_FIGURE_MODES
@@ -7684,7 +7743,7 @@ def upload_pdf_task(
             raise HTTPException(status_code=400, detail="请在 API 设置中填写 MinerU API Token。")
         if pdf_parse_model and not resolve_text_provider(pdf_parse_model).api_key:
             raise HTTPException(status_code=400, detail="所选拆题 API 尚未配置凭证，请检查 API 设置。")
-        generate_answers_bool = generate_answers.lower() in ("true", "1", "yes")
+        generate_answers_bool = pdf_document_kind != "book" and generate_answers.lower() in ("true", "1", "yes")
         
         # 验证文件扩展名
         filename = file.filename or ""
@@ -7713,6 +7772,8 @@ def upload_pdf_task(
             pdf_verify_suspicions=bool(pdf_verify_suspicions) if pdf_strategy == "layout_aware" else False,
             paper_title=paper_title.strip())
         visual_options = {}
+        if pdf_document_kind == "book":
+            visual_options.update(pdf_document_kind="book", book_subject=book_subject)
         if whole_page_ocr_dpi != 150:
             visual_options["whole_page_ocr_dpi"] = whole_page_ocr_dpi
         if pdf_mineru_figures != "system":
@@ -8181,6 +8242,8 @@ def resume_document_task(task_id: str):
                 or options.get("whole_page_ocr_dpi", 150) not in {150, 300}
                 or options.get("pdf_mineru_figures", "system") not in PDF_MINERU_FIGURE_MODES
                 or options.get("pdf_ocr_engine", "existing") not in PDF_OCR_ENGINES
+                or options.get("pdf_document_kind", "paper") not in {"paper", "book"}
+                or options.get("book_subject", "数学") not in SUBJECTS
                 or not _valid_pdf_split_model(options.get("pdf_parse_model", ""))
                 or (options.get("page_range") is not None and not isinstance(options["page_range"], str))))
             or (source["document_type"] == "docx" and type(options.get("docx_verify_suspicions")) is not bool)):

@@ -156,6 +156,8 @@ class Question(Base):
     category_compulsory = Column(String(100), default="", index=True)  # 必修/选修/选择性必修
     category_chapter = Column(String(100), default="", index=True)  # 章节
     category_knowledge = Column(String(100), default="", index=True)  # 知识点
+    subject = Column(String(30), nullable=False, default="数学", server_default="数学", index=True)
+    subject_topics = Column(Text, nullable=False, default="", server_default="")
     difficulty = Column(String(50), default="medium", index=True)  # easy, medium, hard
     source = Column(String(200), default="")  # 来源
     answer_markdown = Column(Text, default="")  # 答案与解析 (LaTeX + markdown)
@@ -281,6 +283,8 @@ class Question(Base):
             "category_knowledge": self.category_knowledge,
             "sub_knowledge": self.sub_knowledge_for_version(version_code) if sub_knowledge is None else sub_knowledge,
             "knowledge_points": [row.to_dict() for row in self.knowledge_points],
+            "subject": self.subject or "数学",
+            "subject_topics": self.subject_topics or "",
             "difficulty": self.difficulty,
             "source": self.source,
             "answer_markdown": self.answer_markdown,
@@ -316,6 +320,8 @@ class Question(Base):
                 row.to_summary_dict() if compact_knowledge_points else row.to_dict()
                 for row in self.knowledge_points
             ],
+            "subject": self.subject or "数学",
+            "subject_topics": self.subject_topics or "",
             "difficulty": self.difficulty,
             "source": self.source,
             "has_answer": bool((self.answer_markdown or "").strip()),

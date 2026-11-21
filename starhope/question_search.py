@@ -18,7 +18,7 @@ _SEQUENCE = re.compile(r"(?P<exact>#)?(?P<number>[0-9]+)\Z")
 _SQLITE_MAX_INTEGER = (1 << 63) - 1
 MAX_SEARCH_RULES = 8
 MAX_SEARCH_RULE_KEYWORD = 64
-_TEXT_FIELDS = ("content", "answer_markdown", "review", "source", "tags")
+_TEXT_FIELDS = ("content", "answer_markdown", "review", "source", "tags", "subject", "subject_topics")
 
 
 def searchable_question_text(value: str | None) -> str:

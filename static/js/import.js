@@ -166,6 +166,7 @@
             renderIllustrationBadges();
             
             document.getElementById('editQType').value = 'single_choice';
+            hydrateSubjectEditor({});
             document.getElementById('editDifficulty').value = 'easy_error';
             document.getElementById('editCompulsory').value = '';
             document.getElementById('editCompulsory').onchange();
@@ -236,7 +237,8 @@
                 
                 // Reset select lists
                 document.getElementById('editQType').value = 'single_choice';
-                document.getElementById('editDifficulty').value = 'easy_error';
+                hydrateSubjectEditor({});
+            document.getElementById('editDifficulty').value = 'easy_error';
                 document.getElementById('editCompulsory').value = '';
                 document.getElementById('editCompulsory').onchange();
                 
@@ -299,6 +301,7 @@
             
             // Reset selects
             document.getElementById('editQType').value = 'single_choice';
+            hydrateSubjectEditor({});
             document.getElementById('editDifficulty').value = 'easy_error';
             document.getElementById('editCompulsory').value = '';
             document.getElementById('editCompulsory').onchange();
@@ -960,7 +963,8 @@
                     
                     // Cascade bindings
                     setEditorMetadataValue(document.getElementById('editQType'), fullItem.question_type);
-                    setEditorMetadataValue(document.getElementById('editDifficulty'), fullItem.difficulty);
+                    hydrateSubjectEditor(fullItem);
+                setEditorMetadataValue(document.getElementById('editDifficulty'), fullItem.difficulty);
                     if (document.getElementById('editTags')) {
                         document.getElementById('editTags').value = fullItem.tags || '';
                     }
@@ -1089,6 +1093,7 @@
                 const chapter = document.getElementById('editChapter').value;
                 const knowledge = document.getElementById('editKnowledge').value;
                 const subKnowledge = typeof window.getEditorSubKnowledge === 'function' ? window.getEditorSubKnowledge() : [];
+                const subjectFields = readSubjectEditor();
                 const difficulty = document.getElementById('editDifficulty').value;
                 const source = document.getElementById('editSource').value;
                 const answerMarkdown = document.getElementById('editAnswerMarkdown').value;
@@ -1117,7 +1122,7 @@
                 }
                 
                 // Check if Compulsory or Chapter classifications are missing
-                if (!skipCheck && (!compulsory || !chapter)) {
+                if (!skipCheck && subjectFields.subject === '数学' && (!compulsory || !chapter)) {
                     const classifyContext = captureAIClassifyContext();
                     const classifySequence = classifyRequestSequence;
                     const choice = await showMissingCompulsoryModal();
@@ -1182,6 +1187,7 @@
                     answer_markdown: answerMarkdown,
                     review: review,
                     question_type: qtype,
+                    ...subjectFields,
                     difficulty: difficulty,
                     source: source,
                     category_compulsory: compulsory,
@@ -1218,6 +1224,8 @@
                 formData.append('category_knowledge', knowledge);
                 formData.append('knowledge_points', JSON.stringify(knowledgePoints));
                 if (curriculumVersion) formData.append('expected_version_code', curriculumVersion);
+                formData.append('subject', subjectFields.subject);
+                formData.append('subject_topics', subjectFields.subject_topics);
                 formData.append('difficulty', difficulty);
                 formData.append('source', source);
                 formData.append('answer_markdown', answerMarkdown);
@@ -1716,6 +1724,7 @@
         }
 
         function requestAIClassify({quality = null, preserveResult = false} = {}) {
+            if (readSubjectEditor().subject !== '数学') { showToast('其他学科请使用题库筛选区的批量标注入口。', 'info'); return Promise.resolve(false); }
             const content = document.getElementById('editContent').value;
             const modal = document.getElementById('aiClassifyModal');
             if (classifyRefineInFlight || questionDetailLoading || saveQuestionInFlight || !modal?.dataset.classifyOpen) return Promise.resolve(false);

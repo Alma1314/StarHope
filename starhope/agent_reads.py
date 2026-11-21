@@ -293,7 +293,7 @@ class AgentReader:
         clauses, params, resolved_points = [], [], []
         if query:
             fields = [field for field in ("category_compulsory", "category_chapter", "category_knowledge",
-                      "content", "source", "tags", "answer_markdown", "review") if field in self.columns]
+                      "content", "source", "tags", "subject", "subject_topics", "answer_markdown", "review") if field in self.columns]
             clauses.append("(" + " OR ".join(f"q.{field} LIKE ? ESCAPE '\\'" for field in fields) + ")")
             params.extend([_like(query)] * len(fields))
         if source:
@@ -372,7 +372,7 @@ class AgentReader:
             if query:
                 reasons.extend({"field": field, "query": query} for field in
                                ("category_compulsory", "category_chapter", "category_knowledge", "content",
-                                "source", "tags", "answer_markdown", "review")
+                                "source", "tags", "subject", "subject_topics", "answer_markdown", "review")
                                if field in row.keys() and query.casefold() in str(row[field] or "").casefold())
             if source:
                 reasons.append({"field": "source", "query": source})
@@ -535,6 +535,8 @@ class AgentReader:
             "id", "question_type", "category_compulsory", "category_chapter", "category_knowledge",
             "difficulty", "source", "association_group_id", "tags", "created_at",
         )}
+        item["subject"] = row.get("subject") or "数学"
+        item["subject_topics"] = row.get("subject_topics") or ""
         if seq_num is not None:
             item["seq_num"] = seq_num
         item.update(

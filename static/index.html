@@ -398,6 +398,8 @@
                         <button type="button" class="question-filter-action question-filter-dismiss" aria-label="关闭筛选" onclick="closeBankFilterPopover()"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                     </header>
                     <div class="workspace-filter-grid question-filter-scroll bank-filter-fields">
+                        <label>学科<select id="filterSubject" class="glass-select"><option value="">所有学科</option><option>数学</option><option>物理</option><option>化学</option><option>生物</option><option>语文</option><option>英语</option><option>历史</option><option>地理</option><option>政治</option><option>信息技术</option><option>其他</option></select></label>
+                        <button type="button" class="glass-btn p-2 rounded-xl" onclick="openSubjectAnnotations()">本页学科与批量标注</button>
                         <div class="question-scope-filters" role="group" aria-label="题目范围">
                             <label>学段
                                 <select id="filterCompulsory" aria-label="学段" class="glass-select text-xs px-2.5 py-2.5 rounded-xl">
@@ -580,6 +582,11 @@
                         <span>分类信息</span>
                     </h3>
 
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="text-xs">学科<select id="editSubject" class="glass-select w-full" onchange="syncSubjectEditor()"><option>数学</option><option>物理</option><option>化学</option><option>生物</option><option>语文</option><option>英语</option><option>历史</option><option>地理</option><option>政治</option><option>信息技术</option><option>其他</option></select></label>
+                        <label class="text-xs">学科知识点（每行一个）<textarea id="editSubjectTopics" class="glass-input w-full" maxlength="2000" rows="2" placeholder="例如：牛顿第二定律"></textarea></label>
+                    </div>
+                    <p class="text-xs text-slate-500">数学可继续使用下方教材目录与主辅知识点；其他学科使用上方知识点名称。批量 AI 建议入口位于题库筛选区。</p>
                     <!-- Row 1: Type + Difficulty + Source -->
                     <div class="grid grid-cols-3 gap-3">
                         <div>
@@ -2515,6 +2522,7 @@
 
     <!-- MAIN APP JAVASCRIPT -->
     <script src="/static/js/api.js"></script>
+    <script src="/static/js/subject-annotations.js"></script>
     <script src="/static/js/editor.js"></script>
     <script src="/static/js/ocr.js"></script>
     <script src="/static/js/import.js"></script>
