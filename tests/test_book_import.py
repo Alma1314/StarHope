@@ -57,17 +57,31 @@ def test_ambiguous_answers_are_retained_without_guessing(change):
     assert all(q["answer_markdown"] in ("", "原有紧邻答案") for q in questions)
 
 
-@pytest.mark.parametrize("bad", ["page", "gap", "outside_core", "image", "level", "duplicate_field"])
+@pytest.mark.parametrize("bad", ["page", "gap", "image", "level", "duplicate_field"])
 def test_invalid_source_and_envelope_are_rejected(bad):
     pages = [{"page_number": 1, "markdown": "原文"}, {"page_number": 3, "markdown": "原文"}]
     value = packet([row()])
     if bad == "page": value["records"][0]["start_page"] = True
     if bad == "gap": value["records"][0]["end_page"] = 3
-    if bad == "outside_core": value["records"][0].update(start_page=3, end_page=3)
     if bad == "image": value["records"][0]["content"] = "![](/static/uploads/other.png)"
     if bad == "level": value["records"][0]["difficulty"] = "猜测"
     if bad == "duplicate_field": value["unknown"] = True
     with pytest.raises(ValueError): validate_batch(value, pages, [1], METADATA)
+
+
+def test_context_page_records_are_skipped_without_losing_core_records():
+    pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 7)]
+    value = packet([row(page=5), row(page=2, number="习题2")])
+    adopted, notes, _context = validate_batch(value, pages, [1, 2, 3, 4], METADATA)
+    assert [item["start_page"] for item in adopted] == [2]
+    assert any("上下文页" in note and "第5页" in note for note in notes)
+
+
+def test_batch_with_only_context_records_completes_empty():
+    pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 7)]
+    adopted, notes, _context = validate_batch(packet([row(page=6)]), pages, [1, 2, 3, 4], METADATA)
+    assert adopted == []
+    assert any("上下文页" in note and "第6页" in note for note in notes)
 
 
 def test_cross_page_context_ownership_and_original_answer_pairing():
@@ -105,6 +119,24 @@ def test_truncated_or_failed_batch_preserves_other_batches_and_does_not_retry():
     assert len(calls) == 2 and len(questions) == 1
     assert diagnostics["book_import"]["batches"][1]["status"] == "failed"
     assert diagnostics["book_import"]["unresolved"]
+
+
+def test_context_echo_does_not_fail_the_owning_batch():
+    pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 9)]
+    calls = []
+    def post(provider, payload, **kwargs):
+        data = json.loads(payload["messages"][1]["content"])
+        calls.append(data)
+        if data["core_pages"][0] == 1:
+            return reply(packet([row(page=5), row(page=2)]))
+        return reply(packet([]))
+    diagnostics = {}
+    questions = extract_book(pages, title="书", subject="数学", provider=PROVIDER, metadata=METADATA,
+                             diagnostics=diagnostics, post=post)
+    assert len(questions) == 1 and questions[0]["book_pages"] == [2]
+    first = diagnostics["book_import"]["batches"][0]
+    assert first["status"] == "completed" and first["records"] == 1
+    assert any("上下文页" in note for note in diagnostics["book_import"]["unresolved"])
 
 
 def test_cancellation_and_oversized_input_never_start_a_paid_request():

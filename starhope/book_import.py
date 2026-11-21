@@ -35,7 +35,7 @@ def build_book_prompt(subject, metadata):
 按原书逐字记录chapter（章标题）、section（习题组/小节标题）、number（原题号，例题与练习必须区别）。不能把书后答案区误当题干区。
 输入context是上一批已看到的标题，仅作辅助；答案区只能继承答案区明确给出的章/习题组，不能沿用正文末章。
 集中答案须按原书明确标题填写身份；缺少身份就留空，不按数组位置或相近文字猜测归属。
-主处理页core_pages以外页面仅供跨页上下文；只返回在主处理页开始的记录，跨页题/答案必须收全。
+主处理页core_pages以外页面仅供跨页上下文；只返回在core_pages开始且完整收全的记录。任何start_page不在core_pages内的题目或答案一律不要返回，不要为了连贯性返回上下文页内容。
 超过上下文边界、缺页、不完整或共享条件无法收全的内容不得生成残缺题卡，放入unresolved并说明原页和原因。
 每条题目可以直接带其紧邻的原答案；集中答案独立返回kind=answer，content为完整原答案，answer_markdown为空。
 所有页码都是输入中的原PDF物理页码（1起始），start_page/end_page必须绑定实际内容。不要返回页外内容。
@@ -71,6 +71,7 @@ def validate_batch(packet, pages, core_pages, metadata):
     from .question_assets import embedded_question_assets
     allowed_images = set(embedded_question_assets(*(page["markdown"] for page in pages)))
     result = []
+    skipped_pages = set()
     fields = {"kind", "chapter", "section", "number", "start_page", "end_page", "content",
               "answer_markdown", "question_type", "difficulty", "topics"}
     for row in records:
@@ -82,7 +83,10 @@ def validate_batch(packet, pages, core_pages, metadata):
                 or any(number not in numbers for number in range(start, end + 1))):
             raise ValueError("书籍题目跨越缺页或超出本批原页。")
         if start not in core_pages:
-            raise ValueError("书籍模型返回了仅供上下文的题目，未接收重复范围。")
+            # Context pages are owned by the neighbouring batch. A model that
+            # echoes them forward must not discard the valid core records.
+            skipped_pages.add(start)
+            continue
         clean = {**row}
         for key, limit in (("chapter", 200), ("section", 200), ("number", 100),
                            ("content", 40000), ("answer_markdown", 40000)):
@@ -99,6 +103,13 @@ def validate_batch(packet, pages, core_pages, metadata):
         if not references.issubset(allowed_images):
             raise ValueError("书籍模型返回了不属于本批原页的图片。")
         result.append(clean)
+    if skipped_pages:
+        shown = "、".join(str(page) for page in sorted(skipped_pages)[:12])
+        notes.append(
+            f"已跳过模型在上下文页返回的记录（第{shown}"
+            + ("页等" if len(skipped_pages) > 12 else "页")
+            + "）；这些页面由对应批次处理。"
+        )
     return result, notes, context
 
 
