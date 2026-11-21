@@ -547,6 +547,9 @@ def test_restore_rejects_future_schema_before_replacing_current_database(tmp_pat
             "CREATE TABLE library_import_receipts (archive_sha256 VARCHAR(64) PRIMARY KEY NOT NULL, "
             "imported_at DATETIME NOT NULL, question_count INTEGER NOT NULL)"
         )
+        connection.execute("CREATE TABLE learners (id INTEGER PRIMARY KEY)")
+        connection.execute("CREATE TABLE learning_attempts (id TEXT PRIMARY KEY, content TEXT, reference_answer TEXT)")
+        connection.execute("CREATE TABLE learning_reviews (id INTEGER PRIMARY KEY)")
     archive = create_full_backup(
         output_dir=tmp_path / "snapshots",
         database_path=future_database,

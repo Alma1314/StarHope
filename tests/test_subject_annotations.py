@@ -69,7 +69,7 @@ def test_migration_preserves_old_questions_and_snapshots(isolated, tmp_path, mon
     result = migrate_database(engine)
     from pathlib import Path
     assert Path(result['backup']).is_file()
-    assert result['to_version'] == 17
+    assert result['to_version'] == migrations.LATEST_SCHEMA_VERSION
     with factory() as db:
         q = db.get(Question, 1)
         assert q.content == '求物体的加速度' and q.subject == '数学' and q.subject_topics == ''

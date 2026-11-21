@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const workspaceIds = ['dashboard', 'bank', 'import', 'paper', 'records', 'qa'];
+    const workspaceIds = ['dashboard', 'bank', 'import', 'paper', 'records', 'learning', 'qa'];
 
     function closeWorkspaceDropdown() {
         const menu = document.getElementById('workspaceDropdownMenu');
@@ -79,6 +79,7 @@
         }
         if (target === 'dashboard') window.loadDashboardData?.();
         if (target === 'paper') window.renderPaperWorkspace?.();
+        if (target === 'learning') window.LearningWorkspace?.open();
     };
 
     // Place the import center beside the other workspaces in the shared shell.

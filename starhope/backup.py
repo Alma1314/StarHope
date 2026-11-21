@@ -87,6 +87,10 @@ def _backup_count_tables(schema_version: int) -> set[str]:
         tables.add("document_import_receipts")
     if schema_version >= 16:
         tables.add("library_import_receipts")
+    if schema_version >= 18:
+        tables.update({"learners", "learning_attempts"})
+    if schema_version >= 19:
+        tables.add("learning_reviews")
     return tables
 
 
@@ -360,6 +364,10 @@ def _database_upload_references(
                 references.add(
                     _upload_archive_name(match.group(0), url_prefix=url_prefix)
                 )
+    if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='learning_attempts'").fetchone():
+        for content, answer in connection.execute("SELECT content, reference_answer FROM learning_attempts"):
+            for reference in embedded_question_assets(content, answer):
+                references.add(_upload_archive_name(reference, url_prefix=url_prefix))
     return references
 
 
@@ -980,6 +988,10 @@ def verify_full_backup(archive_path: Path) -> dict[str, Any]:
                             )
                             if schema_version >= 16:
                                 _validate_library_import_receipts(validation_connection)
+                            if schema_version >= 18:
+                                from starhope.db_migrations import _validate_learning_schema
+                                _validate_learning_schema(validation_connection,
+                                                          reviews=schema_version >= 19)
                             if schema_version >= 11:
                                 from starhope.db_migrations import _validate_sub_knowledge_schema
                                 _validate_sub_knowledge_schema(validation_connection)

@@ -106,6 +106,9 @@
                 <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
                 <span>试卷记录</span>
             </button>
+            <button type="button" id="appNavLearning" class="app-nav-item" data-app-nav-target="learning" onclick="selectWorkspace('learning', '学习档案')">
+                <i class="fa-solid fa-user-graduate" aria-hidden="true"></i><span>学习档案</span>
+            </button>
             <!-- QA_START -->
             <button type="button" id="appNavQa" class="app-nav-item" data-app-nav-target="qa" onclick="selectWorkspace('qa', 'QA · 常见问题')">
                 <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
@@ -166,6 +169,9 @@
                     <button onclick="selectWorkspace('paper', '组卷排版工作台')" class="glass-dropdown-item w-full px-3.5 py-2.5 text-xs text-left flex items-center justify-between rounded-xl" id="ws-btn-paper">
                         <span>组卷排版工作台</span>
                         <i class="fa-solid fa-check text-[10px] text-brand-600 dark:text-brand-500 hidden" id="ws-check-paper"></i>
+                    </button>
+                    <button type="button" onclick="selectWorkspace('learning', '学习档案')" class="glass-dropdown-item w-full px-3.5 py-2.5 text-xs text-left flex items-center justify-between rounded-xl" id="ws-btn-learning">
+                        <span>学习档案</span><i class="fa-solid fa-check text-[10px] text-brand-600 hidden" id="ws-check-learning"></i>
                     </button>
                     <!-- QA_START -->
                     <button type="button" onclick="selectWorkspace('qa', 'QA · 常见问题')" class="glass-dropdown-item w-full px-3.5 py-2.5 text-xs text-left flex items-center justify-between rounded-xl" id="ws-btn-qa">
@@ -1283,6 +1289,93 @@
             </div>
         </section>
         <!-- End of Saved Paper Records Workspace -->
+
+        <section id="learningWorkspaceSection" class="learning-workspace hidden w-full h-full overflow-y-auto custom-scrollbar" aria-labelledby="learningTitle">
+            <div class="learning-shell">
+                <div class="learning-heading">
+                    <div><h2 id="learningTitle" class="text-xl font-bold">学习档案</h2><p class="text-sm text-slate-500">每个人的练习、知识掌握记录与 AI 学习建议</p></div>
+                    <div class="learning-toolbar">
+                        <label for="learnerSelect" class="sr-only">当前学习档案</label>
+                        <select id="learnerSelect" class="glass-select rounded-xl px-3 py-2" aria-label="当前学习档案"></select>
+                        <button id="learnerCreate" type="button" class="glass-btn px-3 py-2 rounded-xl">新建档案</button>
+                        <button id="learnerEdit" type="button" class="glass-btn px-3 py-2 rounded-xl">编辑档案</button>
+                    </div>
+                </div>
+                <p id="learningStatus" role="status" aria-live="polite" class="text-sm text-slate-500"></p>
+                <div id="learningEmpty" class="glass-panel rounded-2xl p-6"><h3 class="font-semibold">从一份学习档案开始</h3><p class="mt-2 text-sm text-slate-500">可使用昵称，为每个人分别保存学习目标和作答。这里是同一台电脑上的档案切换，不提供独立登录或访问隔离。</p></div>
+                <div id="learningContent" hidden>
+                    <div id="learningStats" class="learning-stats"></div>
+                    <div class="learning-columns">
+                        <div class="learning-stack">
+                            <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningPracticeTitle">
+                                <h3 id="learningPracticeTitle" class="font-semibold">练习与记录</h3>
+                                <div class="learning-form-grid">
+                                    <label>记录方式<select id="learningOrigin" class="glass-select"><option value="practice">在线练习：先作答后看原答案</option><option value="manual">手工录入：已有作业或考试结果</option></select></label>
+                                    <label>学科<select id="learningSubject" class="glass-select"><option value="">全部学科</option><option>数学</option><option>物理</option><option>化学</option><option>生物</option><option>语文</option><option>英语</option><option>历史</option><option>地理</option><option>政治</option><option>信息技术</option><option>其他</option></select></label>
+                                </div>
+                                <form id="learningQuestionSearch" class="learning-toolbar"><label class="learning-search-label">查找题目<input id="learningQuery" class="glass-input" maxlength="100" placeholder="题干关键词或 #题号"></label><button type="submit" class="glass-btn px-3 py-2 rounded-xl">查找</button></form>
+                                <div id="learningQuestions" class="learning-stack" aria-label="可练习的题目"></div>
+                                <div class="learning-toolbar"><button id="learningQuestionsPrev" class="glass-btn" type="button">上一页</button><span id="learningQuestionsPage" class="text-xs text-slate-500"></span><button id="learningQuestionsNext" class="glass-btn" type="button">下一页</button></div>
+                                <form id="learningAttemptForm" hidden class="learning-stack">
+                                    <p id="learningQuestionMeta" class="text-xs text-slate-500"></p>
+                                    <div id="learningQuestionBody" class="learning-preview"></div>
+                                    <label>你的作答<textarea id="learningAnswer" class="glass-input" rows="5" maxlength="10000" placeholder="填写答案与解题步骤，可使用 LaTeX"></textarea></label>
+                                    <label>备注<textarea id="learningNotes" class="glass-input" rows="2" maxlength="2000" placeholder="例如：用了提示、计算出错、线下考试"></textarea></label>
+                                    <div id="learningManualFields" hidden class="learning-form-grid">
+                                        <label>人工核对结果<select id="learningManualOutcome" class="glass-select"><option value="ungraded">待核对</option><option value="correct">正确</option><option value="partial">部分正确</option><option value="incorrect">错误</option></select></label>
+                                        <label>用时（秒，可留空）<input id="learningElapsed" class="glass-input" type="number" min="0" max="86400" step="1"></label>
+                                    </div>
+                                    <button id="learningSubmit" class="glass-btn text-brand-700 font-semibold px-4 py-2 rounded-xl" type="submit">提交作答并查看原答案</button>
+                                    <p class="text-xs text-slate-500">在线练习用时为本题在当前页面的停留时间。提交后由本人或老师对照原答案核对，不自动判分。</p>
+                                </form>
+                                <section id="learningReview" hidden class="learning-stack border-t pt-3" aria-label="作答记录与人工核对">
+                                    <h4 class="font-semibold">核对本次作答</h4>
+                                    <p id="learningReviewMeta" class="text-xs text-slate-500"></p>
+                                    <details><summary class="cursor-pointer text-sm">查看当时的题目</summary><div id="learningReviewQuestion" class="learning-preview mt-2"></div></details>
+                                    <p class="text-xs font-semibold">当时的作答</p><pre id="learningReviewAnswer" class="whitespace-pre-wrap break-words text-sm"></pre>
+                                    <p class="text-xs font-semibold">题库原答案（可能需核对）</p><div id="learningReference" class="learning-preview"></div>
+                                    <label>核对结果<select id="learningReviewOutcome" class="glass-select"><option value="ungraded">待核对，不计入掌握统计</option><option value="correct">正确</option><option value="partial">部分正确</option><option value="incorrect">错误</option></select></label>
+                                    <label>核对备注<textarea id="learningReviewNotes" class="glass-input" rows="2" maxlength="2000"></textarea></label>
+                                    <div class="learning-toolbar"><button id="learningGrade" type="button" class="glass-btn px-3 py-2 rounded-xl">保存核对结果</button><button id="learningExplain" type="button" class="glass-btn px-3 py-2 rounded-xl">AI 分析错因</button><button id="learningDeleteAttempt" type="button" class="glass-btn px-3 py-2 rounded-xl text-red-600">删除这条记录</button></div>
+                                    <div id="learningExplanation" hidden class="learning-stack" aria-live="polite"></div>
+                                </section>
+                            </section>
+                            <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningHistoryTitle">
+                                <h3 id="learningHistoryTitle" class="font-semibold">作答历史</h3><div id="learningHistory" class="learning-stack"></div>
+                                <div class="learning-toolbar"><button id="learningHistoryPrev" class="glass-btn" type="button">上一页</button><span id="learningHistoryPage" class="text-xs text-slate-500"></span><button id="learningHistoryNext" class="glass-btn" type="button">下一页</button></div>
+                            </section>
+                        </div>
+                        <div class="learning-stack">
+                            <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningReviewPlanTitle">
+                                <h3 id="learningReviewPlanTitle" class="font-semibold">今日复习</h3>
+                                <p class="text-xs text-slate-500">按人工核对结果排期：错误或部分正确次日复习，连续正确后间隔逐步延长。到期只表示建议回顾，不自动判分。</p>
+                                <div class="learning-toolbar"><button id="learningStartReview" type="button" class="glass-btn px-3 py-2 rounded-xl">开始复习第一题</button><span id="learningReviewDue" class="text-xs text-slate-500"></span></div>
+                                <div id="learningReviewList" class="learning-stack"></div>
+                            </section>
+                            <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningMistakesTitle">
+                                <h3 id="learningMistakesTitle" class="font-semibold">错题本</h3>
+                                <p class="text-xs text-slate-500">最近一次人工核对仍为错误或部分正确的题目。再练并核对为正确后自动移出；已攻克的题仍保留在作答历史。</p>
+                                <div class="learning-toolbar"><button id="learningExportMistakes" type="button" class="glass-btn px-3 py-2 rounded-xl">导出错题卷</button><button id="learningExportMistakesAnswers" type="button" class="glass-btn px-3 py-2 rounded-xl">含答案导出</button><span id="learningMistakeCount" class="text-xs text-slate-500"></span></div>
+                                <div id="learningMistakeList" class="learning-stack"></div>
+                            </section>
+                            <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningMasteryTitle">
+                                <h3 id="learningMasteryTitle" class="font-semibold">知识掌握记录</h3>
+                                <p class="text-xs text-slate-500">每个知识点取最近20道不同题的人工核对结果：正确记1、部分正确记0.5、错误记0。重复做同一道题只取最近一次；少于3道题显示“证据不足”。这里的得分率不是掌握概率。</p>
+                                <label>筛选知识点<input id="learningMasteryQuery" class="glass-input" type="search" placeholder="学科或知识点名称"></label>
+                                <div id="learningMastery" class="learning-stack"></div><button id="learningMasteryMore" type="button" class="glass-btn">显示更多知识点</button>
+                            </section>
+                            <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningProfileTitle">
+                                <h3 id="learningProfileTitle" class="font-semibold">AI 学习画像</h3>
+                                <p class="text-xs text-slate-500">开启自动更新后，核对结果、错误备注或纠正说明变化时，AI 在后台总结犯错点并更新画像。会向已配置的分类模型发送年级、目标、统计和作答文字节选，不附带档案名称或图片。画像是可纠正的学习建议；记录不足时保留不确定性。</p>
+                                <div class="learning-toolbar"><button id="learningGenerateProfile" type="button" class="glass-btn px-3 py-2 rounded-xl">主动重新生成</button><button id="learningCorrectProfile" type="button" class="glass-btn px-3 py-2 rounded-xl">纠正画像或设置自动更新</button><button id="learningReconnectProfile" hidden type="button" class="glass-btn px-3 py-2 rounded-xl">接回本次画像任务</button><button id="learningCancelProfile" hidden type="button" class="glass-btn px-3 py-2 rounded-xl">取消生成</button></div>
+                                <p id="learningProfileStatus" role="status" class="text-sm text-slate-500"></p>
+                                <div id="learningProfile" class="learning-stack"></div><button id="learningApplyProfile" hidden type="button" class="glass-btn px-3 py-2 rounded-xl">确认保存画像建议</button>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- QA_START -->
         <section id="qaWorkspaceSection" class="qa-workspace hidden w-full h-full" aria-labelledby="qaWorkspaceTitle">
@@ -2543,6 +2636,7 @@
     <script src="/static/js/document-import-session.js"></script>
     <script src="/static/js/paper.js"></script>
     <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/learning.js"></script>
     <script src="/static/js/workspace.js"></script>
     <!-- QA_START -->
     <script src="/static/js/qa-data.js"></script>

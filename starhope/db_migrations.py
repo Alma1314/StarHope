@@ -20,7 +20,7 @@ from starhope.paths import SCHEMA_SNAPSHOT_DIR
 from starhope.sub_knowledge import normalize_sub_knowledge
 
 
-LATEST_SCHEMA_VERSION = 17
+LATEST_SCHEMA_VERSION = 19
 LEGACY_REQUIRED_TABLES = {
     "questions",
     "question_curriculums",
@@ -29,7 +29,8 @@ LEGACY_REQUIRED_TABLES = {
 }
 KNOWLEDGE_POINT_TABLES = {"knowledge_points", "knowledge_point_curriculums", "question_knowledge_points"}
 QUESTION_REFERENCE_TABLES = {"question_source_labels", "question_references"}
-REQUIRED_TABLES = LEGACY_REQUIRED_TABLES | {"question_fingerprints", "question_sub_knowledge", "document_import_receipts", "library_import_receipts"} | KNOWLEDGE_POINT_TABLES | QUESTION_REFERENCE_TABLES
+LEARNING_TABLES = {"learners", "learning_attempts", "learning_reviews"}
+REQUIRED_TABLES = LEGACY_REQUIRED_TABLES | {"question_fingerprints", "question_sub_knowledge", "document_import_receipts", "library_import_receipts"} | KNOWLEDGE_POINT_TABLES | QUESTION_REFERENCE_TABLES | LEARNING_TABLES
 
 V6_QUESTION_FINGERPRINT_COLUMNS = {
     "question_id",
@@ -393,6 +394,48 @@ def _ensure_subject_columns(connection):
         if name not in columns:
             connection.exec_driver_sql(f"ALTER TABLE questions ADD COLUMN {name} {definition}")
     connection.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_questions_subject ON questions(subject)")
+
+
+def _validate_learning_schema(connection, *, reviews=True):
+    from starhope.database import Learner, LearningAttempt, LearningReview
+    models = (Learner, LearningAttempt, LearningReview) if reviews else (Learner, LearningAttempt)
+    for model in models:
+        table = model.__table__
+        info = {row[1]: row for row in connection.exec_driver_sql(f'PRAGMA table_info("{table.name}")')}
+        if set(info) != set(table.columns.keys()):
+            raise RuntimeError("学习档案表结构不完整")
+        for column in table.columns:
+            if not column.nullable and not column.primary_key and not info[column.name][3]:
+                raise RuntimeError("学习档案表非空约束不完整")
+        if tuple(row[1] for row in sorted(info.values(), key=lambda r: r[5]) if row[5]) != tuple(c.name for c in table.primary_key):
+            raise RuntimeError("学习档案表主键异常")
+        for fk in table.foreign_keys:
+            if not any(row[2] == fk.column.table.name and row[3] == fk.parent.name and row[4] == fk.column.name
+                       and row[6].upper() == fk.ondelete.upper()
+                       for row in connection.exec_driver_sql(f'PRAGMA foreign_key_list("{table.name}")')):
+                raise RuntimeError("学习档案外键不完整")
+        indexes = {tuple(row[2] for row in connection.exec_driver_sql(f'PRAGMA index_info("{index[1]}")'))
+                   for index in connection.exec_driver_sql(f'PRAGMA index_list("{table.name}")')}
+        if any(tuple(c.name for c in index.columns) not in indexes for index in table.indexes):
+            raise RuntimeError("学习档案索引不完整")
+        ddl = connection.exec_driver_sql("SELECT sql FROM sqlite_master WHERE name=?", (table.name,)).scalar_one()
+        if any(str(constraint.sqltext) not in ddl for constraint in table.constraints if hasattr(constraint, "sqltext")):
+            raise RuntimeError("学习记录值域约束不完整")
+        if connection.exec_driver_sql(f'PRAGMA foreign_key_check("{table.name}")').fetchall():
+            raise RuntimeError("学习记录外键异常")
+
+
+def _ensure_learning_tables(connection):
+    from starhope.database import Learner, LearningAttempt, LearningReview
+    for model in (Learner, LearningAttempt, LearningReview):
+        model.__table__.create(connection, checkfirst=True)
+    columns = {row[1] for row in connection.exec_driver_sql('PRAGMA table_info("learners")')}
+    for name, definition in {"auto_profile": "BOOLEAN NOT NULL DEFAULT 1",
+                             "profile_notes": "TEXT NOT NULL DEFAULT ''",
+                             "profile_error": "TEXT NOT NULL DEFAULT ''"}.items():
+        if name not in columns:
+            connection.exec_driver_sql(f"ALTER TABLE learners ADD COLUMN {name} {definition}")
+    _validate_learning_schema(connection)
 
 
 def _ensure_figure_layout_columns(connection) -> dict[str, int]:
@@ -1011,6 +1054,7 @@ def _rebuild_relationship_tables(engine: Engine) -> dict[str, int]:
                 raise RuntimeError(f"迁移后仍存在外键异常: {violations[:5]}")
 
             _ensure_subject_columns(connection)
+            _ensure_learning_tables(connection)
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1057,6 +1101,7 @@ def _upgrade_derived_schema(engine: Engine) -> dict[str, int]:
             )
             _validate_figure_layout_schema(connection)
             _ensure_subject_columns(connection)
+            _ensure_learning_tables(connection)
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1132,6 +1177,7 @@ def _upgrade_v6_or_v7_fingerprint_schema(
             _ensure_library_import_receipts(connection)
             _validate_figure_layout_schema(connection)
             _ensure_subject_columns(connection)
+            _ensure_learning_tables(connection)
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1177,6 +1223,7 @@ def migrate_database(
             _validate_document_import_receipts(connection)
             _validate_library_import_receipts(connection)
             _validate_question_order_schema(connection)
+            _validate_learning_schema(connection)
             columns = {row[1] for row in connection.exec_driver_sql('PRAGMA table_info("questions")')}
             if not {"subject", "subject_topics"}.issubset(columns):
                 raise RuntimeError("数据库缺少学科标注字段")

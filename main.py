@@ -67,6 +67,7 @@ from starhope.database import (
     Paper,
     PaperQuestion,
     engine,
+    SessionLocal,
     get_db,
     init_db,
     normalize_figure_size,
@@ -585,6 +586,8 @@ async def app_lifespan(_app: FastAPI):
 
             await asyncio.to_thread(DATABASE_EXPORT_QUEUE.close)
         SUBJECT_TASKS.shutdown(wait=False)
+        LEARNING_UPDATER.close()
+        PROFILE_TASKS.shutdown(wait=False)
         DOCUMENT_TASKS.shutdown(wait=False)
 
 
@@ -926,7 +929,7 @@ def read_index():
         # Inject dynamic cache-busting version parameter based on file mtime
         js_files = [
             "api.js", "subject-annotations.js", "editor.js", "ocr.js", "import.js", "book-import.js", "document-import-session.js",
-            "paper.js", "dashboard.js", "workspace.js", "qa-data.js", "qa.js",
+            "paper.js", "dashboard.js", "learning.js", "workspace.js", "qa-data.js", "qa.js",
         ]
         for js in js_files:
             js_path = str(STATIC_JS_DIR / js)
@@ -3032,6 +3035,9 @@ def import_library_transfer(
 
 from starhope.subject_annotations import create_subject_router, SUBJECT_TASKS, SUBJECTS
 app.include_router(create_subject_router(get_db, load_metadata=lambda: METADATA_CACHE, on_saved=_sharing_post_commit_export))
+from starhope.learning import create_learning_router, PROFILE_TASKS, AutoProfileUpdater
+LEARNING_UPDATER = AutoProfileUpdater(lambda: SessionLocal())
+app.include_router(create_learning_router(get_db, updater=LEARNING_UPDATER))
 app.include_router(_LIBRARY_TRANSFER_UPLOAD_ROUTER)
 
 app.include_router(create_agent_router(
@@ -5629,6 +5635,14 @@ def _referenced_question_assets(db: Session) -> set[Path]:
             except AssetSecurityError:
                 continue
             resolved_references.add(resolved)
+    from starhope.database import LearningAttempt
+    for content, answer in db.query(LearningAttempt.content, LearningAttempt.reference_answer).yield_per(250):
+        for reference in embedded_question_assets(content, answer):
+            try:
+                resolved_references.add(resolve_upload_asset(reference, uploads_dir=UPLOAD_DIR,
+                    url_prefix=UPLOAD_DIR_REL, require_file=False))
+            except AssetSecurityError:
+                continue
     return resolved_references
 
 

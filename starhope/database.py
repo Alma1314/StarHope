@@ -809,6 +809,68 @@ class PaperQuestion(Base):
             "score": self.score
         }
 
+class Learner(Base):
+    """Local learning identity; this is not an authentication account."""
+    __tablename__ = "learners"
+    __table_args__ = {"sqlite_autoincrement": True}
+    id = Column(Integer, primary_key=True)
+    name = Column(String(80), nullable=False)
+    grade = Column(String(80), nullable=False, default="")
+    goal = Column(Text, nullable=False, default="")
+    revision = Column(Integer, nullable=False, default=1)
+    ai_profile = Column(Text, nullable=False, default="{}")
+    auto_profile = Column(Boolean, nullable=False, default=True, server_default="1")
+    profile_notes = Column(Text, nullable=False, default="", server_default="")
+    profile_error = Column(Text, nullable=False, default="", server_default="")
+    created_at = Column(DateTime, nullable=False, default=_utcnow_naive)
+
+
+class LearningReview(Base):
+    """Per-question review schedule; identity survives question edits/deletion."""
+    __tablename__ = "learning_reviews"
+    __table_args__ = (
+        CheckConstraint("interval_days BETWEEN 1 AND 365", name="ck_review_interval"),
+        CheckConstraint("streak >= 0", name="ck_review_streak"),
+        Index("idx_learning_reviews_due", "learner_id", "due_at"),
+    )
+    learner_id = Column(Integer, ForeignKey("learners.id", ondelete="CASCADE"), primary_key=True)
+    question_identity = Column(String(64), primary_key=True)
+    question_id = Column(Integer, ForeignKey("questions.id", ondelete="SET NULL"), nullable=True)
+    interval_days = Column(Integer, nullable=False, default=1)
+    streak = Column(Integer, nullable=False, default=0)
+    due_at = Column(DateTime, nullable=False)
+    last_attempt_id = Column(String(36), nullable=True)
+    updated_at = Column(DateTime, nullable=False, default=_utcnow_naive)
+
+
+class LearningAttempt(Base):
+    """Immutable source snapshots survive question edits and deletion."""
+    __tablename__ = "learning_attempts"
+    __table_args__ = (
+        CheckConstraint("outcome IN ('ungraded','correct','partial','incorrect')", name="ck_attempt_outcome"),
+        CheckConstraint("origin IN ('practice','manual')", name="ck_attempt_origin"),
+        CheckConstraint("elapsed_seconds IS NULL OR elapsed_seconds BETWEEN 0 AND 86400", name="ck_attempt_elapsed"),
+        Index("idx_learning_attempts_learner_date", "learner_id", "created_at", "id"),
+    )
+    id = Column(String(36), primary_key=True)
+    learner_id = Column(Integer, ForeignKey("learners.id", ondelete="CASCADE"), nullable=False)
+    question_id = Column(Integer, ForeignKey("questions.id", ondelete="SET NULL"), nullable=True)
+    request_hash = Column(String(64), nullable=False)
+    question_identity = Column(String(64), nullable=False)
+    content = Column(Text, nullable=False)
+    reference_answer = Column(Text, nullable=False)
+    subject = Column(String(30), nullable=False)
+    difficulty = Column(String(50), nullable=False)
+    topics = Column(Text, nullable=False, default="[]")
+    student_answer = Column(Text, nullable=False, default="")
+    outcome = Column(String(20), nullable=False, default="ungraded")
+    elapsed_seconds = Column(Integer, nullable=True)
+    origin = Column(String(20), nullable=False)
+    notes = Column(Text, nullable=False, default="")
+    revision = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime, nullable=False, default=_utcnow_naive)
+
+
 # Dependency to get db session
 def get_db():
     db = SessionLocal()
