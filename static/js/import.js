@@ -4248,9 +4248,182 @@
                         image.addEventListener('keydown', event => {
                             if (event.key === 'Enter' || event.key === ' ') replace(event);
                         });
+                        if (!attachment && matches[occurrence]) {
+                            const redraw = document.createElement('button');
+                            redraw.type = 'button';
+                            redraw.className = 'glass-btn pdf-tikz-redraw-btn';
+                            redraw.textContent = '重绘 TikZ';
+                            redraw.style.cssText = 'margin:4px 6px 4px 0;font-size:10px;line-height:1.2;padding:4px 8px;border-radius:8px;';
+                            redraw.title = '把此图交给绘图模型重绘为可编辑 TikZ；失败时保留原图';
+                            redraw.setAttribute('aria-label', `将${field === 'content' ? '题干' : '答案与解析'}中的此图重绘为 TikZ`);
+                            const occurrenceReplacement = {field, path, ...matches[occurrence]};
+                            redraw.addEventListener('click', event => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (redraw.disabled) return;
+                                redraw.disabled = true;
+                                redrawParsedPdfFigure(index, question, occurrenceReplacement, card)
+                                    .finally(() => { redraw.disabled = false; });
+                            });
+                            image.insertAdjacentElement('afterend', redraw);
+                        }
                     });
                 });
             });
+        }
+
+        function confirmTikzRedraw(originalUrl, previewUrl) {
+            return new Promise(resolve => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.55);';
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.setAttribute('aria-labelledby', 'pdfTikzPreviewTitle');
+                const surface = document.createElement('div');
+                surface.className = 'glass-card';
+                surface.style.cssText = 'width:min(94vw,760px);max-height:90vh;overflow:auto;padding:16px;border-radius:16px;background:var(--surface,#fff);';
+                const title = document.createElement('h3');
+                title.id = 'pdfTikzPreviewTitle';
+                title.textContent = 'TikZ 重绘预览';
+                title.style.cssText = 'font-size:14px;font-weight:700;margin-bottom:10px;';
+                const grid = document.createElement('div');
+                grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;';
+                [['原图', originalUrl], ['TikZ 预览', previewUrl]].forEach(([label, url]) => {
+                    const figure = document.createElement('figure');
+                    figure.style.cssText = 'margin:0;text-align:center;';
+                    const image = document.createElement('img');
+                    image.src = url;
+                    image.alt = label;
+                    image.style.cssText = 'max-width:100%;max-height:240px;object-fit:contain;border:1px solid rgba(148,163,184,.4);border-radius:8px;background:#fff;';
+                    const caption = document.createElement('figcaption');
+                    caption.textContent = label;
+                    caption.style.cssText = 'font-size:11px;color:#64748b;margin-top:4px;';
+                    figure.append(image, caption);
+                    grid.appendChild(figure);
+                });
+                const actions = document.createElement('div');
+                actions.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-top:12px;';
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.className = 'glass-btn';
+                cancel.textContent = '保留原图';
+                const use = document.createElement('button');
+                use.type = 'button';
+                use.className = 'glass-btn-primary';
+                use.textContent = '使用重绘';
+                const close = result => {
+                    window.StarHopeModal.close(overlay);
+                    overlay.remove();
+                    resolve(result);
+                };
+                cancel.addEventListener('click', () => close(false));
+                use.addEventListener('click', () => close(true));
+                actions.append(cancel, use);
+                surface.append(title, grid, actions);
+                overlay.appendChild(surface);
+                document.body.appendChild(overlay);
+                window.StarHopeModal.open(overlay, { onEscape: () => close(false) });
+                use.focus({ preventScroll: true });
+            });
+        }
+
+        async function redrawParsedPdfFigure(index, question, replacement, card) {
+            if (!question || parsedQuestionsData[index] !== question || card.__sourceQuestion !== question) return;
+            const textarea = card.querySelector(replacement.field === 'answer_markdown'
+                ? '.card-answer-textarea' : '.card-content-textarea');
+            if (!textarea) return;
+            const snapshot = textarea.value;
+            const assetField = replacement.field === 'content' ? 'content_tikz_assets' : 'answer_tikz_assets';
+            const existingAsset = (Array.isArray(question[assetField]) ? question[assetField] : [])
+                .find(asset => asset && asset.image_path === replacement.path);
+            const referencePath = existingAsset?.reference_image_path || replacement.path;
+            const form = new FormData();
+            form.append('image_path', referencePath);
+            form.append('content', snapshot);
+            form.append('field', replacement.field);
+            if (typeof showToast === 'function') showToast('正在重绘配图，请稍候…', 'info');
+            let payload;
+            try {
+                const response = await fetch('/api/ai/redraw_figure_tikz', { method: 'POST', body: form });
+                payload = await response.json();
+                if (!response.ok) throw new Error(payload.detail || payload.message || `HTTP ${response.status}`);
+            } catch (error) {
+                if (typeof showToast === 'function') showToast(`配图重绘失败：${error.message}`, 'error');
+                return;
+            }
+            if (parsedQuestionsData[index] !== question || card.__sourceQuestion !== question
+                    || textarea.value !== snapshot) {
+                if (typeof showToast === 'function') showToast('题卡内容已变化，本次重绘未应用。', 'info');
+                return;
+            }
+            const previewUrl = window.StarHopeSafe.safeImageUrl(payload.preview_image_path);
+            const originalUrl = window.StarHopeSafe.safeImageUrl(replacement.path);
+            if (!previewUrl || !originalUrl) {
+                if (typeof showToast === 'function') showToast('重绘接口返回了无效图片路径。', 'error');
+                return;
+            }
+            const accepted = await confirmTikzRedraw(originalUrl, previewUrl);
+            if (!accepted) return;
+            if (parsedQuestionsData[index] !== question || card.__sourceQuestion !== question
+                    || textarea.value !== snapshot) {
+                if (typeof showToast === 'function') showToast('题卡内容已变化，本次重绘未应用。', 'info');
+                return;
+            }
+            const fieldValue = textarea.value;
+            const start = Number(replacement.start);
+            const end = Number(replacement.end);
+            if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0
+                    || end > fieldValue.length || fieldValue.slice(start, end) !== replacement.path) {
+                if (typeof showToast === 'function') showToast('图片引用位置已变化，请刷新预览后重试。', 'info');
+                return;
+            }
+            const updated = fieldValue.slice(0, start) + previewUrl + fieldValue.slice(end);
+            textarea.value = updated;
+            question[replacement.field] = updated;
+            if (!Array.isArray(question.image_paths)) question.image_paths = [];
+            const currentText = [
+                card.querySelector('.card-content-textarea')?.value || '',
+                card.querySelector('.card-answer-textarea')?.value || '',
+                question.review || ''
+            ].join('\n');
+            if (replacement.path !== referencePath
+                    && !window.StarHopeImageAssets.collect(currentText).includes(replacement.path)) {
+                question.image_paths = question.image_paths.filter(path => path !== replacement.path);
+            }
+            if (!question.image_paths.includes(previewUrl)) question.image_paths.push(previewUrl);
+            if (!question.image_paths.includes(referencePath)) question.image_paths.push(referencePath);
+            const oldKey = window.ImageLayoutTools?.key(replacement.path);
+            const newKey = window.ImageLayoutTools?.key(previewUrl);
+            if (oldKey && newKey && question.image_layouts?.[oldKey]) {
+                question.image_layouts = {...question.image_layouts, [newKey]: {...question.image_layouts[oldKey]}};
+                delete question.image_layouts[oldKey];
+            }
+            const assets = (Array.isArray(question[assetField]) ? question[assetField] : [])
+                .filter(asset => asset && asset.image_path !== replacement.path
+                    && asset.reference_image_path !== referencePath);
+            assets.push({
+                id: `pdf_tikz_${Date.now().toString(36)}`,
+                image_path: previewUrl,
+                tikz_code: String(payload.tikz_code || ''),
+                instruction: 'PDF 导入配图重绘',
+                reference_image_path: referencePath
+            });
+            question[assetField] = assets;
+            if (replacement.field === 'content') {
+                question.tikz_code = assets[0]?.tikz_code || '';
+                question.tikz_reference_image_path = assets[0]?.reference_image_path || '';
+            }
+            question.document_import_source_edited = true;
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            renderParsedCardPreview(card, card.querySelector('.card-content-textarea')?.value || '',
+                card.querySelector('.card-answer-textarea')?.value || '');
+            const badges = document.getElementById(`card-images-badges-${index}`);
+            if (badges) {
+                badges.innerHTML = '';
+                question.image_paths.forEach(path => appendSafeImageBadge(badges, path));
+            }
+            window.StarHopeDocumentImportSession?.saveSoon();
+            if (typeof showToast === 'function') showToast('已替换为 TikZ 预览，请核对线条、点名与原图是否一致。', 'success');
         }
 
         function performOrphanedTempCropsCleanup() {
@@ -6584,8 +6757,21 @@
             warnings.forEach(message => host.append(knowledgePointNode('p', message, 'text-[11px] text-amber-700')));
         }
 
+        function applyImportDefaultEducationStage(question, stage) {
+            // Imported cards start as 未标注; carry the user's import-wide choice
+            // into each card without overwriting an explicit stage (book imports
+            // and any AI/user-provided value stay authoritative).
+            if (!question || !stage || stage === '未标注') return question;
+            if (!question.education_stage || question.education_stage === '未标注') {
+                question.education_stage = stage;
+            }
+            return question;
+        }
+
         function renderParsedQuestionsList(questions) {
             const options = arguments.length > 1 && arguments[1] ? arguments[1] : {};
+            const defaultEducationStage = document.getElementById('importEducationStage')?.value || '未标注';
+            questions.forEach(question => applyImportDefaultEducationStage(question, defaultEducationStage));
             const container = document.getElementById('parsedCardsContainer');
             container.innerHTML = '';
             document.getElementById('parsedCountBadge').textContent = `共 ${questions.length} 题`;

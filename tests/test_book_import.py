@@ -25,6 +25,11 @@ def packet(records, **extra):
     return {"records": records, "unresolved": [], "context": {"chapter": "第一章", "section": "练习1.1", "role": "body"}, **extra}
 
 
+def incomplete(page=4, number="习题9", **extra):
+    return {"kind": "question", "chapter": "第一章", "section": "练习1.1", "number": number,
+            "start_page": page, "content": "题文前半", "reason": "跨页未收全", **extra}
+
+
 def reply(value, finish="stop"):
     return SimpleNamespace(json=lambda: {"choices": [{"finish_reason": finish,
         "message": {"content": json.dumps(value, ensure_ascii=False)}}]})
@@ -72,14 +77,14 @@ def test_invalid_source_and_envelope_are_rejected(bad):
 def test_context_page_records_are_skipped_without_losing_core_records():
     pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 7)]
     value = packet([row(page=5), row(page=2, number="习题2")])
-    adopted, notes, _context = validate_batch(value, pages, [1, 2, 3, 4], METADATA)
+    adopted, notes, _context, _incomplete = validate_batch(value, pages, [1, 2, 3, 4], METADATA)
     assert [item["start_page"] for item in adopted] == [2]
     assert any("上下文页" in note and "第5页" in note for note in notes)
 
 
 def test_batch_with_only_context_records_completes_empty():
     pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 7)]
-    adopted, notes, _context = validate_batch(packet([row(page=6)]), pages, [1, 2, 3, 4], METADATA)
+    adopted, notes, _context, _incomplete = validate_batch(packet([row(page=6)]), pages, [1, 2, 3, 4], METADATA)
     assert adopted == []
     assert any("上下文页" in note and "第6页" in note for note in notes)
 
@@ -119,6 +124,52 @@ def test_truncated_or_failed_batch_preserves_other_batches_and_does_not_retry():
     assert len(calls) == 2 and len(questions) == 1
     assert diagnostics["book_import"]["batches"][1]["status"] == "failed"
     assert diagnostics["book_import"]["unresolved"]
+
+
+def test_incomplete_question_is_carried_and_completed_next_batch():
+    pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 9)]
+    calls = []
+    def post(provider, payload, **kwargs):
+        data = json.loads(payload["messages"][1]["content"])
+        calls.append(data)
+        if data["core_pages"][0] == 1:
+            return reply(packet([row(page=2, number="习题1")],
+                                incomplete=[incomplete(page=4)]))
+        return reply(packet([row(page=4, end_page=7, number="习题9", content="完整题干")]))
+    diagnostics = {}
+    questions = extract_book(pages, title="书", subject="数学", provider=PROVIDER, metadata=METADATA,
+                             diagnostics=diagnostics, post=post)
+    assert calls[1]["carry_over"][0]["number"] == "习题9"
+    assert calls[1]["carry_over"][0]["content_tail"] == "题文前半"
+    carried = [item for item in questions if item["book_identity"]["number"] == "习题9"]
+    assert len(carried) == 1 and carried[0]["book_pages"] == [4, 5, 6, 7]
+    assert diagnostics["book_import"]["batches"][1]["records"] == 1
+
+
+def test_incomplete_carry_expires_after_two_batches_without_continuation():
+    pages = [{"page_number": number, "markdown": "原文"} for number in range(1, 17)]
+    calls = []
+    def post(provider, payload, **kwargs):
+        data = json.loads(payload["messages"][1]["content"])
+        calls.append(data)
+        if data["core_pages"][0] == 1:
+            return reply(packet([], incomplete=[incomplete(page=4)]))
+        return reply(packet([]))
+    diagnostics = {}
+    extract_book(pages, title="书", subject="数学", provider=PROVIDER, metadata=METADATA,
+                 diagnostics=diagnostics, post=post)
+    assert calls[0]["carry_over"] == []
+    assert calls[1]["carry_over"][0]["number"] == "习题9"
+    assert calls[2]["carry_over"][0]["number"] == "习题9"
+    assert calls[3]["carry_over"] == []
+    assert diagnostics["book_import"]["carry_dropped"] == 1
+    assert any("已停止携带" in note for note in diagnostics["book_import"]["unresolved"])
+
+
+def test_malformed_incomplete_record_is_rejected():
+    pages = [{"page_number": 1, "markdown": "原文"}]
+    with pytest.raises(ValueError):
+        validate_batch(packet([], incomplete=[{"kind": "question"}]), pages, [1], METADATA)
 
 
 def test_context_echo_does_not_fail_the_owning_batch():

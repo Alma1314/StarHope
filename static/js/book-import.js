@@ -2,6 +2,8 @@
 function syncBookImportOptions() {
     const book = document.getElementById('pdfDocumentKind')?.value === 'book';
     ['bookSubjectOption', 'bookEducationStageOption', 'bookImportHint'].forEach(id => { document.getElementById(id).hidden = !book; });
+    const importStage = document.getElementById('importEducationStageOption');
+    if (importStage) importStage.hidden = book;
     const generate = document.getElementById('importGenerateAnswers');
     if (generate) { generate.disabled = book && Boolean(window.currentPdfFile); if (generate.disabled) generate.checked = false; }
 }

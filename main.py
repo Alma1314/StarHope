@@ -2579,6 +2579,71 @@ def draw_tikz_from_image_endpoint(
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"AI 识图绘图失败: {str(e)}")
 
+@app.post("/api/ai/redraw_figure_tikz")
+def redraw_figure_tikz_endpoint(
+    image_path: str = Form(...),
+    content: str = Form(""),
+    field: str = Form("content"),
+):
+    """Redraw one imported figure as TikZ after the user explicitly asks.
+
+    The original crop is the reference image and remains the fallback. This
+    endpoint never batches figures or replaces anything server-side.
+    """
+    if field not in {"content", "answer_markdown"}:
+        raise HTTPException(status_code=400, detail="目标字段无效。")
+    content = (content or "").strip()
+    if len(content) > 30000:
+        raise HTTPException(status_code=400, detail="题文上下文不能超过 30000 个字符。")
+    try:
+        normalized_reference = normalize_upload_asset_reference(
+            image_path,
+            uploads_dir=UPLOAD_DIR,
+            url_prefix=UPLOAD_DIR_REL,
+        )
+        physical_path = resolve_upload_asset(
+            normalized_reference,
+            uploads_dir=UPLOAD_DIR,
+            url_prefix=UPLOAD_DIR_REL,
+        )
+    except AssetSecurityError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    prefer_draw = (
+        os.getenv("PREFER_DRAW_MODEL")
+        or os.getenv("PREFER_PARSE_MODEL")
+        or "Qwen/Qwen3-VL-32B-Instruct"
+    )
+    instruction = (
+        "只重绘参考图中的几何图形，保留全部线条、点名、刻度、角度和相对位置；"
+        "不要绘制题干、选项或参考图以外的内容。"
+    )
+    try:
+        tikz_code = draw_tikz_via_high_model(
+            str(physical_path), prefer_draw, latex_content=content,
+            instruction=instruction, require_image_support=True,
+        )
+        if not tikz_code:
+            raise RuntimeError("绘图模型未返回可用源码，请检查绘图模型与 API 密钥设置。")
+        preview = compile_tikz_with_label_review(tikz_code, context=content, adjust=True)
+        if preview.collisions:
+            try:
+                (Path(UPLOAD_DIR) / Path(preview.image_path).name).unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise HTTPException(status_code=409, detail="图中点名与线条重叠，请重试或保留原图。")
+        return {
+            "status": "success",
+            "tikz_code": preview.code,
+            "preview_image_path": preview.image_path,
+            "reference_image_path": normalized_reference,
+            "field": field,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"配图重绘失败: {str(exc)}") from exc
+
+
 # ----------------- Questions Management API -----------------
 
 def curriculum_filter_expression(
@@ -5300,6 +5365,9 @@ def parse_paper_text_internal(
         bind_ai_knowledge_catalog(question, knowledge_catalog)
     if preserve_source_answers:
         validate_import_knowledge(parsed_questions, curriculum, diagnostics=diagnostics)
+        from starhope.choice_format import normalize_question_choice_format
+        for question in parsed_questions:
+            normalize_question_choice_format(question)
         # Compare the original response before answer filtering or formula edits.
         return parsed_questions
 
@@ -5322,7 +5390,10 @@ def parse_paper_text_internal(
             value = q.get(field, "")
             if isinstance(value, str) and value:
                 q[field] = normalize_question_math_markdown(value)
-        
+
+    from starhope.choice_format import normalize_question_choice_format
+    for question in parsed_questions:
+        normalize_question_choice_format(question)
     return parsed_questions
 
 
@@ -6489,9 +6560,11 @@ def post_process_pdf_parsed_questions(parsed_questions: list, paper_title: str, 
     # destroys the relationship between an option label and its graph.
     knowledge_catalog = (load_ai_knowledge_catalog() if any(
         not hasattr(question.get("knowledge_points"), "catalog") for question in parsed_questions) else [])
+    from starhope.choice_format import normalize_question_choice_format
     for question in parsed_questions:
         if "knowledge_points" in question:
             annotate_ai_knowledge_points(question, knowledge_catalog)
+        normalize_question_choice_format(question)
     return parsed_questions
 
 

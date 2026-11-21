@@ -5,9 +5,9 @@ function educationStageOptions(current = '未标注', all = false) {
         `<option value="${value}" ${value === current ? 'selected' : ''}>${value}</option>`).join('');
 }
 document.addEventListener('DOMContentLoaded', () => {
-    ['editEducationStage', 'filterEducationStage', 'learningEducationStage', 'bookEducationStage'].forEach(id => {
+    ['editEducationStage', 'filterEducationStage', 'learningEducationStage', 'bookEducationStage', 'importEducationStage'].forEach(id => {
         const select = document.getElementById(id);
-        if (select) select.innerHTML = educationStageOptions(id.startsWith('edit') || id.startsWith('book') ? '未标注' : '', id.startsWith('filter') || id.startsWith('learning'));
+        if (select) select.innerHTML = educationStageOptions(id.startsWith('edit') || id.startsWith('book') || id === 'importEducationStage' ? '未标注' : '', id.startsWith('filter') || id.startsWith('learning'));
     });
 });
 function readSubjectEditor() {
