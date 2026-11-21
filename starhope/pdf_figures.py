@@ -35,6 +35,8 @@ from starhope.task_manager import TaskCancelled
 
 LAYOUT_SCHEMA = "starhope.pdf-layout.v1"
 MAX_FIGURES_PER_PAGE = 32
+MIN_FIGURE_SIDE = 15.0
+MIN_FIGURE_AREA = 1000.0
 MAX_SOURCE_CHARS = 50000
 PDF_STRATEGIES = frozenset({"native_preferred", "force_ocr", "layout_aware"})
 _FIGURE_SLOT = re.compile(r"\[插图待补(?:\s*[:：]\s*[^\]\n]{0,80})?\]")
@@ -204,6 +206,10 @@ def _validate_layout(result: dict, page_info: dict, *, notes: list[str] | None =
             raise ValueError("配图坐标越界或为空，未自动裁剪。")
         if (x1 - x0) * (y1 - y0) > 800000:
             raise ValueError("配图区域覆盖几乎整页，无法与正文可靠区分。")
+        if (x1 - x0) < MIN_FIGURE_SIDE or (y1 - y0) < MIN_FIGURE_SIDE or (
+                x1 - x0) * (y1 - y0) < MIN_FIGURE_AREA:
+            warnings.append("配图区域过小或退化为细条，未自动裁剪；请对照原页手动截图。")
+            continue
         overlap_warning = ""
         for previous in figures:
             message = _figure_overlap_warning(previous["bbox"], bbox)
@@ -633,6 +639,13 @@ def enrich_pdf_with_figures(
                                     affected["review_required"] = True
                                     affected["review_reasons"].append(message)
                                 page_warnings.append(message)
+                        if guarded.get("accept", True) is False:
+                            reason = (figure["review_reasons"][-1] if figure["review_reasons"]
+                                      else "原页证据表明该图框不是可用的配图。")
+                            if reason not in page_warnings:
+                                page_warnings.append(reason)
+                            figure["review_required"] = True
+                            continue
                     if figure.get("slot_id"):
                         slot = next(slot for slot in info["figure_slots"] if slot["id"] == figure["slot_id"])
                         # The model selects a server-issued ID. The server owns

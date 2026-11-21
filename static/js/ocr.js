@@ -250,8 +250,9 @@
                 // Pattern 2: Chinese numbers "一、", "十一．", etc.
                 cleaned = cleaned.replace(/^[一二三四五六七八九十百]+[\s、．\.\,，\:\：\-\—\~]+/i, '');
                 
-                // Pattern 3: parenthesized or bracketed numbers: (1), （2）, [3], 【4】
-                cleaned = cleaned.replace(/^[\(（\[【]\s*\d+\s*[\)）\]】][\s\.\,，、．\:\：\-\—\~]*/i, '');
+                // Pattern 3: bracketed label numbers: [3], 【4】. Parenthesized
+                // (1),（2）是题目内部的小问号，不能按卷子题号删除。
+                cleaned = cleaned.replace(/^[\[【]\s*\d+\s*[\]】][\s\.\,，、．\:\：\-\—\~]*/i, '');
                 
                 // Pattern 4: normal digits followed by punctuation: 1., 12、, 3, 4．, etc.
                 cleaned = cleaned.replace(/^\d+[\s\.\,，、．\:\：\-\—\~]+/, '');

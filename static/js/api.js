@@ -1555,7 +1555,9 @@
                     if (mineruToken) mineruToken.value = settings.mineru_api_token || '';
                     const mineruFigures = document.getElementById('settingsMineruPdfFigures');
                     if (mineruFigures) mineruFigures.checked = settings.mineru_pdf_figures === true;
-                    
+                    const semanticAdvisory = document.getElementById('settingsSemanticAdvisory');
+                    if (semanticAdvisory) semanticAdvisory.checked = settings.semantic_duplicate_advisory !== false;
+
                     document.getElementById('settingsZhongzhanGptKey').value = settings.zhongzhan_gpt_key || '';
                     document.getElementById('settingsZhongzhanGptBaseUrl').value = settings.zhongzhan_gpt_base_url || '';
                     document.getElementById('settingsZhongzhanClaudeKey').value = settings.zhongzhan_claude_key || '';
@@ -1788,7 +1790,9 @@
             // A single space distinguishes a cleared token from an omitted form field.
             if (mineruToken) formData.append('mineru_api_token', mineruToken.value || ' ');
             if (mineruFigures) formData.append('mineru_pdf_figures', String(mineruFigures.checked));
-            
+            const semanticAdvisory = document.getElementById('settingsSemanticAdvisory');
+            if (semanticAdvisory) formData.append('semantic_duplicate_advisory', String(semanticAdvisory.checked));
+
             formData.append('zhongzhan_gpt_key', zhongzhanGptKey);
             formData.append('zhongzhan_gpt_base_url', zhongzhanGptBaseUrl);
             formData.append('zhongzhan_gpt_ocr_model', zhongzhanGptOcrModel);

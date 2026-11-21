@@ -317,6 +317,13 @@ def test_cloud_pdf_paid_prompt_outputs_match_original_golden(name):
                     "`knowledge` 必须为空字符串，表示整章待细分。")
         assert value.count(current) == 1
         value = value.replace(current, original)
+    if name in {"page_vision", "layout"}:
+        # Reviewed 2026-11-22: reject text-only and sliver figure regions.
+        # Preserve the frozen upstream prompt around this exact sentence.
+        current = ("彩色底纹的题干框、正文段落和表格不是插图；不能只框住一条连线、箭头或一小段笔画"
+                   + ("，也不得把相邻题文卷进图框。" if name == "page_vision" else "。"))
+        assert value.count(current) == 1
+        value = value.replace(current, "")
     expected = ("65d121a77b28a165e8fdc6241173f873eec660b6df51daa6f2319a40925d16b4"
                 if name == "page_vision" else PROMPT_HASHES[name])
     assert hashlib.sha256(value.encode("utf-8")).hexdigest() == expected

@@ -336,7 +336,62 @@ def test_crop_of_a_real_paragraph_is_suspicious_not_just_outside_blank_space(tmp
     bbox=[row[0]-2,row[1]-2,row[2]+2,row[3]+2]
     assert guard._frame_ink(evidence,bbox)>8
     result=guard.guard_raster_figure_bbox(str(path),bbox)
+    assert result['accept'] is False
     assert result['status']=='suspect' and any('连续正文' in value for value in result['warnings'])
+
+
+def test_thin_sliver_over_a_line_graph_snaps_to_the_full_local_graph(tmp_path):
+    sliver=[760,820,770,905]
+    result=guard.guard_raster_figure_bbox(str(page(tmp_path)),sliver,improve_local_frame=True)
+    assert result['accept'] is True
+    assert result['changed'] and result['method']=='isolated_graph'
+    assert result['model_bbox']==sliver and result['warnings']==[]
+    bbox=result['bbox']
+    assert bbox[0]<=690 and bbox[1]<=795 and bbox[2]>=935 and bbox[3]>=940
+    assert bbox[2]-bbox[0]>200
+
+
+def test_loose_box_over_one_graph_snaps_and_drops_adjacent_text(tmp_path):
+    result=guard.guard_raster_figure_bbox(
+        str(page(tmp_path,nearby_text=True)),[680,785,995,990],improve_local_frame=True)
+    assert result['accept'] is True
+    assert result['changed'] and result['method']=='isolated_graph'
+    assert result['warnings']==[]
+    bbox=result['bbox']
+    assert bbox[3]<990 and bbox[2]<995  # Footer and loose margin are excluded.
+    assert bbox[0]<=690 and bbox[1]<=795 and bbox[2]>=935 and bbox[3]>=940
+
+
+def test_correct_box_with_local_graph_snap_stays_unchanged(tmp_path):
+    result=guard.guard_raster_figure_bbox(str(page(tmp_path)),GOOD,improve_local_frame=True)
+    assert result['accept'] is True
+    assert not result['changed'] and result['bbox']==GOOD and result['warnings']==[]
+
+
+def test_group_of_fully_contained_graphs_snaps_to_their_union(tmp_path):
+    image=Image.new('RGB',(1000,1000),'white');draw=ImageDraw.Draw(image)
+    diagram(draw);diagram(draw,-400,0)
+    draw.text((300,700),'Ordinary question text above both diagrams.',fill='black',
+              font=ImageFont.load_default(size=18))
+    path=tmp_path/'two-graphs.png';image.save(path)
+    box=[250,760,970,960]
+    result=guard.guard_raster_figure_bbox(str(path),box,improve_local_frame=True)
+    assert result['accept'] is True
+    assert result['changed'] and result['method']=='isolated_graph_group'
+    assert result['bbox'][0]<=300 and result['bbox'][2]>=930
+    assert result['bbox'][1]>=780 and result['bbox'][3]<=960
+    assert result['warnings']==[]
+
+
+def test_partially_covered_second_graph_blocks_a_group_snap(tmp_path):
+    image=Image.new('RGB',(1000,1000),'white');draw=ImageDraw.Draw(image)
+    diagram(draw,-550,0);diagram(draw,-200,0)
+    path=tmp_path/'two-partial.png';image.save(path)
+    box=[120,780,540,955]
+    result=guard.guard_raster_figure_bbox(str(path),box,improve_local_frame=True)
+    assert result['accept'] is True
+    assert not result['changed'] and result['bbox']==box
+    assert result['warnings']
 
 
 @pytest.mark.skipif(not os.getenv('STARHOPE_RASTER_GRID_PAGE'),reason='optional captured Hangzhou grid page')

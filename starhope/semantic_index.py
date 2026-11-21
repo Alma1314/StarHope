@@ -35,6 +35,10 @@ from .paths import SEMANTIC_INDEX_FILE
 
 EMBEDDING_MAX_CHARS = 12000
 EMBEDDING_BATCH_SIZE = 16
+# Advisory-only duplicate hint.  Scores at or above this value are shown to
+# the teacher as "语义疑似改写" but never change the duplicate level.
+SEMANTIC_ADVISORY_THRESHOLD = 0.88
+SEMANTIC_ADVISORY_QUERY_TIMEOUT_SECONDS = 30
 _VECTOR_TABLE = "vec_question_embeddings"
 _IMAGE_REF = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 _SCORE_NOTE = (
@@ -49,6 +53,16 @@ class EmbeddingConfig:
     api_key: str
     model: str
     provider: str
+
+
+def semantic_duplicate_advisory_enabled(environment=None) -> bool:
+    """Duplicate-check semantic hints are on unless explicitly switched off."""
+
+    env = os.environ if environment is None else environment
+    raw = str(env.get("SEMANTIC_DUPLICATE_ADVISORY", "") or "").strip().lower()
+    if not raw:
+        return True
+    return raw not in {"0", "false", "no", "off", "disabled"}
 
 
 def resolve_embedding_config(environment=None) -> EmbeddingConfig | None:
@@ -79,12 +93,21 @@ def resolve_embedding_config(environment=None) -> EmbeddingConfig | None:
     return None
 
 
-def question_embedding_text(question) -> str:
-    """Question text without image targets; includes subject and free topics."""
-    body = _IMAGE_REF.sub(" [图] ", str(question.content or ""))
-    parts = [str(question.subject or "数学"), str(question.subject_topics or ""), body]
+def embedding_text(subject: str, subject_topics: str, content: str) -> str:
+    """Shared embedding input for stored questions and ad-hoc duplicate checks."""
+    body = _IMAGE_REF.sub(" [图] ", str(content or ""))
+    parts = [str(subject or "数学"), str(subject_topics or ""), body]
     text = "\n".join(part for part in parts if part.strip())
     return text[:EMBEDDING_MAX_CHARS]
+
+
+def question_embedding_text(question) -> str:
+    """Question text without image targets; includes subject and free topics."""
+    return embedding_text(
+        str(question.subject or "数学"),
+        str(question.subject_topics or ""),
+        str(question.content or ""),
+    )
 
 
 def source_hash(model: str, text: str) -> str:
@@ -106,14 +129,19 @@ def _unpack(blob: bytes) -> list[float]:
     return [item[0] for item in struct.iter_unpack("<f", blob)]
 
 
-def embed_texts(texts: Sequence[str], config: EmbeddingConfig) -> list[list[float]]:
+def embed_texts(
+    texts: Sequence[str],
+    config: EmbeddingConfig,
+    *,
+    timeout: float | None = None,
+) -> list[list[float]]:
     """One bounded POST; no retries and no response-body logging."""
     cleaned = [str(text or "")[:EMBEDDING_MAX_CHARS] for text in texts]
     response = requests.post(
         f"{config.api_base}/embeddings",
         headers={"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"},
         json={"model": config.model, "input": cleaned},
-        timeout=AI_REQUEST_TIMEOUT_SECONDS,
+        timeout=AI_REQUEST_TIMEOUT_SECONDS if timeout is None else timeout,
     )
     if response.status_code != 200:
         raise RuntimeError(f"向量服务返回 HTTP {response.status_code}")

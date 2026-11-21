@@ -35,10 +35,22 @@ from starhope.question_duplicates import (
     compare_question_fingerprints,
     find_batch_duplicate_groups,
 )
+from starhope.semantic_index import (
+    SEMANTIC_ADVISORY_QUERY_TIMEOUT_SECONDS,
+    SEMANTIC_ADVISORY_THRESHOLD,
+    embed_texts,
+    embedding_text,
+    get_indexer,
+    resolve_embedding_config,
+    semantic_duplicate_advisory_enabled,
+)
 
 
 MAX_RECALL_CANDIDATES = 300
 SYNC_BACKFILL_LIMIT = 500
+# Ad-hoc embeddings cost one paid POST per unique question.  The advisory is a
+# single-question convenience, so large import batches skip it entirely.
+SEMANTIC_ADVISORY_MAX_ITEMS = 3
 
 
 @dataclass(frozen=True)
@@ -687,6 +699,127 @@ def find_indexed_candidates(
         limit=result_limit,
         fingerprint_cache=working_cache,
     )
+
+
+def find_semantic_duplicate_candidates(
+    db: Session,
+    fingerprint: QuestionFingerprint,
+    *,
+    content: str,
+    subject: str = "数学",
+    subject_topics: str = "",
+    uploads_dir: str | Path,
+    url_prefix: str,
+    exclude_id: int | None = None,
+    limit: int = 5,
+    fingerprint_cache: dict[int, QuestionFingerprint] | None = None,
+    indexer=None,
+    diagnostics: dict[str, object] | None = None,
+) -> tuple[list[IndexedCandidate], list[dict[str, object]], dict[str, object]]:
+    """Fallback recall through the vector index.
+
+    Semantic scores are advisory only.  A candidate still has to pass the
+    normal comparator to become a real match; otherwise it is returned as a
+    ``SEMANTIC_NEAR`` hint and never changes the duplicate level.
+    """
+
+    result_limit = max(1, min(int(limit), 20))
+    status: dict[str, object] = {
+        "configured": False,
+        "used": False,
+        "reason": "",
+    }
+    if not semantic_duplicate_advisory_enabled():
+        status["reason"] = "disabled"
+        if diagnostics is not None:
+            diagnostics.update(status)
+        return [], [], status
+    config = resolve_embedding_config()
+    if config is None:
+        status["reason"] = "unconfigured"
+        if diagnostics is not None:
+            diagnostics.update(status)
+        return [], [], status
+    status["configured"] = True
+    active_indexer = indexer or get_indexer()
+    if active_indexer.index.indexed_count(config.model) <= 0:
+        status["reason"] = "empty_index"
+        if diagnostics is not None:
+            diagnostics.update(status)
+        return [], [], status
+
+    text = embedding_text(subject, subject_topics, content)
+    try:
+        vector = embed_texts(
+            [text],
+            config,
+            timeout=SEMANTIC_ADVISORY_QUERY_TIMEOUT_SECONDS,
+        )[0]
+    except Exception as exc:
+        # Advisory only: a broken embedding endpoint must never fail a save.
+        status["reason"] = "embedding_failed"
+        print(
+            "[Duplicate Index] Semantic advisory skipped "
+            f"(type={type(exc).__name__})"
+        )
+        if diagnostics is not None:
+            diagnostics.update(status)
+        return [], [], status
+
+    scored = active_indexer.index.search(
+        vector,
+        max(result_limit * 4, 20),
+        model=config.model,
+    )
+    status["used"] = True
+    working_cache = fingerprint_cache if fingerprint_cache is not None else {}
+    ranked: list[IndexedCandidate] = []
+    advisories: list[dict[str, object]] = []
+    for question_id, score in scored:
+        if exclude_id is not None and int(question_id) == int(exclude_id):
+            continue
+        question = db.get(Question, int(question_id))
+        if question is None:
+            continue
+        candidate_fingerprint = working_cache.get(question.id)
+        if candidate_fingerprint is None:
+            candidate_fingerprint = fingerprint_for_question(
+                question,
+                uploads_dir=uploads_dir,
+                url_prefix=url_prefix,
+            )
+            working_cache[question.id] = candidate_fingerprint
+        comparison = compare_question_fingerprints(
+            fingerprint, candidate_fingerprint
+        )
+        if comparison.classification != "none":
+            ranked.append(
+                IndexedCandidate(question, candidate_fingerprint, comparison)
+            )
+        elif float(score) >= SEMANTIC_ADVISORY_THRESHOLD:
+            advisories.append(
+                {
+                    "question": question,
+                    "fingerprint": candidate_fingerprint,
+                    "score": round(float(score), 6),
+                    "reason": "SEMANTIC_NEAR",
+                }
+            )
+
+    rank = {"exact": 3, "probable": 2, "possible_variant": 1, "none": 0}
+    ranked.sort(
+        key=lambda item: (
+            -rank[item.comparison.classification],
+            -item.comparison.score,
+            item.question.id,
+        )
+    )
+    advisories.sort(key=lambda item: (-item["score"], item["question"].id))
+    status["candidate_count"] = len(scored)
+    status["semantic_match_count"] = len(advisories)
+    if diagnostics is not None:
+        diagnostics.update(status)
+    return ranked[:result_limit], advisories[:result_limit], status
 
 
 def exact_duplicate_ids(

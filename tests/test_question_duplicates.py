@@ -46,9 +46,10 @@ def test_conservative_normalization_removes_only_presentation_noise():
     assert left.critical_math_hash == right.critical_math_hash
     assert left.content_revision_hash == right.content_revision_hash
     comparison = compare_question_fingerprints(left, right)
-    # The figure path is intentionally ignored, but no pixel signature exists.
-    assert comparison.classification == "probable"
-    assert comparison.needs_visual_review is True
+    # Figure paths and pixel evidence are intentionally ignored.
+    assert comparison.classification == "exact"
+    assert comparison.silent_exact is True
+    assert comparison.needs_visual_review is False
     assert "SAFE_NORMALIZATION_ONLY" in comparison.reasons
     assert "VISUAL_SIGNATURE_PENDING" in comparison.reasons
 
@@ -268,9 +269,10 @@ def test_visible_assets_gate_exact_classification():
     assert exact_result.classification == "exact"
     assert exact_result.needs_visual_review is False
     assert "FIGURE_EXACT" in exact_result.reasons
-    assert changed_result.classification == "probable"
-    assert changed_result.needs_visual_review is True
-    assert "FIGURE_DIFF" in changed_result.reasons
+    # Figures never change the verdict for identical text.
+    assert changed_result.classification == "exact"
+    assert changed_result.silent_exact is True
+    assert changed_result.needs_visual_review is False
 
 
 def test_opaque_asset_signatures_remain_case_sensitive():
@@ -281,20 +283,21 @@ def test_opaque_asset_signatures_remain_case_sensitive():
         "如图求解。![](b.png)", tikz_signatures=("tikz:pointa",)
     )
 
-    result = compare_question_fingerprints(upper, lower)
+    # Text and figures are identical under the silent rule, but the opaque
+    # TikZ signatures stored on the fingerprints still differ byte-for-byte.
+    assert compare_question_fingerprints(upper, lower).silent_exact is True
+    assert upper.tikz_signatures != lower.tikz_signatures
 
-    assert result.classification == "probable"
-    assert result.needs_visual_review is True
-    assert "TIKZ_DIFF" in result.reasons
 
-
-def test_missing_figure_never_becomes_exact():
+def test_missing_figure_is_ignored_by_silent_exact():
     with_figure = fingerprint("如图求解。![](a.png)")
     without_figure = fingerprint("如图求解。")
 
     result = compare_question_fingerprints(with_figure, without_figure)
 
-    assert result.classification != "exact"
+    assert result.classification == "exact"
+    assert result.silent_exact is True
+    assert result.needs_visual_review is False
     assert result.auto_merge_allowed is False
 
 

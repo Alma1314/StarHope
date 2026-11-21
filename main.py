@@ -104,9 +104,11 @@ from starhope.import_review import (
     make_source_review_advisory, prepare_word_extraction_reviews, finalize_word_extraction_reviews,
 )
 from starhope.question_duplicate_service import (
+    SEMANTIC_ADVISORY_MAX_ITEMS,
     batch_local_matches,
     exact_duplicate_ids,
     find_indexed_candidates,
+    find_semantic_duplicate_candidates,
     fingerprint_for_question,
     index_status as duplicate_index_status,
     rebuild_all_missing_fingerprints,
@@ -303,6 +305,7 @@ from starhope.asset_lifecycle import (
     serialize_asset_lifecycle,
 )
 from starhope.paths import RETAINED_UPLOADS_DIR
+from starhope.question_stem import strip_leading_question_number
 from starhope.question_assets import (
     embedded_question_assets,
     markdown_literal_ranges,
@@ -1865,6 +1868,7 @@ def get_settings():
         },
         "processing_limits": public_processing_limits(),
         "classification_policy": public_classification_policy(),
+        "semantic_duplicate_advisory": semantic_duplicate_advisory_enabled(),
     }
 
 @app.post("/api/settings/save")
@@ -1889,6 +1893,7 @@ def save_settings(
     classify_quality: Optional[str] = Form(None),
     mineru_api_token_value: Optional[str] = Form(None, alias="mineru_api_token"),
     mineru_pdf_figures: Optional[bool] = Form(None),
+    semantic_duplicate_advisory: Optional[bool] = Form(None),
 ):
     from starhope.mineru_api import MineruAPIError, mineru_api_token, mineru_pdf_figures_enabled, validate_mineru_api_token
 
@@ -1909,6 +1914,12 @@ def save_settings(
             mode=classify_quality if isinstance(classify_quality, str) else None).mode
     except ValueError as exc:
         return JSONResponse(content={"status": "error", "message": str(exc)}, status_code=400)
+    # Older clients that omit the field keep the current preference.
+    semantic_advisory_enabled = (
+        semantic_duplicate_advisory
+        if type(semantic_duplicate_advisory) is bool
+        else semantic_duplicate_advisory_enabled()
+    )
     try:
         # Older clients and other OCR providers may omit this new field.
         deepseek_model = deepseek_model or os.getenv("DEEPSEEK_OCR_MODEL") or "deepseek-flash"
@@ -1971,7 +1982,8 @@ def save_settings(
             "PREFER_PARSE_MODEL": False,
             "PREFER_CLASSIFY_MODEL": False,
             "STARHOPE_CLASSIFY_MODE": False,
-            "PREFER_DRAW_MODEL": False
+            "PREFER_DRAW_MODEL": False,
+            "SEMANTIC_DUPLICATE_ADVISORY": False,
         }
         new_lines = []
         
@@ -2034,6 +2046,11 @@ def save_settings(
             elif line_strip.startswith("STARHOPE_CLASSIFY_MODE="):
                 new_lines.append(f"STARHOPE_CLASSIFY_MODE={selected_quality}\n")
                 keys_replaced["STARHOPE_CLASSIFY_MODE"] = True
+            elif line_strip.startswith("SEMANTIC_DUPLICATE_ADVISORY="):
+                new_lines.append(
+                    f"SEMANTIC_DUPLICATE_ADVISORY={str(semantic_advisory_enabled).lower()}\n"
+                )
+                keys_replaced["SEMANTIC_DUPLICATE_ADVISORY"] = True
             elif line_strip.startswith("PREFER_DRAW_MODEL="):
                 new_lines.append(f"PREFER_DRAW_MODEL={prefer_draw_model}\n")
                 keys_replaced["PREFER_DRAW_MODEL"] = True
@@ -2077,6 +2094,10 @@ def save_settings(
             new_lines.append(f"STARHOPE_CLASSIFY_MODE={selected_quality}\n")
         if not keys_replaced["PREFER_DRAW_MODEL"]:
             new_lines.append(f"PREFER_DRAW_MODEL={prefer_draw_model}\n")
+        if not keys_replaced["SEMANTIC_DUPLICATE_ADVISORY"]:
+            new_lines.append(
+                f"SEMANTIC_DUPLICATE_ADVISORY={str(semantic_advisory_enabled).lower()}\n"
+            )
             
         if mineru_updates:
             if new_lines and not new_lines[-1].endswith("\n"):
@@ -2108,7 +2129,10 @@ def save_settings(
         os.environ["PREFER_CLASSIFY_MODEL"] = prefer_classify_model
         os.environ["STARHOPE_CLASSIFY_MODE"] = selected_quality
         os.environ["PREFER_DRAW_MODEL"] = prefer_draw_model
-        
+        os.environ["SEMANTIC_DUPLICATE_ADVISORY"] = str(
+            semantic_advisory_enabled
+        ).lower()
+
         return {"status": "success", "message": "API 与首选大模型配置已成功保存并即时生效！"}
     except Exception as e:
         return JSONResponse(
@@ -3203,7 +3227,11 @@ LEARNING_UPDATER = AutoProfileUpdater(lambda: SessionLocal())
 app.include_router(create_learning_router(get_db, updater=LEARNING_UPDATER))
 app.include_router(_LIBRARY_TRANSFER_UPLOAD_ROUTER)
 from starhope.question_relations import create_question_relations_router
-from starhope.semantic_index import create_semantic_router, get_indexer as get_semantic_indexer
+from starhope.semantic_index import (
+    create_semantic_router,
+    get_indexer as get_semantic_indexer,
+    semantic_duplicate_advisory_enabled,
+)
 app.include_router(create_question_relations_router(get_db))
 app.include_router(create_semantic_router(get_db))
 
@@ -3466,6 +3494,10 @@ def check_question_duplicates(payload: dict, db: Session = Depends(get_db)):
                     "client_key": client_key,
                     "exclude_id": exclude_id,
                     "input": duplicate_input,
+                    "subject": str(raw_item.get("subject") or "数学")[:40],
+                    "subject_topics": str(
+                        raw_item.get("subject_topics") or ""
+                    )[:2000],
                     "fingerprint": build_question_fingerprint(duplicate_input),
                 }
             )
@@ -3494,12 +3526,75 @@ def check_question_duplicates(payload: dict, db: Session = Depends(get_db)):
             truncated_recall_band_count += int(
                 recall_diagnostics.get("truncated_band_count") or 0
             )
+            semantic_payload = {
+                "configured": False,
+                "used": False,
+                "reason": "",
+                "matches": [],
+            }
+            # Vector recall only fills the word-level blind spot; it is skipped
+            # for large import batches to avoid one paid POST per question.
+            if (
+                not candidates
+                and not batch_matches.get(index)
+                and len(prepared) <= SEMANTIC_ADVISORY_MAX_ITEMS
+            ):
+                try:
+                    semantic_candidates, semantic_matches, semantic_status = (
+                        find_semantic_duplicate_candidates(
+                            db,
+                            item["fingerprint"],
+                            content=item["input"].content,
+                            subject=item["subject"],
+                            subject_topics=item["subject_topics"],
+                            uploads_dir=UPLOAD_DIR,
+                            url_prefix=UPLOAD_DIR_REL,
+                            exclude_id=item["exclude_id"],
+                            limit=max_candidates,
+                            fingerprint_cache=candidate_cache,
+                        )
+                    )
+                except Exception as semantic_exc:
+                    # The advisory must never turn a working check into an error.
+                    print(
+                        "[Duplicate Index] Semantic advisory failed "
+                        f"(type={type(semantic_exc).__name__})"
+                    )
+                    semantic_candidates, semantic_matches, semantic_status = (
+                        [],
+                        [],
+                        {"configured": True, "used": False, "reason": "unavailable"},
+                    )
+                candidates.extend(semantic_candidates)
+                semantic_payload.update(semantic_status)
+                semantic_payload["matches"] = semantic_matches
+            elif not candidates and len(prepared) > SEMANTIC_ADVISORY_MAX_ITEMS:
+                semantic_payload["reason"] = "batch_skipped"
             all_candidate_ids.update(candidate.question.id for candidate in candidates)
-            raw_results.append((index, item, candidates))
+            all_candidate_ids.update(
+                match["question"].id for match in semantic_payload["matches"]
+            )
+            raw_results.append((index, item, candidates, semantic_payload))
         seq_map = get_seq_mapping(db, all_candidate_ids)
         rank = {"exact": 3, "probable": 2, "possible_variant": 1, "none": 0}
         response_items = []
-        for index, item, candidates in raw_results:
+
+        def _question_preview(question):
+            content_preview = str(question.content or "")[:500]
+            candidate_images = _prompt_visible_image_paths(question)
+            return {
+                "id": question.id,
+                "seq_num": seq_map.get(question.id),
+                "content": content_preview,
+                "content_truncated": len(str(question.content or "")) > 500,
+                "source": question.source or "",
+                "question_type": question.question_type or "",
+                "has_answer": bool((question.answer_markdown or "").strip()),
+                "image_paths": candidate_images[:4],
+                "image_count": len(candidate_images),
+            }
+
+        for index, item, candidates, semantic_payload in raw_results:
             candidate_payloads = []
             levels = []
             needs_visual_review = False
@@ -3509,20 +3604,9 @@ def check_question_duplicates(payload: dict, db: Session = Depends(get_db)):
                 needs_visual_review = (
                     needs_visual_review or comparison["needs_visual_review"]
                 )
-                question = candidate.question
-                content_preview = str(question.content or "")[:500]
-                candidate_images = _prompt_visible_image_paths(question)
                 candidate_payloads.append(
                     {
-                        "id": question.id,
-                        "seq_num": seq_map.get(question.id),
-                        "content": content_preview,
-                        "content_truncated": len(str(question.content or "")) > 500,
-                        "source": question.source or "",
-                        "question_type": question.question_type or "",
-                        "has_answer": bool((question.answer_markdown or "").strip()),
-                        "image_paths": candidate_images[:4],
-                        "image_count": len(candidate_images),
+                        **_question_preview(candidate.question),
                         "snapshot_hash": candidate.fingerprint.content_revision_hash,
                         **comparison,
                     }
@@ -3541,14 +3625,46 @@ def check_question_duplicates(payload: dict, db: Session = Depends(get_db)):
                     or bool(local_match.get("needs_visual_review"))
                 )
             level = max(levels, key=lambda value: rank.get(value, 0)) if levels else "none"
+            # Only library-side matches are reported here; batch-local silent
+            # pairs are handled per item through batch_matches.
+            silent_exact = any(
+                candidate.comparison.silent_exact for candidate in candidates
+            )
+            semantic_matches = []
+            for match in semantic_payload.get("matches", []):
+                semantic_matches.append(
+                    {
+                        **_question_preview(match["question"]),
+                        "snapshot_hash": match["fingerprint"].content_revision_hash,
+                        "level": "semantic_near",
+                        "score": match["score"],
+                        "reasons": ["SEMANTIC_NEAR"],
+                        "needs_visual_review": False,
+                        "requires_human_review": False,
+                        "auto_merge_allowed": False,
+                    }
+                )
             response_items.append(
                 {
                     "client_key": item["client_key"],
                     "snapshot_hash": item["fingerprint"].content_revision_hash,
                     "level": level,
+                    "silent_exact": silent_exact,
                     "candidates": candidate_payloads,
                     "batch_matches": local_payloads,
                     "needs_visual_review": needs_visual_review,
+                    "semantic": {
+                        **{
+                            key: value
+                            for key, value in semantic_payload.items()
+                            if key != "matches"
+                        },
+                        "matches": semantic_matches,
+                        "note": (
+                            "语义相似仅用于提示可能的改写题，不参与重复判定，"
+                            "也不会阻止保存。"
+                        ),
+                    },
                 }
             )
         status = duplicate_index_status(db)
@@ -4091,8 +4207,8 @@ def create_question(
         figure_size = str(figure_size or "").strip()
         if figure_size not in FIGURE_SIZE_VALUES:
             raise ValueError("无效的插图尺寸")
-        # 规范化填空题下划线为 \fillin 宏
-        content = normalize_fillin_macro(content)
+        # 规范化填空题下划线为 \fillin 宏；题干首部题号属于 source 元数据
+        content = strip_leading_question_number(normalize_fillin_macro(content), source)
 
         (
             content,
@@ -4115,9 +4231,9 @@ def create_question(
             path_map=asset_path_map,
         )
         review = rewrite_question_asset_paths(review, asset_path_map)
-        
+
         # 1. Fallback if third level is empty, default to chapter
-            
+
         db_question = Question(
             content=content,
             question_type=question_type,
@@ -4327,8 +4443,8 @@ def update_question(
             figure_size = str(figure_size).strip()
             if figure_size not in FIGURE_SIZE_VALUES:
                 raise ValueError("无效的插图尺寸")
-        # 规范化填空题下划线为 \fillin 宏
-        content = normalize_fillin_macro(content)
+        # 规范化填空题下划线为 \fillin 宏；题干首部题号属于 source 元数据
+        content = strip_leading_question_number(normalize_fillin_macro(content), source)
 
         (
             content,

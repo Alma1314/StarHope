@@ -50,8 +50,13 @@ def fake_layout(info, **changes):
     return {"page_complete": True, "figures": figures, "ignored_candidates": [], **changes}
 
 
-def run_enrichment(tmp_path, monkeypatch, *, layout=None, request=None):
+def run_enrichment(tmp_path, monkeypatch, *, layout=None, request=None,
+                   source=None, inspected=None):
     data = make_pdf()
+    if inspected is not None:
+        original_inspection = pdf_figures.inspect_pdf_page
+        monkeypatch.setattr(pdf_figures, "inspect_pdf_page",
+                            lambda page, index: {**original_inspection(page, index), **inspected})
     images = []
     with fitz.open(stream=data, filetype="pdf") as document:
         for index, page in enumerate(document):
@@ -71,7 +76,7 @@ def run_enrichment(tmp_path, monkeypatch, *, layout=None, request=None):
     monkeypatch.setattr(pdf_figures, "request_pdf_layout", model)
     result = pdf_figures.enrich_pdf_with_figures(
         data, [0, 1], images, ["/static/uploads/tmp/page0.png", "/static/uploads/tmp/page1.png"],
-        ["1. Refer to the diagram.\nFind the answer.", "2. Plain text."], set(),
+        [source or "1. Refer to the diagram.\nFind the answer.", "2. Plain text."], set(),
         output_dir=tmp_path, url_prefix="/static/uploads/tmp", task_id="layout-test",
         check_cancelled=lambda: None, register_asset=registered.append,
         report_progress=lambda *_args: None,
@@ -287,6 +292,51 @@ def test_invalid_model_geometry_does_not_crop_or_hide_failure(tmp_path, monkeypa
     assert registered == []
     assert result["diagnostics"]["review_pages"] == 1
     assert "page0.png" in result["issues"][0]["source_excerpt"]
+
+
+def test_degenerate_model_box_is_not_cropped_and_keeps_its_placeholder(tmp_path, monkeypatch):
+    def layout(info):
+        result = fake_layout(info)
+        result["figures"][0]["bbox"] = [125, 140, 130, 340]
+        result["figures"][0]["anchor_before"] = ""
+        result["figures"][0]["anchor_after"] = ""
+        return result
+    result, registered, _ = run_enrichment(
+        tmp_path, monkeypatch, layout=layout,
+        source="1. Refer to the diagram.\n[插图待补: 图1]\nFind the answer.")
+    assert registered == []
+    assert result["pages"][0]["figures"] == []
+    assert "[插图待补: 图1]" in result["page_texts"][0]
+    assert any("退化" in issue["reason"] for issue in result["issues"])
+
+
+def test_guard_rejection_skips_crop_and_keeps_placeholder(tmp_path, monkeypatch):
+    from starhope import pdf_raster_guard
+
+    def guard(_path, box, **_kwargs):
+        return {"bbox": box, "changed": False, "accept": False, "status": "suspect",
+                "warnings": ["图框内主要是连续正文，未见独立图形，请核对是否截到了题干或页脚。"],
+                "notes": []}
+
+    monkeypatch.setattr(pdf_raster_guard, "guard_raster_figure_bbox", guard)
+    monkeypatch.setattr(pdf_figures, "crop_pdf_figure",
+                        lambda *_args, **_kwargs: pytest.fail("Rejected figure must not be cropped"))
+
+    def layout(info):
+        return {"page_complete": True, "ignored_candidates": [], "figures": [{
+            "bbox": [125, 140, 375, 340], "candidate_ids": [],
+            "anchor_before": "1. 如图判断结论。", "anchor_after": "",
+            "review_required": False}]}
+
+    result, registered, _ = run_enrichment(
+        tmp_path, monkeypatch, layout=layout,
+        source="1. 如图判断结论。\n[插图待补: 图1]\nFind the answer.",
+        inspected={"full_page_image": True})
+    assert registered == []
+    assert result["pages"][0]["figures"] == []
+    assert "[插图待补: 图1]" in result["page_texts"][0]
+    assert result["diagnostics"]["review_pages"] == 1
+    assert any("连续正文" in issue["reason"] for issue in result["issues"])
 
 
 def test_timeout_is_single_request_and_keeps_text(tmp_path, monkeypatch):

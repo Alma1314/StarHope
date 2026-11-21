@@ -100,6 +100,17 @@ _CHINESE_NUMBER_CHARACTERS = frozenset(
     "零〇一二两三四五六七八九十百千万亿壹贰叁肆伍陆柒捌玖拾佰仟萬億"
 )
 
+# Punctuation removed only outside complete math spans.  Everything inside
+# ``$...$`` / ``$$...$$`` / ``\(...\)`` / ``\[...\]`` is kept byte-for-byte,
+# as are LaTeX commands, decimal points inside ASCII text and percent signs.
+_PUNCTUATION_IGNORED = frozenset(
+    "，。、；：？！“”‘’「」『』（）【】〔〕《》〈〉…—～．"
+    ",;:?!\"'()[]{}"
+)
+_MATH_SPAN_RE = re.compile(
+    r"\$\$[\s\S]*?\$\$|\$[^$\n]*\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]"
+)
+
 _FULLWIDTH_TRANSLATION = str.maketrans(
     {
         **{chr(code): chr(code - 0xFEE0) for code in range(0xFF01, 0xFF5F)},
@@ -422,6 +433,10 @@ class QuestionFingerprint:
     question_type: str
     visible_image_signatures: tuple[str, ...]
     tikz_signatures: tuple[str, ...]
+    # Precomputed, not persisted: text without images, whitespace and
+    # punctuation outside math spans.  Stored fingerprints rebuilt from the
+    # database recompute it, and older mappings simply leave it empty.
+    silent_text: str = ""
 
     def __post_init__(self) -> None:
         if self.fingerprint_version < 1:
@@ -494,6 +509,7 @@ class QuestionFingerprint:
             "question_type": self.question_type,
             "visible_image_signatures": list(self.visible_image_signatures),
             "tikz_signatures": list(self.tikz_signatures),
+            "silent_text": self.silent_text,
         }
 
     @classmethod
@@ -531,6 +547,7 @@ class QuestionFingerprint:
                 value.get("visible_image_signatures")
             ),
             tikz_signatures=_as_signature_tuple(value.get("tikz_signatures")),
+            silent_text=str(value.get("silent_text") or ""),
         )
 
 
@@ -543,6 +560,10 @@ class DuplicateComparison:
     reasons: tuple[str, ...]
     needs_visual_review: bool
     auto_merge_allowed: bool = False
+    # True when the two texts are byte-identical after removing images,
+    # whitespace and Chinese punctuation.  Callers may treat this as the same
+    # question without asking the teacher to review it.
+    silent_exact: bool = False
 
     def __post_init__(self) -> None:
         if self.auto_merge_allowed:
@@ -576,6 +597,7 @@ class DuplicateComparison:
             "needs_visual_review": self.needs_visual_review,
             "requires_human_review": self.requires_human_review,
             "auto_merge_allowed": False,
+            "silent_exact": self.silent_exact,
         }
 
 
@@ -807,6 +829,33 @@ def normalize_math_text(value: str) -> str:
             text,
         )
     return text.strip()
+
+
+def _strip_outside_math(text: str) -> str:
+    text = _MARKDOWN_IMAGE_RE.sub("", text)
+    text = _HTML_IMAGE_RE.sub("", text)
+    return "".join(
+        char for char in text
+        if not char.isspace() and char not in _PUNCTUATION_IGNORED
+    )
+
+
+def punctuation_insensitive_text(content: str) -> str:
+    """Drop images, whitespace and punctuation outside complete math spans.
+
+    Math spans are preserved byte-for-byte, so ``x-1`` never equals ``x1``
+    and ``1.5`` never equals ``15`` when they appear inside ``$...$``.
+    """
+
+    text = str(content or "")
+    parts: list[str] = []
+    cursor = 0
+    for match in _MATH_SPAN_RE.finditer(text):
+        parts.append(_strip_outside_math(text[cursor : match.start()]))
+        parts.append(match.group(0))
+        cursor = match.end()
+    parts.append(_strip_outside_math(text[cursor:]))
+    return "".join(parts)
 
 
 def _build_canonical_content(value: str) -> tuple[str, str, tuple[str, ...], int]:
@@ -1068,6 +1117,7 @@ def build_question_fingerprint(
         question_type=source.question_type,
         visible_image_signatures=source.visible_image_signatures,
         tikz_signatures=source.tikz_signatures,
+        silent_text=punctuation_insensitive_text(source.content),
     )
 
 
@@ -1269,14 +1319,38 @@ def compare_question_fingerprints(
         _append_reason(reasons, "EXACT_TEXT")
         if left.raw_content_hash != right.raw_content_hash:
             _append_reason(reasons, "SAFE_NORMALIZATION_ONLY")
-        classification: DuplicateClassification = (
-            "exact" if visual_exact else "probable"
-        )
+        if not visual_exact:
+            # Identical text with different figures: the product rule treats
+            # this as the same question and does not ask for visual review.
+            _append_reason(reasons, "EXACT_IGNORING_PUNCTUATION")
+            return DuplicateComparison(
+                classification="exact",
+                score=1.0,
+                reasons=tuple(reasons),
+                needs_visual_review=False,
+                silent_exact=True,
+            )
         return DuplicateComparison(
-            classification=classification,
+            classification="exact",
             score=1.0,
             reasons=tuple(reasons),
             needs_visual_review=needs_visual_review,
+        )
+
+    # Same question after removing images, whitespace and punctuation outside
+    # math spans.  Figures are intentionally ignored here, so this is silent
+    # even when one copy is missing an image.
+    lenient_left = left.silent_text
+    if lenient_left and lenient_left == right.silent_text:
+        silent_reasons = ["EXACT_IGNORING_PUNCTUATION"]
+        if left.answer_hash != right.answer_hash:
+            silent_reasons.append("ANSWER_DIFF")
+        return DuplicateComparison(
+            classification="exact",
+            score=1.0,
+            reasons=tuple(silent_reasons),
+            needs_visual_review=False,
+            silent_exact=True,
         )
 
     score = _similarity_score(left, right)
@@ -1433,6 +1507,23 @@ def find_batch_duplicate_groups(
         # concentrating every comparison on a single representative item.
         for left_index, right_index in zip(members, members[1:]):
             pair = (left_index, right_index)
+            candidate_pairs.add(pair)
+            per_item_count[left_index] += 1
+            per_item_count[right_index] += 1
+
+    # Silent matches are deterministic, so recall them directly instead of
+    # relying on SimHash buckets (punctuation-only edits can shift every band).
+    silent_buckets: dict[str, list[int]] = defaultdict(list)
+    for index, fingerprint in enumerate(fingerprints):
+        if fingerprint.silent_text:
+            silent_buckets[fingerprint.silent_text].append(index)
+    for members in silent_buckets.values():
+        if len(members) < 2:
+            continue
+        for left_index, right_index in zip(members, members[1:]):
+            pair = (left_index, right_index)
+            if pair in candidate_pairs:
+                continue
             candidate_pairs.add(pair)
             per_item_count[left_index] += 1
             per_item_count[right_index] += 1
@@ -1598,6 +1689,7 @@ __all__ = [
     "extract_critical_math_tokens",
     "find_batch_duplicate_groups",
     "normalize_math_text",
+    "punctuation_insensitive_text",
     "rank_duplicate_candidates",
     "simhash_bands",
     "simhash_similarity",

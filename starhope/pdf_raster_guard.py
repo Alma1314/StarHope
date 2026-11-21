@@ -443,6 +443,75 @@ def _complete_single_component_edge(evidence: dict, original, deadline: float) -
 
 
 
+def _contained_by_any(box, containers):
+    return any(_contains(container, box) for container in containers)
+
+
+def _snap_local_graph_frame(evidence, original):
+    """Snap to the isolated line graph this model rectangle actually targets.
+
+    Only page pixels already analyzed by the normal guard are used. A single
+    overlapping graph may be restored even on pages with several figures; a
+    group is accepted only when the model box fully contains every graph it
+    touches. The final frame must exclude body text and other unowned ink.
+    """
+    graphs = evidence.get("isolated_graphs", ())
+    if not graphs:
+        return None
+    touched = [graph for graph in graphs if _intersection(graph["bbox"], original) > 0]
+    if not touched:
+        return None
+    if len(touched) == 1:
+        target = touched[0]
+        frame, core = target["bbox"], target["core_bbox"]
+        if _contains(original, frame):
+            # A box that already covers the graph keeps its own small padding;
+            # only a substantial amount of unowned area justifies tightening.
+            if _area(original) - _area(frame) <= 0.25 * _area(original):
+                return None
+        inside = _intersection(original, frame) / max(1e-9, _area(original))
+        scale_x = (original[2] - original[0]) / max(1e-9, frame[2] - frame[0])
+        scale_y = (original[3] - original[1]) / max(1e-9, frame[3] - frame[1])
+        # A sliver touches almost no graph area yet lies inside its frame. It
+        # still points at this unique graph; ordinary boxes must overlap enough.
+        if inside < 0.5 and min(scale_x, scale_y) >= 0.35:
+            return None
+        if any(graph is not target and _intersection(frame, graph["bbox"]) > 0
+               for graph in graphs):
+            return None
+        cores = [core]
+        method = "isolated_graph"
+        notes = ["已按原页线图与邻近短标注重框，排除相邻正文。"]
+    else:
+        if not all(_contains(original, graph["core_bbox"]) for graph in touched):
+            return None
+        frame = touched[0]["bbox"]
+        for graph in touched[1:]:
+            frame = _union(frame, graph["bbox"])
+        if _area(frame) > 0.4 * 1000 * 1000:
+            return None
+        if any(_intersection(frame, graph["bbox"]) > 0
+               for graph in graphs if graph not in touched):
+            return None
+        cores = [graph["core_bbox"] for graph in touched]
+        method = "isolated_graph_group"
+        notes = ["已按原页完整包含的多幅线图合并重框，排除相邻正文。"]
+    if any(_intersection(frame, row) > 0 and not _contained_by_any(row, cores)
+           for row in evidence["text_rows"]):
+        return None
+    if any(_intersection(frame, component) > 0 and not _contains(frame, component)
+           for component in evidence["significant_components"]):
+        return None
+    rounded = [round(value, 4) for value in frame]
+    changed = rounded != [round(value, 4) for value in original]
+    return {"bbox": rounded, "changed": changed,
+            "status": "corrected" if changed else "verified",
+            "method": method if changed else "unchanged",
+            "evidence_bbox": rounded,
+            "label_components": sum(graph["labels"] for graph in touched),
+            "notes": notes}
+
+
 def _clean_local_graph_frame(evidence, original, *, allow_relocation):
     graphs = evidence.get("isolated_graphs", evidence["figures"])
     if len(graphs) != 1 or evidence["large_components"] != 1:
@@ -480,9 +549,10 @@ def guard_raster_figure_bbox(image_path: str, bbox, *, improve_local_frame=False
     original = _box(bbox)
     result = {"bbox": list(original) if original else bbox, "model_bbox": list(original) if original else bbox,
               "changed": False, "warnings": [], "notes": [], "method": "unchanged",
-              "status": "suspect"}
+              "status": "suspect", "accept": True}
     if original is None:
         result["warnings"] = ["扫描配图坐标无效，请对照原页重新框选。"]
+        result["accept"] = False
         return result
     deadline = time.monotonic() + MAX_SECONDS
     try:
@@ -498,6 +568,11 @@ def guard_raster_figure_bbox(image_path: str, bbox, *, improve_local_frame=False
     result.update(component_count=evidence["components"], figure_candidates=len(evidence["figures"]),
                   analysis_size=list(evidence["analysis_size"]))
     figures = evidence["figures"]
+    if improve_local_frame:
+        snapped = _snap_local_graph_frame(evidence, original)
+        if snapped:
+            result.update(snapped)
+            return result
     local = _clean_local_graph_frame(evidence, original, allow_relocation=allow_relocation) if improve_local_frame else None
     if local:
         frame = [round(value, 4) for value in local["bbox"]]
@@ -511,6 +586,7 @@ def guard_raster_figure_bbox(image_path: str, bbox, *, improve_local_frame=False
         # concrete blank crop or a visibly cut substantial component blocks it.
         if _frame_ink(evidence, original) < 8:
             result["warnings"] = ["图框内几乎没有可见内容，可能裁到了空白区域，请核对裁剪位置。"]
+            result["accept"] = False
         elif _cuts_component(evidence, original):
             try:
                 completed = _complete_single_component_edge(evidence, original, deadline)
@@ -524,9 +600,18 @@ def guard_raster_figure_bbox(image_path: str, bbox, *, improve_local_frame=False
                 result["warnings"] = ["图框截入了未完整覆盖的图形区域，请核对是否裁掉边缘或混入邻图。"]
         elif _text_only_frame(evidence, original):
             result["warnings"] = ["图框内主要是连续正文，未见独立图形，请核对是否截到了题干或页脚。"]
+            result["accept"] = False
         else:
             result.update(status="not_applicable", notes=[
                 "本地独立线图检查不适用于该配图；保留视觉图框，未发现可据此判定的裁剪错误。"])
+        return result
+    if _frame_ink(evidence, original) < 8:
+        result["warnings"] = ["图框内几乎没有可见内容，可能裁到了空白区域，请核对裁剪位置。"]
+        result["accept"] = False
+        return result
+    if _text_only_frame(evidence, original):
+        result["warnings"] = ["图框内主要是连续正文，未见独立图形，请核对是否截到了题干或页脚。"]
+        result["accept"] = False
         return result
     swapped = (original[1], original[0], original[3], original[2])
 

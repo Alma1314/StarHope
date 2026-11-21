@@ -5936,6 +5936,8 @@
                 answer_tikz_assets: answerAssets,
                 tikz_code: String(q.tikz_code || ''),
                 tikz_reference_image_path: legacyReference,
+                subject: String(q.subject || '数学'),
+                subject_topics: String(q.subject_topics || ''),
                 // Parsed paper items are always new drafts.  An AI-provided
                 // numeric `id` may be a paper question number, never a local DB id.
                 exclude_id: null
@@ -5976,6 +5978,8 @@
                 tikz_reference_image_path: contentAssets[0]
                     ? (window.StarHopeSafe.safeImageUrl(contentAssets[0].reference_image_path) || '')
                     : '',
+                subject: String(document.getElementById('editSubject')?.value || '数学'),
+                subject_topics: String(document.getElementById('editSubjectTopics')?.value || ''),
                 exclude_id: editorSession && editorSession.questionId ? editorSession.questionId : null
             };
         }
@@ -6045,8 +6049,38 @@
             return level.includes('exact') || level === 'duplicate' || level === 'same';
         }
 
+        function duplicateResultIsSilentExact(result) {
+            if (!result) return false;
+            if (result.silent_exact === true) return true;
+            const candidates = Array.isArray(result.candidates) ? result.candidates : [];
+            return candidates.some(candidate => candidate && candidate.silent_exact === true);
+        }
+
+        function duplicateSemanticMatches(result) {
+            const matches = result && result.semantic && Array.isArray(result.semantic.matches)
+                ? result.semantic.matches
+                : [];
+            return matches.filter(match => match && typeof match === 'object');
+        }
+
         function duplicateResultBadge(result) {
+            if (duplicateResultIsSilentExact(result)) {
+                // Same question after dropping images, whitespace and Chinese
+                // punctuation: skipped automatically, no review decision.
+                return {
+                    text: '已收录（自动跳过）',
+                    className: 'card-duplicate-badge min-h-11 px-3 text-[9px] font-semibold rounded border border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                };
+            }
             if (!duplicateResultHasSignal(result)) {
+                if (duplicateSemanticMatches(result).length) {
+                    // Advisory only: visible for the teacher, but this level
+                    // never blocks saving or forces a review dialog.
+                    return {
+                        text: '疑似改写（参考）',
+                        className: 'card-duplicate-badge min-h-11 px-3 text-[9px] font-semibold rounded border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 dark:border-sky-500/40 dark:bg-sky-500/15 dark:text-sky-200 dark:hover:bg-sky-500/25'
+                    };
+                }
                 return {
                     text: '未发现重复',
                     className: 'card-duplicate-badge hidden min-h-11 px-3 text-[9px] font-semibold rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400'
@@ -6134,11 +6168,20 @@
 
             let exactCount = 0;
             let possibleCount = 0;
+            let silentCount = 0;
+            let semanticCount = 0;
             let clearCount = 0;
             parsedDuplicateResults.forEach(result => {
-                if (!duplicateResultHasSignal(result)) clearCount += 1;
-                else if (duplicateResultIsExact(result)) exactCount += 1;
-                else possibleCount += 1;
+                if (duplicateResultIsSilentExact(result)) {
+                    silentCount += 1;
+                } else if (duplicateResultHasSignal(result)) {
+                    if (duplicateResultIsExact(result)) exactCount += 1;
+                    else possibleCount += 1;
+                } else if (duplicateSemanticMatches(result).length) {
+                    semanticCount += 1;
+                } else {
+                    clearCount += 1;
+                }
             });
             let coverageNote = '';
             let completionLabel = '查重完成';
@@ -6153,8 +6196,14 @@
                 completionLabel = '查重完成（结果可能不完整）';
                 clearLabel = '当前覆盖内未发现重复';
             }
-            textNode.textContent = `${completionLabel}：疑似已收录 ${exactCount} 题，可能重复 ${possibleCount} 题，${clearLabel} ${clearCount} 题${coverageNote}`;
-            icon.className = exactCount || possibleCount
+            const silentNote = silentCount
+                ? `，标点/空白差异自动跳过 ${silentCount} 题`
+                : '';
+            const semanticNote = semanticCount
+                ? `，语义疑似改写 ${semanticCount} 题（仅参考）`
+                : '';
+            textNode.textContent = `${completionLabel}：疑似已收录 ${exactCount} 题，可能重复 ${possibleCount} 题${silentNote}${semanticNote}，${clearLabel} ${clearCount} 题${coverageNote}`;
+            icon.className = exactCount || possibleCount || semanticCount || silentCount
                 ? 'fa-solid fa-code-compare text-amber-600'
                 : 'fa-solid fa-circle-check text-emerald-600';
         }
@@ -6330,6 +6379,7 @@
                 FIGURE_MISSING: '其中一题缺少可见配图',
                 FIGURE_COUNT_DIFF: '可见配图数量不同',
                 ANSWER_DIFF: '题干疑似相同，但答案或解析不同',
+                SEMANTIC_NEAR: '语义相近，可能是改写题（仅参考，未参与重复判定）',
                 BATCH_EXACT: '与本批其他题目完全一致',
                 BATCH_SIMILAR: '与本批其他题目高度相似'
             };
@@ -6524,13 +6574,22 @@
                 const result = entry.result || {};
                 const candidates = Array.isArray(result.candidates) ? result.candidates : [];
                 const batchMatches = Array.isArray(result.batch_matches) ? result.batch_matches : [];
+                const semanticMatches = duplicateSemanticMatches(result);
                 const meta = document.createElement('p');
                 meta.className = 'mt-1 text-[10px] leading-5 text-slate-600 dark:text-slate-300';
                 const visualNote = result.needs_visual_review ? '；配图需人工核对' : '';
-                meta.textContent = `题库候选 ${candidates.length} 道，本批重复 ${batchMatches.length || duplicateBatchMatchCount(result)} 道${visualNote}`;
+                const semanticNote = semanticMatches.length ? `，语义疑似改写 ${semanticMatches.length} 道（仅参考）` : '';
+                meta.textContent = `题库候选 ${candidates.length} 道，本批重复 ${batchMatches.length || duplicateBatchMatchCount(result)} 道${semanticNote}${visualNote}`;
                 section.appendChild(meta);
 
                 candidates.forEach(candidate => appendDuplicateCandidate(section, candidate));
+                if (semanticMatches.length) {
+                    const semanticNoteNode = document.createElement('p');
+                    semanticNoteNode.className = 'mt-3 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-[10px] font-semibold text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200';
+                    semanticNoteNode.textContent = '以下题目由语义向量召回，只提示“可能是同一题的改写”，不参与重复判定，也不影响保存；请人工核对数字、条件与配图。';
+                    section.appendChild(semanticNoteNode);
+                    semanticMatches.forEach(candidate => appendDuplicateCandidate(section, candidate));
+                }
                 batchMatches.forEach(match => {
                     const note = document.createElement('p');
                     note.className = 'mt-2 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-[10px] font-semibold text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200';
@@ -6683,6 +6742,10 @@
                     showToast(warning || `查重索引仍在构建，当前覆盖约 ${coverage}% 题库。`, 'warning');
                 }
                 let duplicateOverride = '';
+                if (duplicateResultIsSilentExact(result)) {
+                    showToast('题库中已有这道题（仅标点、空格或换行不同），本次未保存，避免重复。', 'info');
+                    return { allowed: false, localSnapshot: localSnapshot };
+                }
                 if (duplicateResultHasSignal(result)) {
                     const action = await openParsedDuplicateReviewModal([{
                         label: editorSession && editorSession.questionId ? '当前编辑题目' : '当前待录入题目',
@@ -7371,6 +7434,10 @@
                         const result = outcome.results.get(index);
                         expectedLocalSnapshot = parsedDuplicateSnapshots.get(index) || '';
                         duplicateSnapshotHash = String(result && result.snapshot_hash || '');
+                        if (duplicateResultIsSilentExact(result)) {
+                            showToast(`第 ${index + 1} 题与题库已有题目仅标点/空白差异，已视为同一题，本次未重复导入。`, 'info');
+                            return false;
+                        }
                         if (duplicateResultHasSignal(result)) {
                             const action = await openParsedDuplicateReviewModal(
                                 parsedDuplicateReviewEntries([index], outcome.results),
@@ -7844,8 +7911,40 @@
                 let indicesToSave = eligibleIndices.slice();
                 const independentOverrideIndices = new Set();
                 if (outcome.ok) {
+                    // Identical after dropping images, whitespace and Chinese
+                    // punctuation: keep the first copy only, with no dialog.
+                    const silentIndices = new Set();
+                    eligibleIndices.forEach(index => {
+                        const result = outcome.results.get(index);
+                        if (duplicateResultIsSilentExact(result)) {
+                            silentIndices.add(index);
+                            return;
+                        }
+                        const matches = result && Array.isArray(result.batch_matches)
+                            ? result.batch_matches
+                            : [];
+                        if (matches.some(match => match && match.silent_exact === true
+                            && Number(match.other_index) < index)) {
+                            silentIndices.add(index);
+                        }
+                    });
+                    if (silentIndices.size) {
+                        silentIndices.forEach(index => setOutcome(
+                            index,
+                            'skipped',
+                            '与题库已有题目或本批前序题仅标点/空白差异，已自动视为同一题，未重复入库。'
+                        ));
+                        indicesToSave = indicesToSave.filter(index => !silentIndices.has(index));
+                        if (!indicesToSave.length) {
+                            updateSelectedCount();
+                            window.StarHopeDocumentImportSession?.saveSoon();
+                            showToast('所选题目均已收录（仅标点/空白差异），未重复入库。', 'info');
+                            return false;
+                        }
+                    }
                     const suspectIndices = eligibleIndices.filter(index =>
-                        duplicateResultHasSignal(outcome.results.get(index))
+                        !silentIndices.has(index)
+                        && duplicateResultHasSignal(outcome.results.get(index))
                     );
                     if (suspectIndices.length > 0) {
                         const action = await openParsedDuplicateReviewModal(
@@ -7862,7 +7961,7 @@
                         }
                         if (action === 'skip') {
                             const suspectSet = new Set(suspectIndices);
-                            indicesToSave = eligibleIndices.filter(index => !suspectSet.has(index));
+                            indicesToSave = indicesToSave.filter(index => !suspectSet.has(index));
                             suspectIndices.forEach(index => setOutcome(index, 'skipped', '疑似重复，按本次选择保留待审，未入库。'));
                             if (indicesToSave.length === 0) {
                                 showToast('所选题目均需要审查，本次没有执行导入。', 'info');
@@ -7872,7 +7971,7 @@
                         } else if (action && action.action === 'selected') {
                             const keep = new Set(action.indices.filter(index => suspectIndices.includes(index)));
                             const suspects = new Set(suspectIndices);
-                            indicesToSave = eligibleIndices.filter(index => !suspects.has(index) || keep.has(index));
+                            indicesToSave = indicesToSave.filter(index => !suspects.has(index) || keep.has(index));
                             suspectIndices.filter(index => !keep.has(index)).forEach(index =>
                                 setOutcome(index, 'skipped', '疑似重复，本次未选择独立保留，未入库。'));
                             keep.forEach(index => independentOverrideIndices.add(index));
