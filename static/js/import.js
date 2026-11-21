@@ -8836,6 +8836,18 @@
             };
         });
 
+        function parsedSolveImagePaths(content) {
+            try {
+                const paths = window.StarHopeImageAssets
+                    ? window.StarHopeImageAssets.collect(content) : [];
+                return [...new Set(paths
+                    .map(path => window.StarHopeSafe.safeImageUrl(path))
+                    .filter(Boolean))].slice(0, 4);
+            } catch (_) {
+                return [];
+            }
+        }
+
         // 单题一键补全/重生成 AI 解答
         async function generateSingleAnswer(index) {
             const answerGeneration = parsedQuestionsGeneration;
@@ -8871,6 +8883,7 @@
                 const formData = new FormData();
                 formData.append('content', answerContent);
                 formData.append('question_type', q.question_type || 'detailed_answer');
+                formData.append('image_paths', JSON.stringify(parsedSolveImagePaths(answerContent)));
                 formData.append('stream', 'false');
                 if (typeof systemPreferSolveModel !== 'undefined') {
                     formData.append('model', systemPreferSolveModel);
@@ -8886,7 +8899,7 @@
                     body: formData
                 });
                 if (!requestIsCurrent()) return;
-                
+
                 if (!res.ok) {
                     const err = await res.json();
                     if (!requestIsCurrent()) return;
@@ -8993,6 +9006,7 @@
                         const formData = new FormData();
                         formData.append('content', answerContent);
                         formData.append('question_type', q.question_type || 'detailed_answer');
+                        formData.append('image_paths', JSON.stringify(parsedSolveImagePaths(answerContent)));
                         formData.append('stream', 'false');
                         if (typeof systemPreferSolveModel !== 'undefined') {
                             formData.append('model', systemPreferSolveModel);

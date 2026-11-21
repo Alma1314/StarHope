@@ -1614,6 +1614,17 @@
                 progressBar.style.width = '0%';
             }
             
+            const solveImages = (() => {
+                try {
+                    const paths = window.StarHopeImageAssets
+                        ? window.StarHopeImageAssets.collect(content) : [];
+                    return [...new Set(paths
+                        .map(path => window.StarHopeSafe.safeImageUrl(path))
+                        .filter(Boolean))].slice(0, 4);
+                } catch (_) {
+                    return [];
+                }
+            })();
             const formData = new FormData();
             formData.append('content', content);
             formData.append('question_type', qtype);
@@ -1621,6 +1632,7 @@
             formData.append('custom_prompt', customPrompt);
             formData.append('thinking', thinking);
             formData.append('model', model);
+            formData.append('image_paths', JSON.stringify(solveImages));
             formData.append('stream', 'true'); // Opt-in to real-time streaming
             
             abortActiveAiSolve();

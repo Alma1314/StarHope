@@ -204,6 +204,7 @@ from starhope.ai_providers import (
     resolve_ocr_fallbacks,
     resolve_ocr_provider,
     resolve_text_provider,
+    text_provider_supports_images,
 )
 from starhope.curriculums import (
     build_default_metadata,
@@ -1523,6 +1524,54 @@ def ocr_formula(
 
 # ----------------- DeepSeek AI Solve API -----------------
 
+SOLVE_IMAGE_MAX_COUNT = 4
+SOLVE_IMAGE_MAX_BYTES = 4 * 1024 * 1024
+
+
+def _solve_request_images(content: str, raw_paths: str):
+    """Resolve visible question figures for the solver; never external URLs."""
+    try:
+        supplied = json.loads(raw_paths or "[]")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="题目附图清单格式无效。") from exc
+    if not isinstance(supplied, list):
+        raise HTTPException(status_code=400, detail="题目附图清单格式无效。")
+    from starhope.question_assets import embedded_question_assets
+
+    references = [*supplied, *embedded_question_assets(content)]
+    unique = []
+    seen = set()
+    for reference in references:
+        if not isinstance(reference, str) or not reference.strip():
+            continue
+        if reference in seen:
+            continue
+        seen.add(reference)
+        unique.append(reference)
+    if len(unique) > SOLVE_IMAGE_MAX_COUNT:
+        raise HTTPException(status_code=400, detail=f"AI 解答最多附带 {SOLVE_IMAGE_MAX_COUNT} 张题目图片。")
+    images = []
+    for reference in unique:
+        try:
+            normalized = normalize_upload_asset_reference(
+                reference, uploads_dir=UPLOAD_DIR, url_prefix=UPLOAD_DIR_REL,
+            )
+            path = resolve_upload_asset(
+                normalized, uploads_dir=UPLOAD_DIR, url_prefix=UPLOAD_DIR_REL,
+            )
+            data = path.read_bytes()
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"题目附图不可用：{reference}") from exc
+        if not data or len(data) > SOLVE_IMAGE_MAX_BYTES:
+            raise HTTPException(status_code=400, detail=f"题目附图过大或为空：{reference}")
+        media_type = {
+            ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+            ".webp": "image/webp", ".gif": "image/gif",
+        }.get(path.suffix.lower(), "image/png")
+        images.append((media_type, data))
+    return images
+
+
 @app.post("/api/ai/solve")
 def ai_solve(
     content: str = Form(...),
@@ -1531,7 +1580,8 @@ def ai_solve(
     custom_prompt: str = Form(""),
     thinking: str = Form("enabled"),
     model: str = Form(""),
-    stream: str = Form("false")
+    stream: str = Form("false"),
+    image_paths: str = Form("[]"),
 ):
     provider = resolve_text_provider(model or os.getenv("PREFER_SOLVE_MODEL") or "deepseek-v4-pro")
     api_key = provider.api_key
@@ -1556,6 +1606,33 @@ def ai_solve(
             custom_prompt=custom_prompt,
         )
 
+        images = _solve_request_images(content, image_paths)
+        user_content = user_prompt
+        if images:
+            if not text_provider_supports_images(provider):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"当前解题模型 {provider.model_name} 不支持图片输入；"
+                        "请在 API 设置中选择 deepseek-flash 或其他视觉模型后再生成解析。"
+                    ),
+                )
+            import base64
+
+            user_prompt += (
+                "\n\n本题附图是题设的一部分，必须结合图中的线条、标注、刻度、角度和位置关系推理；"
+                "看不清图片时明确说明，不得猜测。"
+            )
+            user_content = [
+                {"type": "text", "text": user_prompt},
+                *[
+                    {"type": "image_url", "image_url": {
+                        "url": f"data:{media_type};base64,{base64.b64encode(data).decode('ascii')}"
+                    }}
+                    for media_type, data in images
+                ],
+            ]
+
         # Keep the legacy fallback cap for older Bailian models. Current
         # Qwen3.7/3.8 requests are converted below to max_completion_tokens.
         max_output_tokens = 8192 if provider.provider_code == "bailian" else 16384
@@ -1564,7 +1641,7 @@ def ai_solve(
             "model": model_name,
             "messages": [
                 {"role": "system", "content": system_instructions},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_content}
             ],
             "max_tokens": max_output_tokens
         }
@@ -1676,6 +1753,8 @@ def ai_solve(
             "status": "success",
             "solution": ai_message
         }
+    except HTTPException:
+        raise
     except requests.exceptions.Timeout:
         friendly_msg = (
             f"AI 解析生成超时（限制为 {AI_REQUEST_TIMEOUT_SECONDS} 秒）。这通常是因为 {provider_name} "

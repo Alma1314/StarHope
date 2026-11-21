@@ -332,6 +332,25 @@ class TextProviderConfig:
         return build_chat_completions_url(self.api_base)
 
 
+def text_provider_supports_images(provider: TextProviderConfig) -> bool:
+    """Central image-capability decision for a text task such as solving."""
+    code = provider.provider_code
+    model = provider.model_name
+    if code == "deepseek":
+        return _deepseek_supports_images(model)
+    if code in {"bailian", "zhongzhan_gpt", "zhongzhan_claude"}:
+        return True
+    if code == "siliconflow":
+        lowered = model.lower()
+        return (
+            lowered == "qwen/qwen3.8-27b"
+            or _is_siliconflow_deepseek_v41_flash(code, model)
+            or "vl" in lowered
+            or "thinking" in lowered
+        )
+    return False
+
+
 @dataclass(frozen=True)
 class MultimodalProviderConfig:
     """Resolved configuration for OCR and TikZ image-aware requests."""
