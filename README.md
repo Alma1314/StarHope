@@ -425,7 +425,3 @@ python3 -m scripts.tiered_storage status
 ## 💬 QQ 用户交流群
 
 欢迎加入 StarHope 用户交流群，群号：`1107557945`。
-
-<p align="center">
-  <img src="docs/images/qq-user-group.jpg" alt="StarHope QQ 用户交流群二维码" width="420">
-</p>
