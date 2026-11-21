@@ -897,6 +897,25 @@ PDF_OCR_CAPACITY = PdfOcrCapacity(configured_pdf_ocr_concurrency())
 # process total with the wider first-pass PDF page lane.
 PDF_OCR_SEMAPHORE = PDF_OCR_CAPACITY.auxiliary
 MAX_PDF_TASK_PAGES = LIMITS.pdf_pages
+BOOK_PAGE_RETRY_LIMIT = 10
+
+
+def plan_book_page_retry(page_errors, limit=BOOK_PAGE_RETRY_LIMIT):
+    """One automatic retry round only when failures look page-specific."""
+    errors = [
+        item for item in page_errors or ()
+        if isinstance(item, dict) and type(item.get("local_idx")) is int
+    ]
+    if not errors:
+        return {"status": "none", "local_indices": [], "pages": []}
+    if len(errors) > limit:
+        return {"status": "skipped", "reason": "too_many_failed_pages",
+                "local_indices": [], "pages": []}
+    return {
+        "status": "ready",
+        "local_indices": [item["local_idx"] for item in errors],
+        "pages": [item.get("page_number") for item in errors],
+    }
 PDF_SPLIT_RETRY_MAX_BYTES = 4 * 1024 * 1024
 
 def get_seq_mapping(db: Session, question_ids=None):
@@ -6788,16 +6807,19 @@ def run_pdf_parsing_task(
             report = diagnostics.setdefault("pdf_vision", {
                 "timeout_seconds": DOCUMENT_AI_TIMEOUT_SECONDS, "max_attempts": 2, "attempts": [],
             })
-            event = {**event, "page_number": event["page_index"] + 1}
-            identity = (event["page_index"], event["stage"], event["attempt"])
+            round_number = int(event.get("round", 1) or 1)
+            event = {**event, "page_number": event["page_index"] + 1, "round": round_number}
+            identity = (round_number, event["page_index"], event["stage"], event["attempt"])
             previous = next((item for item in report["attempts"]
-                             if (item["page_index"], item["stage"], item["attempt"]) == identity), None)
+                             if (item.get("round", 1), item["page_index"], item["stage"],
+                                 item["attempt"]) == identity), None)
             if previous is None:
                 report["attempts"].append(event)
             else:
                 previous.update(event)
             report["calls"] = len(report["attempts"])
             report["retries"] = sum(item["attempt"] > 1 for item in report["attempts"])
+            report["extra_rounds"] = sum(item.get("round", 1) > 1 for item in report["attempts"])
             report["usage"] = collected_usage(report["attempts"])
             report["usage_complete"] = all(all(key in item["usage"] for key in
                                                ("prompt_tokens", "completion_tokens", "total_tokens"))
@@ -7205,8 +7227,12 @@ def run_pdf_parsing_task(
                 temp_assets=list(temp_assets),
             )
 
-            def ocr_worker(job, check_request_cancelled):
+            job_cache = {}
+
+            def ocr_worker(job, check_request_cancelled, report=None):
                 local_idx, image_path, page_info, details, whole_page_input = job
+                job_cache[local_idx] = job
+                report = report or report_pdf_attempt
                 ocr_path = whole_page_input[0] if whole_page_input else image_path
                 acquired = False
                 permit = None
@@ -7239,7 +7265,7 @@ def run_pdf_parsing_task(
                         joint = request_pdf_regions(
                             image_path, page_info, regional_plans[local_idx],
                             include_figures=pdf_strategy == "layout_aware",
-                            check_cancelled=check_request_cancelled, report_attempt=report_pdf_attempt,
+                            check_cancelled=check_request_cancelled, report_attempt=report,
                             include_transcription_evidence=True,
                         )
                         raw_text = joint["markdown"]
@@ -7249,7 +7275,7 @@ def run_pdf_parsing_task(
                                          if details.get("views") else {})
                         joint = request_pdf_page(
                             ocr_path, page_info,
-                            check_cancelled=check_request_cancelled, report_attempt=report_pdf_attempt,
+                            check_cancelled=check_request_cancelled, report_attempt=report,
                             **detail_kwargs,
                             include_transcription_evidence=True,
                         )
@@ -7258,7 +7284,7 @@ def run_pdf_parsing_task(
                         raw_text = joint["markdown"]
                     else:
                         raw_text = ocr_pdf_page_image(image_path, check_cancelled=check_request_cancelled,
-                                                     report_attempt=report_pdf_attempt,
+                                                     report_attempt=report,
                                                      page_index=real_page_num - 1)
                     print(
                         f"[PDF OCR] 第 {real_page_num} 页识别完成 "
@@ -7273,6 +7299,23 @@ def run_pdf_parsing_task(
                     if acquired:
                         permit.__exit__(None, None, None)
 
+            def store_page_result(local_idx, text, joint):
+                processed_text = process_ocr_illustrations(text)
+                processed_text, wrappers, empty = clean_empty_fraction_wrappers(processed_text)
+                if wrappers or empty:
+                    diagnostics.setdefault("pdf_fraction_evidence", []).append({
+                        "page_number": target_page_indices[local_idx] + 1,
+                        "redundant_wrappers_removed": wrappers, "unresolved_denominators": empty,
+                    })
+                real_page_num = target_page_indices[local_idx] + 1
+                if joint is not None:
+                    joint_page_results[real_page_num - 1] = joint
+                ocr_results[local_idx] = (
+                    f"<!-- STARHOPE_PDF_PAGE:{real_page_num} -->\n"
+                    f"{processed_text.strip()}"
+                )
+                return real_page_num
+
             pipeline_report = {}
             completed = 0
             page_errors = []
@@ -7286,22 +7329,10 @@ def run_pdf_parsing_task(
                     local_idx, text, error, joint = future.result()
                     if error:
                         real_page_num = target_page_indices[local_idx] + 1
-                        page_errors.append({"page_number": real_page_num, "error": error})
+                        page_errors.append({"page_number": real_page_num,
+                                            "local_idx": local_idx, "error": error})
                     else:
-                        processed_text = process_ocr_illustrations(text)
-                        processed_text, wrappers, empty = clean_empty_fraction_wrappers(processed_text)
-                        if wrappers or empty:
-                            diagnostics.setdefault("pdf_fraction_evidence", []).append({
-                                "page_number": target_page_indices[local_idx]+1,
-                                "redundant_wrappers_removed": wrappers, "unresolved_denominators": empty,
-                            })
-                        real_page_num = target_page_indices[local_idx] + 1
-                        if joint is not None:
-                            joint_page_results[real_page_num - 1] = joint
-                        ocr_results[local_idx] = (
-                            f"<!-- STARHOPE_PDF_PAGE:{real_page_num} -->\n"
-                            f"{processed_text.strip()}"
-                        )
+                        store_page_result(local_idx, text, joint)
                     completed += 1
                     progress = 30 + int(
                         (completed / len(pages_requiring_ocr)) * 40
@@ -7319,10 +7350,72 @@ def run_pdf_parsing_task(
             diagnostics["pdf_page_pipeline"] = pipeline_report
             report_detail_preparation()
             if page_errors and pdf_document_kind == "book":
+                retry_plan = plan_book_page_retry(page_errors)
+                retry_local = [index for index in retry_plan["local_indices"] if index in job_cache]
+                if retry_plan["status"] == "ready" and retry_local:
+                    DOCUMENT_TASKS.update(
+                        task_id,
+                        log=("自动重试失败页：第 "
+                             + "、".join(str(target_page_indices[index] + 1) for index in retry_local)
+                             + " 页，复用已准备的原页与上下文..."),
+                    )
+
+                    def report_retry_attempt(event):
+                        report_pdf_attempt({**event, "round": 2})
+
+                    def retry_worker(job, check_request_cancelled):
+                        return ocr_worker(job, check_request_cancelled, report=report_retry_attempt)
+
+                    retry_pipeline = {}
+                    retry_errors = {
+                        index: item for index, item in (
+                            (item["local_idx"], item) for item in page_errors
+                        ) if index in retry_local
+                    }
+                    with closing(iter_pdf_page_requests(
+                        (job_cache[index] for index in retry_local), retry_worker,
+                        check_cancelled=check_pdf_cancelled,
+                        max_workers=min(len(retry_local), PDF_OCR_CAPACITY.total),
+                        diagnostics=retry_pipeline,
+                    )) as retry_futures:
+                        for future in retry_futures:
+                            check_pdf_cancelled()
+                            local_idx, text, error, joint = future.result()
+                            if error:
+                                retry_errors[local_idx] = {
+                                    **retry_errors.get(local_idx, {}),
+                                    "local_idx": local_idx, "error": error,
+                                }
+                            else:
+                                store_page_result(local_idx, text, joint)
+                                retry_errors.pop(local_idx, None)
+                    page_errors = [
+                        item for item in page_errors
+                        if item["local_idx"] not in retry_local
+                    ] + [retry_errors[index] for index in retry_local if index in retry_errors]
+                    recovered = [index for index in retry_local if index not in retry_errors]
+                    diagnostics["pdf_page_pipeline_retry"] = {
+                        **retry_pipeline, "status": "completed",
+                        "requested_pages": [target_page_indices[index] + 1 for index in retry_local],
+                        "recovered_pages": [target_page_indices[index] + 1 for index in recovered],
+                        "remaining_pages": sorted(item["page_number"] for item in page_errors),
+                    }
+                    DOCUMENT_TASKS.update(
+                        task_id,
+                        log=(f"自动重试完成：恢复 {len(recovered)} 页，"
+                             f"仍有 {len(page_errors)} 页未完成。"),
+                    )
+                else:
+                    diagnostics["pdf_page_pipeline_retry"] = {
+                        "status": "skipped",
+                        "reason": retry_plan.get("reason") or "prepared_jobs_missing",
+                        "failed_pages": len(page_errors),
+                    }
+            if page_errors and pdf_document_kind == "book":
                 diagnostics["pdf_failed_pages"] = sorted(page_errors, key=lambda item: item["page_number"])
                 # Do not run an exam-only draft or pay for another recognition
                 # attempt through the figure pipeline after a book page failed.
-                raise ValueError("书籍部分页面识别未完成，已保留原页及成功转录；请按失败页所在章节和相应答案页重新选择范围。")
+                raise ValueError("书籍部分页面识别未完成（已自动重试失败页）；已保留原页及成功转录，请按失败页所在章节和相应答案页重新选择范围。")
             elif page_errors:
                 diagnostics["pdf_failed_pages"] = sorted(page_errors, key=lambda item: item["page_number"])
                 check_pdf_cancelled()
