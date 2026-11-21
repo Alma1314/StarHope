@@ -181,6 +181,7 @@
 - **可验证完整备份 (`data_backup/snapshots/mathbank-backup-*.zip`)**：通过 SQLite 在线快照保存数据库、数据库引用的 `static/uploads/` 文件及自定义元数据，并在 `manifest.json` 记录逐文件 SHA-256、大小、表计数与结构版本；明确排除 `.env`、本地 Token 和 API 密钥。创建并复验使用 `python3 -m scripts.backup`，仅验证使用 `python3 -m scripts.restore <备份.zip>`。
 - **恢复安全边界**：实际恢复必须完全关闭服务并显式运行 `python3 -m scripts.restore <备份.zip> --apply --yes`。服务在首次访问数据库前持有跨平台运行锁，恢复 API/CLI 必须持有同一把锁；锁被占用时必须停止，不得用 PID 信号探测替代。恢复前先创建已验证安全备份；若当前数据库已损坏或缺失而无法生成标准快照，则保留原数据库、WAL/SHM、上传和元数据的原始灾难恢复包，再原子替换并在失败时回滚。默认不带 `--apply` 只检查，不能修改现有数据。
 - **AI 专属只读题库 (`data_backup/questions_library.md`)**：只输出学段、章节、知识点和题干，过滤答案与点评，清洗 `\item`、`\\` 等排版命令，完全保留 `$` 公式。
+- **可读 Markdown 镜像 (`scripts/export_markdown.py`)**：以 `AgentReader` 只读事务把每题导出为独立 `qNNNNN.md`（YAML frontmatter 含题号、题型、教材定位、难度、来源、标签、知识点、图片列表），并生成 `index.md`；答案/评析分段附后，正文保持 Markdown+LaTeX 原文，图片用相对路径链接。默认输出到被 Git 忽略的 `data_backup/questions_md/`，可用 `--output` 指定；内容不变不重写，并清理已删除题目的旧文件。它是只读视图，不替代 SQLite 真相源，不回写数据库。命令为 `python3 -m scripts.export_markdown`，专项 `tests/test_export_markdown.py`。
 - **终端检索工具 (`scripts/search_questions.py`)**：提供 CLI 工具支持模糊匹配与结构化题目拉取（运行 `python3 -m scripts.search_questions -q <关键词>`）。
 - **填空题下划线迁移工具 (`scripts/migrate_fillin.py`)**：批量规范化旧下划线格式为 `\fillin` 并刷新备份。
 
