@@ -69,6 +69,7 @@ scratch/
 # 7. 忽略 Python 虚拟环境与本地构建输出目录
 dist/
 build/
+*.egg-info/
 venv/
 .venv/
 env/

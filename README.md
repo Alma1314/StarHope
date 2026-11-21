@@ -8,7 +8,7 @@
 
 **StarHope** 是一个专为中学数学教师打造的、完全运行在您自己电脑上的轻量级半自动化数学题库与组卷排版工作台。
 
-它支持数学公式与几何图形秒级实时预览，深度集成一键组卷、A4 仿真画布排版、高考级 PDF / Word 试卷导出、AI 辅助解题以及一键 OCR 题目识别。项目无需复杂的前端编译：Windows 10/11 x64 便携包内置 Python 与匹配的 VC++ 运行库，解压即可双击启动；macOS 便携包自动检测本机 Python 3.10+ 并准备独立运行环境。
+它支持数学公式与几何图形秒级实时预览，深度集成一键组卷、A4 仿真画布排版、高考级 PDF / Word 试卷导出、AI 辅助解题以及一键 OCR 题目识别。项目无需复杂的前端编译：Windows 10/11 x64 便携包内置 Python 与匹配的 VC++ 运行库，解压即可双击启动；macOS 便携包自动检测本机 Python 3.14+ 并准备独立运行环境。
 
 https://github.com/user-attachments/assets/46834cbd-3499-4c06-9d8e-c81bdc10a0a7
 
@@ -106,6 +106,7 @@ flowchart LR
   * **网络暂断重连**：断网重连后自动持续查询原任务进度，不会重复上传文件或自动重发模型请求。
 
 ### 2. 教材分类、知识点与题库检索
+- **多学科标注（源码开发版）**：编辑题目时可选择数学、物理、化学等学科，填写难度与学科知识点（每行一个）；其他学科无需选择数学教材章节。旧题默认数学，现有数学主辅知识点保留。题库筛选中可按学科查询，点击「本页学科与批量标注」可对本页最多20题手动标注，或使用已配置分类模型生成 AI 建议，逐题核对后点击「确认保存选中标注」。建议生成期间不写库，可关闭窗口后「接回任务」；服务重启会清除尚未保存的建议。当前批量建议仅阅读文字，依赖配图的题目需人工核对。六套教材目录、文档 AI 拆题和智能组卷继续面向数学；本项不表示正式 Release 已包含这些新增入口。
 - **知识点补充与依据核验**：在 AI 分类结果中可点击「只应用知识点」，保留当前教材位置与题型，已有标注不会被覆盖。系统逐小问区分主考目标与辅助方法（如并列要求多个目标而只引用其一会提示漏标）；辅助知识点须有实际解题步骤支持，仅有最终答案不会凭空猜测解法。若解析为图片，会在同次请求中附带步骤转录并注明“未经独立核验”。
 - **分类质量档位与单题精细复核**：设置中的分类质量默认为**「快速」**，可按需切为**「精细」**。在快速模式下若单题分类不理想，可直接点击预览区的 **「本题精细复核」** 仅用精细档重算当前题（失败或取消保留原建议；中转 B 的 `gemini-3.8-flash-high` 保持原模型别名，仅提高输出预算）。
 - **组合关键词筛选**（当前源码）：在「本地题库」「草稿箱」或「智能组卷」展开「筛选」，点击「添加条件」。可分别指定题干、解析、教师评析、来源、标签或全部文本，选择「包含」或「排除」。题目须满足所有包含项，命中任一排除项即从结果中剔除。收起面板后可从摘要逐项移除。题库、草稿箱和组卷的筛选均在工具栏下方浮出。组卷手动列表与 AI 选题共用条件，已选题目会保留。
@@ -134,8 +135,8 @@ flowchart LR
 
 如果您不熟悉命令行或 Python 环境，请直接前往 [**V3.1.0 发布页面**](https://github.com/Alma1314/StarHope/releases/tag/V3.1.0)，在 Assets 中下载对应系统的 ZIP 附件并**完整解压**：
 
-* **Windows 用户**：使用 Windows 10/11 x64，下载 [`StarHope-Windows-x64.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-Windows-x64.zip)（内置完整 Python 3.10 与应用本地 VC++ 运行时，无需另行安装），完整解压后双击 **`启动题库系统.bat`**。
-* **macOS 用户**：下载 [`StarHope-macOS.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-macOS.zip)。**macOS 包不内置 Python，运行前请先确认本机已安装 Python 3.10 或更高版本**。首次准备或修复项目隔离环境 `venv` 时需保持联网，随后双击 **`启动题库系统.command`**。
+* **Windows 用户**：使用 Windows 10/11 x64，下载 [`StarHope-Windows-x64.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-Windows-x64.zip)（内置完整 Python 3.14.10 与应用本地 VC++ 运行时，无需另行安装），完整解压后双击 **`启动题库系统.bat`**。
+* **macOS 用户**：下载 [`StarHope-macOS.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-macOS.zip)。**macOS 包不内置 Python，运行前请先确认本机已安装 Python 3.14 或更高版本**。首次准备或修复项目隔离环境 `venv` 时需保持联网，随后双击 **`启动题库系统.command`**。
 
 两个启动器会自动检查 Python 与依赖；若题库服务已在运行，会直接打开网页，无需先关闭再重开。端口冲突或启动失败时会直接显示具体原因与服务日志。
 
@@ -149,11 +150,11 @@ flowchart LR
    cd math-question-bank
    ```
 
-2. **安装依赖**（要求 Python 3.10+）：
+2. **安装依赖**（要求 Python 3.14+）：
    ```bash
-   python -m pip install -r requirements.txt
+   uv sync
    ```
-   参与开发或运行测试时，改用 `python -m pip install -r requirements-dev.txt`。依赖版本已锁定，升级时请同步运行测试与 `python -m pip check`。
+   参与开发或运行测试时，改用 `uv sync --extra dev`；随后用 `uv run python -m pytest tests/` 运行测试。依赖版本锁定于 `pyproject.toml` 与 `uv.lock`，升级时请同步更新锁文件并验证。未安装 uv 时，可先执行 `python -m pip install uv`。
 
 3. **启动项目**：
    * **Mac 用户**：双击 **`启动题库系统.command`**
@@ -232,26 +233,11 @@ flowchart LR
 
   覆盖升级会自动保留根目录数据库及 WAL/SHM、`.env`、`data_backup/`、`static/uploads/`、`.system_generated/` 和 `venv/`。请勿直接删除原项目目录。
 
-### 当前源码的 Pillow 兼容策略与 macOS 可选迁移
+### 当前源码的 Python 与 Pillow 策略
 
-**3.1.0 延续 V3.0.3 的 Python 兼容策略。** Windows 便携环境继续使用 Python 3.10；源码或 macOS 项目的 `venv` 使用 Python 3.11 及以上时，依赖清单会安装 Pillow 13.0.0，Python 3.10 则继续使用 12.3.0。**12.3.0 的已知图片解码安全问题仍然存在。** 源码/macOS 双击启动会按依赖清单变化补齐依赖；直接命令行启动前请重新执行依赖安装。
+**当前开发版本要求 Python 3.14 或更高版本**，Windows 便携包内嵌 CPython 3.14.10，运行时统一使用 Pillow 13.0.0，不再保留 Python 3.10 / Pillow 12.3.0 兼容分支。依赖声明位于 `pyproject.toml`，开发、CI 与发布构建统一使用 uv，锁文件为 `uv.lock`。
 
-macOS 启动器优先复用可用的原 `venv`；安装新 Python 不会替换它。即使没有 `venv`，启动器也可能先找到仍指向旧版本的 `python3`。仍在使用 Python 3.10 的用户可以继续运行；如希望使用 Pillow 13，可在确认新 Python 支持本机 macOS 后，**自行选择**以下迁移，不必随本次更新一起进行：
-
-1. 保存编辑，创建完整备份，并通过网页电源按钮关闭服务。保留原项目目录、`.env`、`data_backup/`、`static/uploads/` 和 `.system_generated/`，继续使用原浏览器及原网址（含端口）。完整备份不包含 `.env` 或浏览器草稿。
-2. 将原项目中的 `venv` 改名为一个未占用的备份名，例如 `venv-before-python-upgrade`，先不要删除。
-3. 在终端进入原项目，用**新解释器的明确路径**创建同名 `venv`。下面的项目路径和 Python 3.13 路径均为示例，必须按实际安装情况替换；不要只把命令改成 `python3`：
-   ```bash
-   cd "/你的/StarHope目录"
-   "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13" -m venv venv
-   ```
-4. 联网双击原目录中的 `启动题库系统.command`，等待依赖安装与服务就绪，再在同一目录核对实际版本：
-   ```bash
-   ./venv/bin/python -c 'import sys, PIL; print(sys.version); print(PIL.__version__)'
-   ```
-   预期所选 Python 为 3.11 及以上、Pillow 为 13.0.0；同时检查题目、图片和原浏览器草稿正常，再决定是否删除旧环境备份。
-
-若迁移失败，先关闭服务，保留新环境供排查，再将备存的旧 `venv` 恢复原名。仅迁移 Python 环境不改变数据库结构；如同时回退程序版本，仍须遵守下面的数据库回退规则。
+从旧版升级时，请先创建完整备份并通过网页电源按钮正常停服，再用 Python 3.14+ 重建项目 `venv` 并安装依赖。源码/macOS 双击启动会按 `pyproject.toml` 变化补齐依赖；直接命令行启动前请重新执行 `uv sync`。仅迁移 Python 环境不改变数据库结构；如同时回退程序版本，仍须遵守下面的数据库回退规则。
 
 ### 数据库升级与退回旧版
 
@@ -411,8 +397,8 @@ python3 -m scripts.tiered_storage status
 ├── 启动题库系统.command        # macOS 一键启动脚本
 ├── README.md                   # 中文说明文档
 ├── README_EN.md                # 英文说明文档
-├── requirements.txt            # Python 依赖包清单
-├── requirements-dev.txt        # 开发与测试依赖
+├── pyproject.toml              # 项目元数据与 Python 依赖（PEP 621）
+├── uv.lock                     # uv 依赖锁文件
 └── .env.example                # 环境变量配置模板
 ```
 

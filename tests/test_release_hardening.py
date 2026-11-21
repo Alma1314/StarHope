@@ -9,6 +9,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
+import tomllib
 
 from scripts import build_release, release_overlay
 
@@ -276,34 +277,21 @@ def test_verify_sha256_fails_closed_without_valid_pin(tmp_path, digest):
         build_release.verify_sha256(payload, digest, "payload")
 
 
+def _pyproject():
+    return tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+
+
 def test_cross_platform_requirements_are_locked_and_target_explicit():
-    runtime_lines = (PROJECT_ROOT / "requirements.txt").read_text(
-        encoding="utf-8"
-    ).splitlines()
-    package_lines = [
-        line.strip()
-        for line in runtime_lines
-        if line.strip() and not line.lstrip().startswith("#")
-    ]
+    project = _pyproject()["project"]
+    package_lines = project["dependencies"]
     assert package_lines
-    pillow_markers = {
-        'pillow==12.3.0; python_version < "3.11"',
-        'pillow==13.0.0; python_version >= "3.11"',
-    }
-    assert pillow_markers.issubset(package_lines)
-    assert all("==" in line and (";" not in line or line in pillow_markers) for line in package_lines)
+    assert project["requires-python"] == ">=3.14"
+    assert "pillow==13.0.0" in package_lines
+    assert all("==" in line and ";" not in line for line in package_lines)
     assert "colorama==0.4.6" in package_lines
     assert "greenlet==3.5.4" in package_lines
 
-    dev_lines = (PROJECT_ROOT / "requirements-dev.txt").read_text(
-        encoding="utf-8"
-    ).splitlines()
-    dev_packages = [
-        line.strip()
-        for line in dev_lines
-        if line.strip()
-        and not line.lstrip().startswith(("#", "-r", "--requirement"))
-    ]
+    dev_packages = project["optional-dependencies"]["dev"]
     assert all("==" in line and ";" not in line for line in dev_packages)
     # Starlette 1.x has moved its TestClient to the Pydantic-maintained
     # HTTPX2 package; keep this explicit so a clean environment does not fall
@@ -316,25 +304,18 @@ def test_cross_platform_requirements_are_locked_and_target_explicit():
         "packaging==26.3",
         "pluggy==1.6.0",
         "pygments==2.20.0",
-        "tomli==2.4.1",
     }.issubset(dev_packages)
 
-    windows_requirements = (PROJECT_ROOT / "requirements-windows.txt").read_text(
-        encoding="utf-8"
-    )
-    windows_lines = {
-        line.strip() for line in windows_requirements.splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
-    }
+    windows_lines = set(build_release.resolve_target_requirements("3.14"))
     assert all("==" in line and ";" not in line for line in windows_lines)
-    assert windows_lines == (set(package_lines) - pillow_markers) | {"pillow==12.3.0"}
+    assert windows_lines == set(package_lines)
     build_release.validate_target_requirements()
 
 
 def test_windows_runtime_layout_requires_platform_transitive_dependencies(tmp_path):
     required_paths = (
         "python/python.exe",
-        "python/python310._pth",
+        "python/python314._pth",
         "python/_sqlite3.pyd",
         "python/sqlite3.dll",
         "python/site-packages/fastapi",
@@ -348,8 +329,8 @@ def test_windows_runtime_layout_requires_platform_transitive_dependencies(tmp_pa
             path.touch()
         else:
             path.mkdir()
-    (tmp_path / "python" / "python310._pth").write_text(
-        "python310.zip\n.\n..\nsite-packages\nimport site\n",
+    (tmp_path / "python" / "python314._pth").write_text(
+        "python314.zip\n.\n..\nsite-packages\nimport site\n",
         encoding="utf-8",
     )
 
@@ -366,9 +347,9 @@ def test_windows_runtime_layout_requires_platform_transitive_dependencies(tmp_pa
 def test_embedded_python_path_includes_application_root(tmp_path, monkeypatch):
     runtime = tmp_path / "python"
     runtime.mkdir()
-    path_file = runtime / "python310._pth"
+    path_file = runtime / "python314._pth"
     path_file.write_text(
-        "python310.zip\n.\n\n#import site\n",
+        "python314.zip\n.\n\n#import site\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(build_release, "PYTHON_DIR", str(runtime))
@@ -376,7 +357,7 @@ def test_embedded_python_path_includes_application_root(tmp_path, monkeypatch):
     build_release.configure_python_path()
 
     assert path_file.read_text(encoding="utf-8").splitlines() == [
-        "python310.zip",
+        "python314.zip",
         ".",
         "..",
         "site-packages",
@@ -408,8 +389,8 @@ def test_windows_runtime_application_root_and_cache_safety(tmp_path, monkeypatch
             path.touch()
         else:
             path.mkdir()
-    (tmp_path / "python" / "python310._pth").write_text(
-        "python310.zip\n.\n" + ("..\n" if include_app_root else "") + "site-packages\nimport site\n",
+    (tmp_path / "python" / "python314._pth").write_text(
+        "python314.zip\n.\n" + ("..\n" if include_app_root else "") + "site-packages\nimport site\n",
         encoding="utf-8",
     )
 
@@ -578,7 +559,7 @@ import starhope.paper_helper
 def _make_minimal_windows_tree(root, *, include_launcher_helper=True):
     for relative_path in (
         "main.py",
-        "requirements.txt",
+        "pyproject.toml",
         "覆盖升级说明.txt",
         "starhope/__init__.py",
         "scripts/release_overlay.py",
@@ -639,7 +620,7 @@ def test_windows_release_tree_requires_launcher_helper(tmp_path):
 def _make_minimal_macos_tree(root):
     for relative_path in (
         "main.py",
-        "requirements.txt",
+        "pyproject.toml",
         "覆盖升级说明.txt",
         "starhope/__init__.py",
         "scripts/release_overlay.py",
@@ -1240,7 +1221,7 @@ def test_launchers_use_shared_environment_and_startup_flow():
     shared = (PROJECT_ROOT / "scripts/local_launcher.py").read_text(encoding="utf-8")
     assert "scripts.local_launcher" in mac
     assert "scripts.windows_launcher" in windows
-    assert "sys.version_info >= (3, 10)" in mac
+    assert "sys.version_info >= (3, 14)" in mac
     assert "find_supported_python" in mac
     assert "STARHOPE_NO_PAUSE" in windows
     assert "STARHOPE_NO_PAUSE" in mac
@@ -1253,15 +1234,17 @@ def test_launchers_use_shared_environment_and_startup_flow():
         assert "Get-CimInstance" not in source
         assert "scripts.release_overlay" not in source
     assert "creation_ticks" not in shared
-    assert "requirements.sha256" in shared
+    assert "dependencies.sha256" in shared
     assert "pymupdf as fitz" in shared
 
 
-def test_release_builder_uses_invoking_interpreter_for_pip():
+def test_release_builder_uses_uv_for_windows_target_dependencies():
     source = (PROJECT_ROOT / "scripts" / "build_release.py").read_text(
         encoding="utf-8"
     )
-    assert 'sys.executable,\n        "-m",\n        "pip"' in source
+    assert '"--python-platform"' in source
+    assert '"x86_64-pc-windows-msvc"' in source
+    assert '"--python-version"' in source
     assert '"pip", "download"' not in source
 
 
@@ -1287,24 +1270,22 @@ def test_release_builder_never_runs_during_unit_import(monkeypatch):
     assert shutil.which("definitely-not-a-command") is None
 
 
-@pytest.mark.parametrize("filename,old,new", [
-    ("requirements-windows.txt", "pillow==12.3.0", 'pillow==12.3.0; python_version < "3.11"'),
-    ("requirements-windows.txt", "pillow==12.3.0", "pillow==13.0.0"),
-    ("requirements-windows.txt", "colorama==0.4.6", "colorama==0.4.5"),
-    ("requirements-windows.txt", "pillow==12.3.0", "-r requirements.txt"),
-    ("requirements-windows.txt", "pillow==12.3.0", "pillow==12.3.0\npillow==12.3.0"),
-    ("requirements-windows.txt", "pillow==12.3.0", "pillow==12.3.0\nPillow==12.3.0"),
-    ("requirements.txt", 'pillow==13.0.0; python_version >= "3.11"', "pillow==13.0.0"),
-    ("requirements.txt", "colorama==0.4.6", 'colorama==0.4.6; sys_platform == "win32"'),
-    ("requirements.txt", "colorama==0.4.6", "colorama==0.4.6\ncolorama==0.4.6"),
+@pytest.mark.parametrize("old,new", [
+    ("pillow==13.0.0", 'pillow==13.0.0; python_version >= "3.11"'),
+    ("colorama==0.4.6", 'colorama==0.4.6; sys_platform == "win32"'),
+    ("colorama==0.4.6", "-r requirements.txt"),
+    ("colorama==0.4.6", "colorama==0.4.6\n    \"colorama==0.4.6\""),
+    ("colorama==0.4.6", "colorama==0.4.6\n    \"Colorama==0.4.6\""),
 ])
-def test_target_requirements_fail_closed_on_markers_includes_duplicates_or_drift(tmp_path, monkeypatch, filename, old, new):
-    for name in ("requirements.txt", "requirements-windows.txt"):
-        (tmp_path / name).write_text((PROJECT_ROOT / name).read_text(encoding="utf-8"), encoding="utf-8")
-    path = tmp_path / filename
+def test_target_requirements_fail_closed_on_markers_includes_duplicates_or_drift(tmp_path, monkeypatch, old, new):
+    path = tmp_path / "pyproject.toml"
+    path.write_text(
+        (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
     source = path.read_text(encoding="utf-8")
     assert old in source
-    path.write_text(source.replace(old, new), encoding="utf-8")
+    path.write_text(source.replace(old, new, 1), encoding="utf-8")
     monkeypatch.setattr(build_release, "BASE_DIR", str(tmp_path))
     with pytest.raises(RuntimeError):
         build_release.validate_target_requirements()

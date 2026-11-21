@@ -208,11 +208,11 @@ def test_lock_file_is_reusable_after_exception(tmp_path):
 ])
 def test_dependencies_install_only_when_needed(tmp_path, monkeypatch, changed, imports_ok, installs):
     monkeypatch.delenv("STARHOPE_PORTABLE_RUNTIME", raising=False)
-    requirements = b"fastapi==1.0\n"
-    (tmp_path / "requirements.txt").write_bytes(requirements)
+    requirements = b"[project]\ndependencies = [\"fastapi==1.0\"]\n"
+    (tmp_path / "pyproject.toml").write_bytes(requirements)
     state = tmp_path / ".system_generated"
     state.mkdir()
-    stamp = state / "requirements.sha256"
+    stamp = state / "dependencies.sha256"
     stamp.write_text("old" if changed else hashlib.sha256(requirements).hexdigest())
     monkeypatch.setattr(launcher, "environment_works", lambda *_: imports_ok)
     commands = []
@@ -221,6 +221,7 @@ def test_dependencies_install_only_when_needed(tmp_path, monkeypatch, changed, i
     assert bool(commands) is installs
     if installs:
         assert "install" in commands[0]
+        assert str(tmp_path) in commands[0]
         assert stamp.read_text().strip() == hashlib.sha256(requirements).hexdigest()
 
 

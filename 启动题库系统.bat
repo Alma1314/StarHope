@@ -16,7 +16,7 @@ set "MISSING_DLL="
 for %%d in (msvcp140.dll vcruntime140.dll vcruntime140_1.dll) do if not exist "python\%%d" set "MISSING_DLL=%%d"
 if defined MISSING_DLL goto missing_dll
 set "PYTHON_EXE=%CD%\python\python.exe"
-"%PYTHON_EXE%" -c "import sys;raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
+"%PYTHON_EXE%" -c "import sys;raise SystemExit(0 if sys.version_info >= (3,14) else 1)" >nul 2>&1
 if errorlevel 1 goto unsupported_portable_python
 set "STARHOPE_PORTABLE_RUNTIME=1"
 goto launch
@@ -33,7 +33,7 @@ if not defined MISSING_DLL goto use_portable
 set "BOOTSTRAP_CMD="
 where python >nul 2>&1
 if errorlevel 1 goto try_python3
-python -c "import sys;raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
+python -c "import sys;raise SystemExit(0 if sys.version_info >= (3,14) else 1)" >nul 2>&1
 if errorlevel 1 goto try_python3
 set "BOOTSTRAP_CMD=python"
 goto create_source_venv
@@ -41,7 +41,7 @@ goto create_source_venv
 :try_python3
 where python3 >nul 2>&1
 if errorlevel 1 goto try_py
-python3 -c "import sys;raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
+python3 -c "import sys;raise SystemExit(0 if sys.version_info >= (3,14) else 1)" >nul 2>&1
 if errorlevel 1 goto try_py
 set "BOOTSTRAP_CMD=python3"
 goto create_source_venv
@@ -49,7 +49,7 @@ goto create_source_venv
 :try_py
 where py >nul 2>&1
 if errorlevel 1 goto missing_source_python
-py -3 -c "import sys;raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
+py -3 -c "import sys;raise SystemExit(0 if sys.version_info >= (3,14) else 1)" >nul 2>&1
 if errorlevel 1 goto missing_source_python
 set "BOOTSTRAP_CMD=py -3"
 
@@ -62,7 +62,7 @@ if errorlevel 1 goto source_venv_failed
 
 :use_source_venv
 set "PYTHON_EXE=%CD%\venv\Scripts\python.exe"
-"%PYTHON_EXE%" -c "import sys;raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
+"%PYTHON_EXE%" -c "import sys;raise SystemExit(0 if sys.version_info >= (3,14) else 1)" >nul 2>&1
 if errorlevel 1 goto unsupported_source_python
 
 :launch
@@ -95,7 +95,7 @@ echo [E_PYTHON_VERSION] The embedded Python runtime cannot run or is unsupported
 goto bootstrap_error
 
 :missing_source_python
-echo [E_SOURCE_PYTHON] Python 3.10 or newer was not found.
+echo [E_SOURCE_PYTHON] Python 3.14 or newer was not found.
 echo Install Python from python.org, then run this launcher again.
 goto bootstrap_error
 
@@ -104,7 +104,7 @@ echo [E_SOURCE_VENV] The project Python environment could not be created.
 goto bootstrap_error
 
 :unsupported_source_python
-echo [E_SOURCE_PYTHON_VERSION] The project venv requires Python 3.10 or newer.
+echo [E_SOURCE_PYTHON_VERSION] The project venv requires Python 3.14 or newer.
 echo Remove the venv folder and run this launcher again to rebuild it.
 
 :bootstrap_error

@@ -19,6 +19,8 @@ import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
 
+import tomllib
+
 from starhope import __version__
 from starhope.paths import BUILD_CACHE_DIR, DIST_DIR as PROJECT_DIST_DIR, PROJECT_ROOT
 
@@ -31,19 +33,19 @@ PYTHON_DIR = os.path.join(BUILD_DIR, "python")
 WHEELS_DIR = os.path.join(DIST_DIR, "wheels")
 SITE_PACKAGES = os.path.join(PYTHON_DIR, "site-packages")
 CACHE_DIR = str(BUILD_CACHE_DIR)
-CACHE_WHEELS_DIR = os.path.join(CACHE_DIR, "wheels")
 MACOS_BUILD_DIR = os.path.join(DIST_DIR, "starhope-macos")
 
+PYTHON_VERSION = "3.14.10"
 PYTHON_ZIP_URL = (
-    "https://www.python.org/ftp/python/3.10.11/"
-    "python-3.10.11-embed-amd64.zip"
+    f"https://www.python.org/ftp/python/{PYTHON_VERSION}/"
+    f"python-{PYTHON_VERSION}-embed-amd64.zip"
 )
-PYTHON_ZIP_SHA256 = "608619f8619075629c9c69f361352a0da6ed7e62f83a0e19c63e0ea32eb7629d"
+PYTHON_ZIP_SHA256 = "90905e64a840557d8c1bc4f5b74db3d7ee85e3ffb217611cac1c7813acea4159"
 NUGET_ZIP_URL = (
-    "https://api.nuget.org/v3-flatcontainer/python/3.10.11/"
-    "python.3.10.11.nupkg"
+    f"https://api.nuget.org/v3-flatcontainer/python/{PYTHON_VERSION}/"
+    f"python.{PYTHON_VERSION}.nupkg"
 )
-NUGET_ZIP_SHA256 = "7c6f99b160a36a7e09492dfcff2b0a3a60bb5229ca44cdcc3ecb32871a6144d0"
+NUGET_ZIP_SHA256 = "f54ba67c9951c3d773ea47d2bb095150c037c399f0423a968bcda22809241784"
 
 # Microsoft Visual C++ Runtime used by the pinned Windows wheels.  The
 # production DLLs below come from the Visual Studio 2026 Stable VC\Redist
@@ -97,7 +99,7 @@ ROOT_FILE_ALLOWLIST = (
     "main.py",
     ".env.example",
     "覆盖升级说明.txt",
-    "requirements.txt",
+    "pyproject.toml",
     "README.md",
     "README_EN.md",
     "LICENSE",
@@ -196,7 +198,7 @@ OVERLAY_MANAGED_ROOTS = (
     "main.py",
     ".env.example",
     "覆盖升级说明.txt",
-    "requirements.txt",
+    "pyproject.toml",
     "README.md",
     "README_EN.md",
     "LICENSE",
@@ -357,59 +359,87 @@ def validate_release_source():
     )
     subprocess.check_call([sys.executable, "-c", compile_code], cwd=BASE_DIR)
 
-    python310 = shutil.which("python3.10")
-    if python310:
-        subprocess.check_call(
-            [python310, "-c", "import starhope.ai_json"],
-            cwd=BASE_DIR,
-        )
+_PIN_PATTERN = re.compile(
+    r"([A-Za-z0-9][A-Za-z0-9_.-]*)==([A-Za-z0-9][A-Za-z0-9.!+_-]*)"
+)
+
+
+def read_project_dependencies():
+    """Return [project].dependencies from the single pyproject manifest."""
+
+    path = Path(BASE_DIR, "pyproject.toml")
+    if not path.is_file():
+        raise RuntimeError("missing pyproject.toml")
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except Exception as error:
+        raise RuntimeError(f"invalid pyproject.toml: {error}") from error
+    dependencies = data.get("project", {}).get("dependencies")
+    if not isinstance(dependencies, list) or not dependencies:
+        raise RuntimeError("pyproject.toml must define [project].dependencies")
+    lines = []
+    for item in dependencies:
+        if not isinstance(item, str) or not item.strip():
+            raise RuntimeError("pyproject.toml dependencies must be non-empty strings")
+        lines.append(item.strip())
+    return lines
+
+
+def _validated_pins(lines, *, allowed_markers=frozenset()):
+    pins = set()
+    names = set()
+    for number, raw in enumerate(lines, 1):
+        line = raw.partition("#")[0].strip()
+        if not line:
+            continue
+        if line in pins:
+            raise RuntimeError(f"pyproject.toml:{number}: duplicate dependency")
+        if line in allowed_markers:
+            pins.add(line)
+            continue
+        match = _PIN_PATTERN.fullmatch(line)
+        if not match:
+            raise RuntimeError(
+                f"pyproject.toml:{number}: require an explicit pin, not host markers or includes"
+            )
+        package = re.sub(r"[-_.]+", "-", match.group(1)).lower()
+        if package in names:
+            raise RuntimeError(f"pyproject.toml:{number}: duplicate dependency name")
+        names.add(package)
+        pins.add(line)
+    return pins
+
+
+def resolve_target_requirements(python_version="3.14"):
+    """Resolve project dependencies for a target interpreter.
+
+    Target pins are selected here and written without host markers so the
+    Windows build never depends on the build machine's marker environment.
+    """
+
+    from packaging.requirements import Requirement
+
+    resolved = []
+    for line in read_project_dependencies():
+        requirement = Requirement(line)
+        if requirement.marker is not None and not requirement.marker.evaluate(
+            {"python_version": python_version}
+        ):
+            continue
+        resolved.append(line.split(";", 1)[0].strip())
+    return resolved
 
 
 def validate_target_requirements():
-    """Validate explicit CPython 3.10 pins without evaluating host markers.
+    """Validate explicit CPython 3.14 pins without evaluating host markers.
 
-    The source install supports two reviewed Pillow pins. Windows retains the
-    old pin only for compatibility; this does not remediate its decoder CVEs.
-    Every other pin must match so the independent target lock cannot drift.
+    Every pin must be exact, markers and includes are rejected, and the target
+    resolution must match the reviewed runtime lock.
     """
-    pillow_markers = {
-        'pillow==12.3.0; python_version < "3.11"',
-        'pillow==13.0.0; python_version >= "3.11"',
-    }
-
-    def read_pins(name, allowed_markers=()):
-        path = Path(BASE_DIR, name)
-        if not path.is_file():
-            raise RuntimeError(f"missing target requirements: {name}")
-        pins = set()
-        names = set()
-        for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            line = raw.partition("#")[0].strip()
-            if not line:
-                continue
-            if line in pins:
-                raise RuntimeError(f"{name}:{number}: duplicate dependency")
-            if line not in allowed_markers:
-                match = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9_.-]*)==([A-Za-z0-9][A-Za-z0-9.!+_-]*)", line)
-                if not match:
-                    raise RuntimeError(f"{name}:{number}: require an explicit pin, not host markers or includes")
-                package = re.sub(r"[-_.]+", "-", match.group(1)).lower()
-                if package in names:
-                    raise RuntimeError(f"{name}:{number}: duplicate dependency name")
-                names.add(package)
-            pins.add(line)
-        return pins
-
-    runtime = read_pins("requirements.txt", pillow_markers)
-    if not pillow_markers.issubset(runtime) or any(
-        line.lower().startswith("pillow==") and line not in pillow_markers
-        for line in runtime
-    ):
-        raise RuntimeError("source Pillow pins must match the reviewed Python version policy")
-    expected_windows = (runtime - pillow_markers) | {"pillow==12.3.0"}
-    windows = read_pins("requirements-windows.txt")
-    if windows != expected_windows:
-        raise RuntimeError("Windows CPython 3.10 pins differ from the reviewed runtime target lock")
+    runtime = _validated_pins(read_project_dependencies())
+    windows = _validated_pins(resolve_target_requirements("3.14"))
+    if windows != runtime:
+        raise RuntimeError("Windows CPython 3.14 pins differ from the reviewed runtime target lock")
 
 
 def _remove_release_outputs():
@@ -436,7 +466,7 @@ def download_python():
         PYTHON_ZIP_URL,
         cache_path,
         PYTHON_ZIP_SHA256,
-        "Python 3.10.11 embedded runtime",
+        f"Python {PYTHON_VERSION} embedded runtime",
     )
     print("[build] Extracting Python...")
     with zipfile.ZipFile(cache_path, "r") as zip_ref:
@@ -526,10 +556,10 @@ def download_and_extract_msvc_runtime():
 
 
 def configure_python_path():
-    print("[build] Configuring python310._pth...")
-    pth_file = os.path.join(PYTHON_DIR, "python310._pth")
+    print("[build] Configuring python314._pth...")
+    pth_file = os.path.join(PYTHON_DIR, "python314._pth")
     if not os.path.isfile(pth_file):
-        raise RuntimeError("embedded Python archive is missing python310._pth")
+        raise RuntimeError("embedded Python archive is missing python314._pth")
     with open(pth_file, "r", encoding="utf-8") as file_handle:
         lines = file_handle.read().splitlines()
 
@@ -542,7 +572,7 @@ def configure_python_path():
         else:
             new_lines.append(line)
         if line.strip() == ".":
-            # Entries in python310._pth are relative to python/python.exe, not
+            # Entries in python314._pth are relative to python/python.exe, not
             # to the launcher's working directory.  The application modules
             # (main.py, starhope/, scripts/) live one directory above it.
             new_lines.append("..")
@@ -555,53 +585,39 @@ def configure_python_path():
         file_handle.write("\n".join(new_lines) + "\n")
 
 
+def uv_executable():
+    uv = shutil.which("uv")
+    if not uv:
+        raise RuntimeError(
+            "uv is required for Release builds; install it from https://docs.astral.sh/uv/"
+        )
+    return uv
+
+
 def download_and_extract_wheels():
-    print("[build] Checking and downloading Windows wheels for requirements...")
+    print("[build] Installing Windows target dependencies with uv...")
     validate_target_requirements()
-    requirements_file = os.path.join(BASE_DIR, "requirements-windows.txt")
-    os.makedirs(CACHE_WHEELS_DIR, exist_ok=True)
+    os.makedirs(SITE_PACKAGES, exist_ok=True)
+    os.makedirs(CACHE_DIR, exist_ok=True)
 
     cmd = [
-        sys.executable,
-        "-m",
+        uv_executable(),
         "pip",
-        "download",
-        "--disable-pip-version-check",
-        "--only-binary=:all:",
-        "--platform",
-        "win_amd64",
+        "install",
+        "--python-platform",
+        "x86_64-pc-windows-msvc",
         "--python-version",
-        "3.10",
-        "--implementation",
-        "cp",
-        "--abi",
-        "cp310",
-        "--dest",
-        WHEELS_DIR,
-        "--find-links",
-        CACHE_WHEELS_DIR,
-        "--requirement",
-        requirements_file,
+        "3.14",
+        "--target",
+        SITE_PACKAGES,
+        "--cache-dir",
+        os.path.join(CACHE_DIR, "uv"),
+        "--no-config",
+        "--no-progress",
+        *resolve_target_requirements("3.14"),
     ]
     print(f"Running command: {subprocess.list2cmdline(cmd)}")
     subprocess.check_call(cmd, cwd=BASE_DIR)
-
-    print("[cache] Updating local wheels cache...")
-    wheel_paths = sorted(Path(WHEELS_DIR).glob("*.whl"))
-    if not wheel_paths:
-        raise RuntimeError("pip did not resolve any Windows wheels")
-    for wheel_path in wheel_paths:
-        validate_zip(wheel_path, wheel_path.name)
-        destination = Path(CACHE_WHEELS_DIR, wheel_path.name)
-        if not destination.exists() or sha256_file(destination) != sha256_file(wheel_path):
-            temporary = destination.with_name(f".{destination.name}.tmp")
-            shutil.copy2(wheel_path, temporary)
-            os.replace(temporary, destination)
-
-    print("[build] Extracting wheels into site-packages...")
-    for wheel_path in wheel_paths:
-        with zipfile.ZipFile(wheel_path, "r") as zip_ref:
-            zip_ref.extractall(SITE_PACKAGES, members=_safe_zip_members(zip_ref))
     _prune_dependency_test_artifacts(SITE_PACKAGES)
 
 
@@ -769,7 +785,7 @@ def assert_release_tree_clean(root, platform_name):
     root = Path(root)
     required = {
         "main.py",
-        "requirements.txt",
+        "pyproject.toml",
         "覆盖升级说明.txt",
         "starhope/__init__.py",
         "scripts/release_overlay.py",
@@ -899,7 +915,7 @@ def validate_windows_runtime(root):
     python_executable = root / "python" / "python.exe"
     required = (
         python_executable,
-        root / "python" / "python310._pth",
+        root / "python" / "python314._pth",
         root / "python" / "_sqlite3.pyd",
         root / "python" / "sqlite3.dll",
         root / "python" / "site-packages" / "fastapi",
@@ -917,7 +933,7 @@ def validate_windows_runtime(root):
         raise RuntimeError(f"Windows runtime smoke check is missing: {missing}")
     path_lines = {
         line.strip()
-        for line in (root / "python" / "python310._pth").read_text(
+        for line in (root / "python" / "python314._pth").read_text(
             encoding="utf-8"
         ).splitlines()
         if line.strip() and not line.lstrip().startswith("#")
@@ -927,7 +943,7 @@ def validate_windows_runtime(root):
     if missing_path_lines:
         raise RuntimeError(
             "Windows embedded runtime cannot import the application root; "
-            f"python310._pth is missing: {missing_path_lines}"
+            f"python314._pth is missing: {missing_path_lines}"
         )
     if os.name == "nt":
         smoke_code = (

@@ -295,7 +295,7 @@ def prepare_python(root: Path) -> tuple[Path, Path | None]:
         # Windows BAT already selects the embedded interpreter or source venv.
         return Path(sys.executable), None
     python = root / "venv" / "bin" / "python"
-    supported = "import sys;raise SystemExit(0 if sys.version_info >= (3,10) else 1)"
+    supported = "import sys;raise SystemExit(0 if sys.version_info >= (3,14) else 1)"
     if python.is_file() and environment_works(python, supported, root):
         return python, None
     backup = None
@@ -323,11 +323,11 @@ def ensure_dependencies(root: Path, python: Path) -> None:
             run_checked([str(python), "-c", IMPORT_CHECK], root,
                         "便携包中的依赖不完整，请重新解压完整 Windows 包并替换同名文件")
         return
-    requirements = root / "requirements.txt"
-    if not requirements.is_file():
-        raise LauncherError("缺少 requirements.txt，请补齐项目文件。")
-    digest = hashlib.sha256(requirements.read_bytes()).hexdigest()
-    stamp = root / ".system_generated" / "requirements.sha256"
+    manifest = root / "pyproject.toml"
+    if not manifest.is_file():
+        raise LauncherError("缺少 pyproject.toml，请补齐项目文件。")
+    digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    stamp = root / ".system_generated" / "dependencies.sha256"
     try:
         installed = stamp.read_text(encoding="ascii").strip()
     except (OSError, UnicodeError):
@@ -336,7 +336,7 @@ def ensure_dependencies(root: Path, python: Path) -> None:
         return
     print("正在安装或更新项目需要的依赖包（需要联网）...")
     run_checked([str(python), "-m", "pip", "install", "--disable-pip-version-check",
-                 "-r", str(requirements)], root, "依赖安装失败，请检查网络后重试")
+                 str(root)], root, "依赖安装失败，请检查网络后重试")
     run_checked([str(python), "-c", IMPORT_CHECK], root, "依赖包仍无法正常导入")
     # This cache is a convenience, not a prerequisite for running the app.
     with contextlib.suppress(OSError):
