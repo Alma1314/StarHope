@@ -2353,6 +2353,7 @@
         }
 
         function parsedQuestionNeedsClassificationReview(index, q = parsedQuestionsData[index]) {
+            if (typeof parsedUsesMathCurriculum === 'function' && !parsedUsesMathCurriculum(q)) return false;
             const review = q?.classification_review;
             if (!review || typeof review !== 'object') return false;
             const previousState = JSON.stringify([review.required, review.catalog_signature, review.catalog_changed]);
@@ -2891,6 +2892,12 @@
         }
 
         function pdfStructureReviewState(report, task = {}) {
+            if (report?.book_import) {
+                const book = report.book_import;
+                const lines = Array.isArray(book.unresolved) ? book.unresolved : [];
+                return {incomplete: lines.length > 0 || Boolean(book.unmatched_answers?.length),
+                    localDraft: false, manual: false, lines, issues: [], summary: '书籍提取报告'};
+            }
             const draft = report?.pdf_local_draft;
             if (draft && typeof draft === 'object') {
                 const ranges = Array.isArray(draft.unresolved_ranges) ? draft.unresolved_ranges : [];
@@ -3267,6 +3274,7 @@
 
         function renderSourceIntegrityReport(report) {
             parsedSourceReviewReport = report;
+            if (typeof renderBookImportReport === 'function') renderBookImportReport(report);
             parsedQuestionsData.forEach((question, index) => updateParsedSourceReviewState(index));
             renderPdfFigureReviewPanel(report);
             const oldReport = document.getElementById('parsedSourceIntegrityReport');
@@ -4535,6 +4543,7 @@
                         }
                     });
                 }
+                if (typeof syncBookImportOptions === 'function') syncBookImportOptions();
             }
 
             // 旧版独立配图区在部分页面布局中不存在；仅在整套控件齐全时绑定，
@@ -4797,6 +4806,8 @@
                 pdfFormData.append('client_request_id', creation.requestId);
                 pdfFormData.append('paper_title', title);
                 pdfFormData.append('generate_answers', generateAnswers ? "true" : "false");
+                pdfFormData.append('pdf_document_kind', document.getElementById('pdfDocumentKind')?.value || 'paper');
+                pdfFormData.append('book_subject', document.getElementById('bookSubject')?.value || '数学');
                 
                 const pdfPageRangeInput = document.getElementById('pdfPageRange');
                 const pageRange = pdfPageRangeInput ? pdfPageRangeInput.value.trim() : '';
@@ -5315,7 +5326,7 @@
                                 : '原文件与逐页识图稿已保存；题卡尚未整理，请展开逐页工作稿核对原因。')
                             : structureReview.incomplete
                             ? `${documentLabel} 原文已保留，当前整理出 ${parsedQuestionsData.length} 道题；拆题尚未全部完成。`
-                            : `${documentLabel} 试卷分析并拆解成功！共分析出 ${parsedQuestionsData.length} 道数学题。`, structureReview.incomplete ? 'warning' : 'success');
+                            : `${documentLabel}${task.diagnostics?.book_import ? '书籍' : '试卷'}提取完成，共 ${parsedQuestionsData.length} 道题。`, structureReview.incomplete ? 'warning' : 'success');
                         if (structureReview.incomplete) structureReview.lines.forEach(line => appendImportLog(line, 'warning'));
                         if (isWordTask && task.diagnostics) {
                             const report = task.diagnostics;
@@ -5553,6 +5564,7 @@
             window.currentDocxFile = null;
             window.currentTexDiagnostics = null;
             window.currentTexReadToken = null;
+            if (typeof syncBookImportOptions === 'function') syncBookImportOptions();
             window.pdfPageImages = [];
             window.pdfPageNumbers = [];
             window.currentPdfTaskId = null;
@@ -6718,6 +6730,7 @@
                 setupCardCategoryLinkage(card, q);
                 renderParsedKnowledgePoints(card, q, index);
                 updateParsedClassificationReview(index);
+                if (typeof renderParsedSubjectFields === 'function') renderParsedSubjectFields(card, q, index);
                 card.addEventListener('focusin', () => updateParsedClassificationReview(index));
 
                 // Populate image badges
@@ -7002,7 +7015,7 @@
                     : problem === 'chapter' ? card.querySelector('.card-chapter')
                     : problem === 'knowledge' ? card.querySelector('.card-knowledge')
                     : card.querySelector('.card-classification-confirm');
-            } else if (!compulsory || !chapter) {
+            } else if (parsedUsesMathCurriculum(q) && (!compulsory || !chapter)) {
                 message = `请选择第 ${index + 1} 题的学段与所属章节！`;
                 target = !compulsory
                     ? card.querySelector('.card-compulsory')
@@ -7016,6 +7029,10 @@
                 target.focus();
             }
             return false;
+        }
+
+        function parsedUsesMathCurriculum(question) {
+            return question?.book_import !== true && (!question?.subject || question.subject === '数学');
         }
 
         function applyParsedAssetPathMap(rawMapping, generation, index, question) {
@@ -7054,6 +7071,7 @@
                 content: field('content-textarea').trim(), answer_markdown: field('answer-textarea').trim(),
                 review: String(q.review || ''),
                 question_type: field('qtype'), difficulty: field('difficulty'), source: field('source').trim(),
+                subject: field('subject') || '数学', subject_topics: field('subject-topics'),
                 category_compulsory: field('compulsory'), category_chapter: field('chapter'),
                 category_knowledge: field('knowledge'),
                 knowledge_points: KnowledgePointState.normalize(q.knowledge_points),
@@ -7196,7 +7214,7 @@
                     showToast(`第 ${index + 1} 题的题干内容不能为空！`, 'warning');
                     throw new Error('Content empty');
                 }
-                if (!category_compulsory || !category_chapter) {
+                if (parsedUsesMathCurriculum(q) && (!category_compulsory || !category_chapter)) {
                     showToast(`请选择第 ${index + 1} 题的学段与所属章节！`, 'warning');
                     const compSelect = card.querySelector('.card-compulsory');
                     const chapSelect = card.querySelector('.card-chapter');
@@ -7221,6 +7239,8 @@
                 const formData = new FormData();
                 formData.append('content', content);
                 formData.append('question_type', question_type);
+                formData.append('subject', card.querySelector('.card-subject')?.value || q.subject || '数学');
+                formData.append('subject_topics', card.querySelector('.card-subject-topics')?.value ?? q.subject_topics ?? '');
                 formData.append('category_compulsory', category_compulsory);
                 formData.append('category_chapter', category_chapter);
                 formData.append('category_knowledge', category_knowledge);

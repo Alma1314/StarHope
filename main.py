@@ -925,7 +925,7 @@ def read_index():
         
         # Inject dynamic cache-busting version parameter based on file mtime
         js_files = [
-            "api.js", "subject-annotations.js", "editor.js", "ocr.js", "import.js", "document-import-session.js",
+            "api.js", "subject-annotations.js", "editor.js", "ocr.js", "import.js", "book-import.js", "document-import-session.js",
             "paper.js", "dashboard.js", "workspace.js", "qa-data.js", "qa.js",
         ]
         for js in js_files:
@@ -3030,7 +3030,7 @@ def import_library_transfer(
             pass
 
 
-from starhope.subject_annotations import create_subject_router, SUBJECT_TASKS
+from starhope.subject_annotations import create_subject_router, SUBJECT_TASKS, SUBJECTS
 app.include_router(create_subject_router(get_db, load_metadata=lambda: METADATA_CACHE, on_saved=_sharing_post_commit_export))
 app.include_router(_LIBRARY_TRANSFER_UPLOAD_ROUTER)
 
@@ -3878,6 +3878,7 @@ def create_question(
             import_project_id, import_card_id, import_draft_revision, {
                 "content":content,"answer_markdown":answer_markdown,"question_type":question_type,
                 "difficulty":difficulty,"source":source,"review":review,"image_paths":image_paths,
+                "subject":subject,"subject_topics":subject_topics,
                 "category_compulsory":category_compulsory,"category_chapter":category_chapter,
                 "category_knowledge":category_knowledge,"tikz_code":tikz_code,
                 "tikz_reference_image_path":tikz_reference_image_path,"content_tikz_assets":content_tikz_assets,
@@ -7112,9 +7113,10 @@ def run_pdf_parsing_task(
             diagnostics["pdf_page_pipeline"] = pipeline_report
             report_detail_preparation()
             if page_errors and pdf_document_kind == "book":
-                # Keep the hole visible to the book extractor. An exam-only
-                # same-page draft cannot safely identify chapters or answers.
                 diagnostics["pdf_failed_pages"] = sorted(page_errors, key=lambda item: item["page_number"])
+                # Do not run an exam-only draft or pay for another recognition
+                # attempt through the figure pipeline after a book page failed.
+                raise ValueError("书籍部分页面识别未完成，已保留原页及成功转录；请按失败页所在章节和相应答案页重新选择范围。")
             elif page_errors:
                 diagnostics["pdf_failed_pages"] = sorted(page_errors, key=lambda item: item["page_number"])
                 check_pdf_cancelled()

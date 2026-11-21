@@ -18,6 +18,11 @@ _JSON = {"image_paths":[], "content_tikz_assets":[], "answer_tikz_assets":[],
 
 def import_payload_hash(values):
     normalized = {key:str(values.get(key) or "").strip() for key in _TEXT}
+    # Preserve receipt hashes of historical math cards without free topics.
+    subject = str(values.get("subject") or "数学").strip()
+    topics = str(values.get("subject_topics") or "").strip()
+    if subject != "数学" or topics:
+        normalized.update(subject=subject, subject_topics=topics)
     for key, default in _JSON.items():
         value = values.get(key)
         if value is None or value == "":

@@ -6,6 +6,7 @@
     const fields = {
         content: 'content-textarea', answer_markdown: 'answer-textarea',
         question_type: 'qtype', difficulty: 'difficulty', source: 'source',
+        subject: 'subject', subject_topics: 'subject-topics',
         category_compulsory: 'compulsory', category_chapter: 'chapter', category_knowledge: 'knowledge'
     };
     const clone = value => JSON.parse(JSON.stringify(value));
@@ -210,7 +211,7 @@
         return question?.project_card_id || question?.import_item_id || question?.source_item_id || '';
     }
 
-    const metadataFields = ['question_type', 'difficulty', 'category_compulsory', 'category_chapter', 'category_knowledge'];
+    const metadataFields = ['question_type', 'difficulty', 'subject', 'subject_topics', 'category_compulsory', 'category_chapter', 'category_knowledge'];
 
     function mergeKnowledgePointSuggestions(current, incoming) {
         const labels = window.KnowledgePointState.normalize(current);
@@ -432,6 +433,7 @@
 
     function correctionSnapshot(question) {
         const text = ['content', 'answer_markdown', 'review', 'question_type', 'difficulty', 'source',
+            'subject', 'subject_topics',
             'category_compulsory', 'category_chapter', 'category_knowledge', 'tikz_code', 'tikz_reference_image_path'];
         const result = text.map(field => String(question?.[field] || ''));
         ['image_paths', 'content_tikz_assets', 'answer_tikz_assets'].forEach(field => result.push(question?.[field] || []));
