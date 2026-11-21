@@ -277,7 +277,7 @@ class AgentReader:
                knowledge_point_codes=None, knowledge_query="", knowledge_point_mode="any",
                knowledge_point_role="main", knowledge_point_status="all", qtype="", difficulty="",
                page=1, page_size=20, related_to=None, profile="candidate", include_answers=False,
-               sort="desc", version_code=None, include_seq_num=True):
+               sort="desc", version_code=None, include_seq_num=True, education_stage=""):
         profile = self._profile(profile)
         page = _integer(page, "页码")
         page_size = _integer(page_size, "每页条数", 1, 100)
@@ -291,6 +291,11 @@ class AgentReader:
         if knowledge_point_status not in {"all", "confirmed", "suggested"}:
             raise ValueError("知识点状态必须是 all、confirmed 或 suggested")
         clauses, params, resolved_points = [], [], []
+        if education_stage:
+            from starhope.subject_annotations import normalize_education_stage
+            normalize_education_stage(education_stage)
+            clauses.append("q.education_stage=?" if "education_stage" in self.columns else "?='未标注'")
+            params.append(education_stage)
         if query:
             fields = [field for field in ("category_compulsory", "category_chapter", "category_knowledge",
                       "content", "source", "tags", "subject", "subject_topics", "answer_markdown", "review") if field in self.columns]
@@ -535,6 +540,7 @@ class AgentReader:
             "id", "question_type", "category_compulsory", "category_chapter", "category_knowledge",
             "difficulty", "source", "association_group_id", "tags", "created_at",
         )}
+        item["education_stage"] = row.get("education_stage") or "未标注"
         item["subject"] = row.get("subject") or "数学"
         item["subject_topics"] = row.get("subject_topics") or ""
         if seq_num is not None:

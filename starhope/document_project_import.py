@@ -23,6 +23,9 @@ def import_payload_hash(values):
     topics = str(values.get("subject_topics") or "").strip()
     if subject != "数学" or topics:
         normalized.update(subject=subject, subject_topics=topics)
+    stage = values.get("education_stage") or "未标注"
+    if stage != "未标注":
+        normalized["education_stage"] = stage
     for key, default in _JSON.items():
         value = values.get(key)
         if value is None or value == "":

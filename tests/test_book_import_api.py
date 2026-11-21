@@ -17,12 +17,13 @@ def test_upload_routes_book_options_without_automatic_solution_generation(client
         seen.append((options, worker, args))
         return {"status": "success", "task_id": "fake-book"}
     monkeypatch.setattr(main, "_queue_document_upload", queue)
-    response = client.post('/api/upload/pdf-task', data={"pdf_document_kind": "book", "book_subject": "物理",
+    response = client.post('/api/upload/pdf-task', data={"pdf_document_kind": "book", "book_subject": "物理", "book_education_stage": "初中",
         "generate_answers": "true", "pdf_strategy": "native_preferred"},
         files={"file": ("书籍.pdf", b"%PDF-fixture", "application/pdf")})
     assert response.status_code == 200, response.text
     options, worker, args = seen[0]
     assert options["pdf_document_kind"] == "book" and options["book_subject"] == "物理"
+    assert options["book_education_stage"] == "初中" and worker.keywords["book_education_stage"] == "初中"
     assert options["generate_answers"] is False and args[0] is False
     assert isinstance(worker, partial) and worker.keywords["pdf_document_kind"] == "book"
     for data in ({"pdf_document_kind": "bad"}, {"pdf_document_kind": "book", "book_subject": "bad"}):
@@ -60,10 +61,11 @@ def test_real_pdf_worker_uses_book_extractor_and_preserves_answers(client, monke
     identifier = str(uuid.uuid4())
     main.DOCUMENT_TASKS.create(identifier, document_type="pdf", temp_assets=[], document_input={"options": {"paper_title": "物理书"}})
     try:
-        main.run_pdf_parsing_task(identifier, content, "书.pdf", pdf_document_kind="book", book_subject="物理")
+        main.run_pdf_parsing_task(identifier, content, "书.pdf", pdf_document_kind="book", book_subject="物理", book_education_stage="初中")
         result = main.DOCUMENT_TASKS.snapshot(identifier)
         assert result["status"] == "completed", result.get("error")
         assert len(calls) == 1 and result["generate_answers"] is False
+        assert result["data"][0]["education_stage"] == "初中"
         assert result["data"][0]["subject"] == "物理"
         assert result["data"][0]["subject_topics"] == "速度"
         assert result["data"][0]["answer_markdown"] == "每秒2米。"

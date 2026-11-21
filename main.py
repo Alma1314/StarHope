@@ -928,7 +928,7 @@ def read_index():
         
         # Inject dynamic cache-busting version parameter based on file mtime
         js_files = [
-            "api.js", "subject-annotations.js", "editor.js", "ocr.js", "import.js", "book-import.js", "document-import-session.js",
+            "api.js", "subject-annotations.js", "editor.js", "semantic.js", "ocr.js", "import.js", "book-import.js", "document-import-session.js",
             "paper.js", "dashboard.js", "learning.js", "workspace.js", "qa-data.js", "qa.js",
         ]
         for js in js_files:
@@ -3033,12 +3033,16 @@ def import_library_transfer(
             pass
 
 
-from starhope.subject_annotations import create_subject_router, SUBJECT_TASKS, SUBJECTS
+from starhope.subject_annotations import create_subject_router, SUBJECT_TASKS, SUBJECTS, EDUCATION_STAGES
 app.include_router(create_subject_router(get_db, load_metadata=lambda: METADATA_CACHE, on_saved=_sharing_post_commit_export))
 from starhope.learning import create_learning_router, PROFILE_TASKS, AutoProfileUpdater
 LEARNING_UPDATER = AutoProfileUpdater(lambda: SessionLocal())
 app.include_router(create_learning_router(get_db, updater=LEARNING_UPDATER))
 app.include_router(_LIBRARY_TRANSFER_UPLOAD_ROUTER)
+from starhope.question_relations import create_question_relations_router
+from starhope.semantic_index import create_semantic_router, get_indexer as get_semantic_indexer
+app.include_router(create_question_relations_router(get_db))
+app.include_router(create_semantic_router(get_db))
 
 app.include_router(create_agent_router(
     database_path=lambda: DATABASE_PATH,
@@ -3071,6 +3075,7 @@ def list_questions(
     question_type: str = None,
     difficulty: str = None,
     subject: str = None,
+    education_stage: str = None,
     source: str = None,
     page: Optional[int] = None,
     page_size: int = 20,
@@ -3125,6 +3130,11 @@ def list_questions(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         if type_val:
             query = query.filter(Question.question_type == type_val)
+        from starhope.subject_annotations import apply_education_stage
+        try:
+            query = apply_education_stage(query, education_stage)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
         if subject:
             query = query.filter(Question.subject == subject)
         if difficulty:
@@ -3412,6 +3422,7 @@ def check_question_duplicates(payload: dict, db: Session = Depends(get_db)):
 @app.get("/api/questions/association-candidates")
 def list_association_candidates(
     q: str = "",
+    education_stage: str = "",
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1),
     exclude_id: Optional[int] = Query(None, ge=1),
@@ -3419,10 +3430,13 @@ def list_association_candidates(
     question_id: Optional[int] = Query(None, ge=1),
     db: Session = Depends(get_db),
 ):
-    result = find_association_candidates(
-        db, q=q, page=page, page_size=page_size, exclude_id=exclude_id,
-        seq_num=seq_num, question_id=question_id,
-    )
+    try:
+        result = find_association_candidates(
+            db, q=q, page=page, page_size=page_size, exclude_id=exclude_id,
+            seq_num=seq_num, question_id=question_id, education_stage=education_stage,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     sequences = get_seq_mapping(db, [item["id"] for item in result["items"]])
     for item in result["items"]:
         item["seq_num"] = sequences.get(item["id"])
@@ -3852,6 +3866,7 @@ def create_question(
     expected_version_code: Optional[str] = Form(None),
     subject: Optional[str] = Form(None),
     subject_topics: Optional[str] = Form(None),
+    education_stage: Optional[str] = Form(None),
     difficulty: str = Form(...),
     source: str = Form(""),
     answer_markdown: str = Form(""),
@@ -3884,7 +3899,7 @@ def create_question(
             import_project_id, import_card_id, import_draft_revision, {
                 "content":content,"answer_markdown":answer_markdown,"question_type":question_type,
                 "difficulty":difficulty,"source":source,"review":review,"image_paths":image_paths,
-                "subject":subject,"subject_topics":subject_topics,
+                "subject":subject,"subject_topics":subject_topics,"education_stage":education_stage,
                 "category_compulsory":category_compulsory,"category_chapter":category_chapter,
                 "category_knowledge":category_knowledge,"tikz_code":tikz_code,
                 "tikz_reference_image_path":tikz_reference_image_path,"content_tikz_assets":content_tikz_assets,
@@ -3893,7 +3908,8 @@ def create_question(
                 "related_question_id":related_question_id,"sub_knowledge":sub_knowledge,"knowledge_points":knowledge_points})
         if existing_question_id is not None:
             return committed_question_response(db, db.get(Question, existing_question_id), existing_question_id, operation="project_import_replay")
-        from starhope.subject_annotations import normalize_annotation
+        from starhope.subject_annotations import normalize_annotation, normalize_education_stage
+        normalized_stage = normalize_education_stage(education_stage if education_stage is not None else "未标注")
         normalized_subject = normalize_annotation(subject or "数学", subject_topics or "")
         parsed_sub_knowledge = normalize_sub_knowledge(sub_knowledge)
         parsed_knowledge_points = normalize_question_points(
@@ -3957,6 +3973,7 @@ def create_question(
             tags=tags
         )
         db_question.subject, db_question.subject_topics = normalized_subject
+        db_question.education_stage = normalized_stage
         db_question.image_layouts = rewrite_image_layout_paths(image_layouts, asset_path_map)
         db_question.image_paths = parsed_img_paths
         db_question.content_tikz_assets = parsed_content_tikz_assets
@@ -4056,6 +4073,10 @@ def create_question(
 
     # Everything below is compensating or response work after the durable
     # success boundary; none of it may turn the write into a misleading 400.
+    try:
+        get_semantic_indexer().schedule([committed_question_id])
+    except Exception as semantic_exc:
+        print(f"[Semantic Index] schedule failed (type={type(semantic_exc).__name__})")
     schedule_database_export(background_tasks, operation="create_question")
     if duplicate_warning:
         schedule_question_fingerprint_retry(
@@ -4091,6 +4112,7 @@ def update_question(
     expected_version_code: Optional[str] = Form(None),
     subject: Optional[str] = Form(None),
     subject_topics: Optional[str] = Form(None),
+    education_stage: Optional[str] = Form(None),
     difficulty: str = Form(...),
     source: str = Form(""),
     answer_markdown: str = Form(""),
@@ -4120,7 +4142,8 @@ def update_question(
     duplicate_warning = ""
     old_images = list(db_question.image_paths)
     try:
-        from starhope.subject_annotations import normalize_annotation
+        from starhope.subject_annotations import normalize_annotation, normalize_education_stage
+        normalized_stage = normalize_education_stage(education_stage if education_stage is not None else db_question.education_stage)
         normalized_subject = normalize_annotation(subject if subject is not None else db_question.subject, (subject_topics or "") if subject is not None or subject_topics is not None else db_question.subject_topics)
         parsed_sub_knowledge = normalize_sub_knowledge(sub_knowledge) if sub_knowledge is not None else None
         parsed_knowledge_points = (
@@ -4169,6 +4192,7 @@ def update_question(
         # 1. Fallback if third level is empty, default to chapter
             
         db_question.subject, db_question.subject_topics = normalized_subject
+        db_question.education_stage = normalized_stage
         db_question.content = content
         db_question.question_type = question_type
         db_question.category_compulsory = category_compulsory
@@ -4312,6 +4336,10 @@ def update_question(
             f"(type={type(cleanup_exc).__name__}); it will be retried by "
             "the startup orphan cleanup."
         )
+    try:
+        get_semantic_indexer().schedule([question_id])
+    except Exception as semantic_exc:
+        print(f"[Semantic Index] schedule failed (type={type(semantic_exc).__name__})")
     schedule_database_export(background_tasks, operation="update_question")
     if duplicate_warning:
         schedule_question_fingerprint_retry(
@@ -4543,6 +4571,15 @@ def delete_question(
     # The database delete is complete.  Image cleanup is intentionally
     # best-effort so a locked/missing file cannot make the client believe the
     # question still exists and submit a duplicate delete.
+    try:
+        get_semantic_indexer().remove(question_id)
+    except Exception as semantic_exc:
+        print(f"[Semantic Index] remove failed (type={type(semantic_exc).__name__})")
+    try:
+        from starhope.question_graph import get_graph
+        get_graph().remove_question(question_id)
+    except Exception as graph_exc:
+        print(f"[Question Graph] remove failed (type={type(graph_exc).__name__})")
     try:
         delete_unreferenced_question_assets(db, image_paths_to_check)
     except Exception as cleanup_exc:
@@ -6064,6 +6101,8 @@ def ai_select_paper(payload: dict, db: Session = Depends(get_db)):
             selectinload(Question.curriculum_mappings).selectinload(QuestionCurriculum.sub_knowledge_rows),
             selectinload(Question.knowledge_points).selectinload(QuestionKnowledgePoint.point),
         )
+        from starhope.subject_annotations import apply_education_stage
+        query = apply_education_stage(query, payload.get("education_stage", ""))
         if request["question_type"]:
             query = query.filter(Question.question_type == request["question_type"])
         elif request["question_types"]:
@@ -6518,6 +6557,7 @@ def run_pdf_parsing_task(
     pdf_parse_model="",
     pdf_document_kind="paper",
     book_subject="数学",
+    book_education_stage="未标注",
 ):
     """PDF parsing with bounded OCR concurrency and cooperative cancellation."""
 
@@ -7360,6 +7400,8 @@ def run_pdf_parsing_task(
                 provider=provider, metadata={key: [row["value"] for row in METADATA_CACHE[key]]
                     for key in ("question_types", "difficulties")}, diagnostics=diagnostics,
                 check_cancelled=check_pdf_cancelled, progress=book_progress, post=post_chat_completion)
+            for question in questions:
+                question["education_stage"] = book_education_stage
             questions = post_process_pdf_parsed_questions(questions, paper_title, task_id,
                                                           source_body_preserved=True)
             report = diagnostics["book_import"]
@@ -7712,7 +7754,7 @@ def _queue_document_upload(content, filename, document_type, client_request_id, 
 PDF_MINERU_FIGURE_MODES = frozenset({"system", "mineru", "existing"})
 PDF_OCR_ENGINES = frozenset({"existing", "mineru"})
 PDF_OPTIONAL_SETTINGS = frozenset({"whole_page_ocr_dpi", "pdf_mineru_figures", "pdf_ocr_engine", "pdf_parse_model",
-                                   "pdf_document_kind", "book_subject"})
+                                   "pdf_document_kind", "book_subject", "book_education_stage"})
 
 
 def _valid_pdf_split_model(value):
@@ -7736,16 +7778,18 @@ def upload_pdf_task(
     pdf_parse_model: str = Form(""),
     pdf_document_kind: str = Form("paper"),
     book_subject: str = Form("数学"),
+    book_education_stage: str = Form("未标注"),
 ):
     try:
         from starhope.mineru_api import mineru_api_token
 
         client_request_id = _document_request_id(client_request_id)
-        from starhope.subject_annotations import normalize_annotation
+        from starhope.subject_annotations import normalize_annotation, normalize_education_stage
         if pdf_document_kind not in {"paper", "book"}:
             raise HTTPException(400, "PDF文档类型无效。")
         try:
             book_subject, _ = normalize_annotation(book_subject, "")
+            book_education_stage = normalize_education_stage(book_education_stage)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
         if pdf_strategy not in PDF_STRATEGIES:
@@ -7789,7 +7833,7 @@ def upload_pdf_task(
             paper_title=paper_title.strip())
         visual_options = {}
         if pdf_document_kind == "book":
-            visual_options.update(pdf_document_kind="book", book_subject=book_subject)
+            visual_options.update(pdf_document_kind="book", book_subject=book_subject, book_education_stage=book_education_stage)
         if whole_page_ocr_dpi != 150:
             visual_options["whole_page_ocr_dpi"] = whole_page_ocr_dpi
         if pdf_mineru_figures != "system":
@@ -8260,6 +8304,7 @@ def resume_document_task(task_id: str):
                 or options.get("pdf_ocr_engine", "existing") not in PDF_OCR_ENGINES
                 or options.get("pdf_document_kind", "paper") not in {"paper", "book"}
                 or options.get("book_subject", "数学") not in SUBJECTS
+                or options.get("book_education_stage", "未标注") not in EDUCATION_STAGES
                 or not _valid_pdf_split_model(options.get("pdf_parse_model", ""))
                 or (options.get("page_range") is not None and not isinstance(options["page_range"], str))))
             or (source["document_type"] == "docx" and type(options.get("docx_verify_suspicions")) is not bool)):

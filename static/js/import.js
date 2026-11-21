@@ -213,6 +213,9 @@
                 }
                 cancelAllOcr(); // Cancel any active OCR requests!
                 EditorState.reset();
+                window.dispatchEvent(new CustomEvent('starhope:question-opened', {
+                    detail: { questionId: null }
+                }));
                 document.getElementById('editorTitle').textContent = '录入新数学题';
                 
                 document.getElementById('editContent').value = '';
@@ -439,6 +442,8 @@
             relatedCandidateController = controller;
             const page = options.page || 1;
             const params = new URLSearchParams({page: String(page), page_size: '20'});
+            const stage = readSubjectEditor().education_stage;
+            if (stage !== '未标注') params.set('education_stage', stage);
             if (session.questionId) params.set('exclude_id', session.questionId);
             if (options.seqNum) params.set('seq_num', options.seqNum);
             else if (options.questionId) params.set('question_id', options.questionId);
@@ -914,6 +919,9 @@
                     }
                     resetRelatedQuestionPicker();
                     EditorState.useQuestion(fullItem);
+                    window.dispatchEvent(new CustomEvent('starhope:question-opened', {
+                        detail: { questionId: requestedQuestionId }
+                    }));
                     document.getElementById('editorTitle').textContent = '编辑数学题';
 
                     // Clear previous OCR state only after the question switch commits.
@@ -1224,6 +1232,7 @@
                 formData.append('category_knowledge', knowledge);
                 formData.append('knowledge_points', JSON.stringify(knowledgePoints));
                 if (curriculumVersion) formData.append('expected_version_code', curriculumVersion);
+                formData.append('education_stage', subjectFields.education_stage);
                 formData.append('subject', subjectFields.subject);
                 formData.append('subject_topics', subjectFields.subject_topics);
                 formData.append('difficulty', difficulty);
@@ -4807,6 +4816,7 @@
                 pdfFormData.append('paper_title', title);
                 pdfFormData.append('generate_answers', generateAnswers ? "true" : "false");
                 pdfFormData.append('pdf_document_kind', document.getElementById('pdfDocumentKind')?.value || 'paper');
+                pdfFormData.append('book_education_stage', document.getElementById('bookEducationStage')?.value || '未标注');
                 pdfFormData.append('book_subject', document.getElementById('bookSubject')?.value || '数学');
                 
                 const pdfPageRangeInput = document.getElementById('pdfPageRange');
@@ -7071,7 +7081,7 @@
                 content: field('content-textarea').trim(), answer_markdown: field('answer-textarea').trim(),
                 review: String(q.review || ''),
                 question_type: field('qtype'), difficulty: field('difficulty'), source: field('source').trim(),
-                subject: field('subject') || '数学', subject_topics: field('subject-topics'),
+                education_stage: field('education-stage') || '未标注', subject: field('subject') || '数学', subject_topics: field('subject-topics'),
                 category_compulsory: field('compulsory'), category_chapter: field('chapter'),
                 category_knowledge: field('knowledge'),
                 knowledge_points: KnowledgePointState.normalize(q.knowledge_points),
@@ -7239,6 +7249,7 @@
                 const formData = new FormData();
                 formData.append('content', content);
                 formData.append('question_type', question_type);
+                formData.append('education_stage', card.querySelector('.card-education-stage')?.value || q.education_stage || '未标注');
                 formData.append('subject', card.querySelector('.card-subject')?.value || q.subject || '数学');
                 formData.append('subject_topics', card.querySelector('.card-subject-topics')?.value ?? q.subject_topics ?? '');
                 formData.append('category_compulsory', category_compulsory);

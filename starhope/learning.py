@@ -98,24 +98,26 @@ def _public(learner):
 
 def question_snapshot(question):
     subject = question.subject or "数学"
+    stage = question.education_stage or "未标注"
+    topic_subject = subject if stage == "未标注" else stage + ":" + subject
     topics, names = [], set()
     for relation in question.knowledge_points:
         if relation.status == "confirmed" and relation.role == "main":
             name = relation.point.name
-            topics.append({"key": subject + ":code:" + relation.point_code, "name": name, "subject": subject})
+            topics.append({"key": topic_subject + ":code:" + relation.point_code, "name": name, "subject": subject, "education_stage": stage})
             names.add(unicodedata.normalize("NFKC", name).casefold())
     for name in (question.subject_topics or "").splitlines():
         name = name.strip()
         normalized = unicodedata.normalize("NFKC", name).casefold()
         if name and normalized not in names:
             names.add(normalized)
-            topics.append({"key": subject + ":name:" + _hash(normalized)[:32], "name": name, "subject": subject})
+            topics.append({"key": topic_subject + ":name:" + _hash(normalized)[:32], "name": name, "subject": subject, "education_stage": stage})
     value = {"question_id": question.id, "content": question.content or "",
              "reference_answer": question.answer_markdown or "", "subject": subject,
              "difficulty": question.difficulty or "", "topics": topics}
     if len(value["content"]) + len(value["reference_answer"]) > 200000:
         raise HTTPException(400, "本题正文与原答案过长，请先在题库中整理")
-    return {**value, "question_revision": _hash(value),
+    return {**value, "question_revision": _hash([value, stage]),
             "question_identity": _hash([question.id, value["content"]])}
 
 

@@ -24,6 +24,29 @@ def dispose_test_engine_after_session():
     test_engine.dispose()
 
 
+@pytest.fixture(autouse=True)
+def _forbid_paid_embeddings(monkeypatch):
+    """Product save paths schedule embeddings; tests must never call a provider."""
+    from starhope import semantic_index
+
+    def forbidden(texts, config):
+        raise RuntimeError("tests must not call a paid embedding endpoint")
+
+    monkeypatch.setattr(semantic_index._INDEXER, "_embed", forbidden)
+    yield
+    semantic_index.get_indexer().close()
+
+
+@pytest.fixture(autouse=True)
+def _isolated_question_graph(monkeypatch, tmp_path):
+    from starhope import question_graph
+
+    graph = question_graph.QuestionGraph(tmp_path / "question_graph.db")
+    monkeypatch.setattr(question_graph, "_GRAPH", graph)
+    yield
+    graph.close()
+
+
 # Patch sync_helper output paths globally during testing to avoid overwriting or clearing real data_backup files
 from starhope import sync_helper
 import tempfile

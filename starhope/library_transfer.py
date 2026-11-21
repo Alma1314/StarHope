@@ -66,7 +66,7 @@ MAX_CONTENT_SOURCE_BYTES = 1024 * 1024
 _CONTENT_SOURCE_MEMBERS = frozenset({CONTENT_SOURCES_JSON_NAME, CONTENT_SOURCES_NOTICE_NAME})
 UPLOAD_PREFIX = "/static/uploads"
 _TEXT_FIELDS = {
-    "subject": 30, "subject_topics": 2000,
+    "subject": 30, "subject_topics": 2000, "education_stage": 20,
     "content": 2_000_000, "question_type": 50, "category_compulsory": 100,
     "category_chapter": 100, "category_knowledge": 100, "difficulty": 50,
     "source": 2000, "answer_markdown": 2_000_000, "review": 2_000_000,
@@ -366,7 +366,8 @@ class _RecordValidator:
         if set(record) - _RECORD_FIELDS:
             raise ValueError("分享包题目含未知字段，请使用兼容版本的题库")
         ids.add(record["id"])
-        from starhope.subject_annotations import normalize_annotation
+        from starhope.subject_annotations import normalize_annotation, normalize_education_stage
+        normalize_education_stage(record.get("education_stage", "未标注"))
         normalize_annotation(record.get("subject", "数学"), record.get("subject_topics", ""))
         normalize_sub_knowledge(record.get("sub_knowledge", []))
         for field, maximum in _TEXT_FIELDS.items():
@@ -761,11 +762,12 @@ def _library_filtered_query(db, filters):
     """One filter definition for the displayed candidates and select-all IDs."""
     if filters is None:
         filters = {}
-    allowed = {"search", "source_keywords", "compulsory", "chapter", "knowledge",
+    allowed = {"education_stage", "search", "source_keywords", "compulsory", "chapter", "knowledge",
                "knowledge_point_codes", "knowledge_point_mode"}
     if not isinstance(filters, dict) or set(filters) - allowed:
         raise ValueError("分享题目筛选字段无效")
-    query = db.query(Question.id)
+    from starhope.subject_annotations import apply_education_stage
+    query = apply_education_stage(db.query(Question.id), filters.get("education_stage", ""))
     search = _text(filters.get("search", ""), "搜索文字", 200).strip()
     if search:
         # All searches are literal text, including numbers; an ID/sequence must
@@ -1038,7 +1040,7 @@ def _prepare_import_rows(package, staged_uploads, rows, progress):
     total = len(package["records"])
     _progress(progress, "fingerprinting", 0, total)
     for index, record in enumerate(package["records"], 1):
-        values = {field: record.get(field, "数学" if field == "subject" else "") for field in _TEXT_FIELDS}
+        values = {field: record.get(field, "数学" if field == "subject" else "未标注" if field == "education_stage" else "") for field in _TEXT_FIELDS}
         for field in ("content", "answer_markdown", "review"):
             values[field] = rewrite_question_asset_paths(values[field], replacements)
         values.update(

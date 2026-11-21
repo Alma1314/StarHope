@@ -91,6 +91,8 @@ def _backup_count_tables(schema_version: int) -> set[str]:
         tables.update({"learners", "learning_attempts"})
     if schema_version >= 19:
         tables.add("learning_reviews")
+    if schema_version >= 21:
+        tables.add("question_relations")
     return tables
 
 
@@ -988,6 +990,10 @@ def verify_full_backup(archive_path: Path) -> dict[str, Any]:
                             )
                             if schema_version >= 16:
                                 _validate_library_import_receipts(validation_connection)
+                            if schema_version >= 20:
+                                stage_columns = {row[1] for row in validation_connection.exec_driver_sql('PRAGMA table_info("questions")')}
+                                if "education_stage" not in stage_columns:
+                                    raise ValueError("备份缺少教育学段字段")
                             if schema_version >= 18:
                                 from starhope.db_migrations import _validate_learning_schema
                                 _validate_learning_schema(validation_connection,
@@ -1001,6 +1007,9 @@ def verify_full_backup(archive_path: Path) -> dict[str, Any]:
                             if schema_version >= 13:
                                 from starhope.db_migrations import _validate_question_reference_schema
                                 _validate_question_reference_schema(validation_connection)
+                            if schema_version >= 21:
+                                from starhope.db_migrations import _validate_question_relations
+                                _validate_question_relations(validation_connection)
                     finally:
                         validation_engine.dispose()
                 if "structured_upload_references" in database_manifest and database_manifest["structured_upload_references"] is not True:

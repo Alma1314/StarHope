@@ -379,6 +379,9 @@ def test_windows_runtime_application_root_and_cache_safety(tmp_path, monkeypatch
         "python/site-packages/colorama",
         "python/site-packages/pymupdf",
         "python/site-packages/pdf_inspector",
+        "python/site-packages/sqlite_vec",
+        "python/site-packages/cozo_embedded",
+        "python/site-packages/pycozo",
         f"python/{build_release.MSVC_RUNTIME_NOTICE_NAME}",
         *(f"python/{name}" for name in build_release.MSVC_RUNTIME_DLLS),
     )

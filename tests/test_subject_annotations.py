@@ -79,14 +79,14 @@ def test_suggestions_are_readonly_and_strict(isolated, monkeypatch):
     client, factory, _ = isolated
     original = client.post('/api/subject-annotations/preview', json={'ids': [1]}).json()['items'][0]
     provider = SimpleNamespace(api_key='test', model_name='test')
-    result = {'items': [{'id': 1, 'subject': '物理', 'difficulty': 'normal', 'subject_topics': '牛顿第二定律', 'reason': '题干要求加速度；常规力学运算'}]}
+    result = {'items': [{'id': 1, 'subject': '物理', 'education_stage': '高中', 'difficulty': 'normal', 'subject_topics': '牛顿第二定律', 'reason': '题干要求加速度；常规力学运算'}]}
     monkeypatch.setattr(labels, 'post_chat_completion', lambda *a, **k: SimpleNamespace(json=lambda: {'choices': [{'message': {'content': json.dumps(result)}}]}))
     monkeypatch.setattr(labels, 'apply_model_thinking_policy', lambda data, **k: data)
     task_id = str(uuid.uuid4())
     labels.SUBJECT_TASKS.create(task_id)
     labels.run_suggestion(task_id, [original], provider, {'normal': '常规题'})
     state = labels.SUBJECT_TASKS.snapshot(task_id)
-    assert state['status'] == 'completed' and state['items'][0]['subject'] == '物理'
+    assert state['status'] == 'completed' and state['items'][0]['subject'] == '物理' and state['items'][0]['education_stage'] == '高中'
     with factory() as db:
         assert db.get(Question, 1).subject == '数学'
     result['items'].append(result['items'][0])
@@ -108,7 +108,7 @@ def test_subject_labels_survive_share_roundtrip(isolated, tmp_path):
     uploads = tmp_path / 'uploads'; uploads.mkdir()
     package = tmp_path / 'share.zip'
     with factory() as db:
-        q = db.get(Question, 1); q.subject = '物理'; q.subject_topics = '牛顿第二定律\n受力分析'
+        q = db.get(Question, 1); q.subject = '物理'; q.education_stage = '本科'; q.subject_topics = '牛顿第二定律\n受力分析'
         db.commit()
         export_library_zip(db, package, uploads_dir=uploads, question_ids=[1])
     target = create_engine('sqlite:///' + str(tmp_path / 'target.sqlite'))
@@ -118,6 +118,6 @@ def test_subject_labels_survive_share_roundtrip(isolated, tmp_path):
         with sessionmaker(bind=target)() as db:
             imported = import_library_zip(db, package, uploads_dir=target_uploads)
             q = db.query(Question).one()
-            assert q.subject == '物理' and q.subject_topics == '牛顿第二定律\n受力分析'
+            assert q.education_stage == '本科' and q.subject == '物理' and q.subject_topics == '牛顿第二定律\n受力分析'
     finally:
         target.dispose()

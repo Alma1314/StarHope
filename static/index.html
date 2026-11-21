@@ -404,12 +404,13 @@
                         <button type="button" class="question-filter-action question-filter-dismiss" aria-label="关闭筛选" onclick="closeBankFilterPopover()"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                     </header>
                     <div class="workspace-filter-grid question-filter-scroll bank-filter-fields">
+                        <label>教育学段<select id="filterEducationStage" aria-label="教育学段" class="glass-select"></select></label>
                         <label>学科<select id="filterSubject" class="glass-select"><option value="">所有学科</option><option>数学</option><option>物理</option><option>化学</option><option>生物</option><option>语文</option><option>英语</option><option>历史</option><option>地理</option><option>政治</option><option>信息技术</option><option>其他</option></select></label>
-                        <button type="button" class="glass-btn p-2 rounded-xl" onclick="openSubjectAnnotations()">本页学科与批量标注</button>
+                        <button type="button" class="glass-btn p-2 rounded-xl" onclick="openSubjectAnnotations()">本页学段、学科与批量标注</button>
                         <div class="question-scope-filters" role="group" aria-label="题目范围">
-                            <label>学段
-                                <select id="filterCompulsory" aria-label="学段" class="glass-select text-xs px-2.5 py-2.5 rounded-xl">
-                                    <option value="">所有学段</option>
+                            <label>教材册次
+                                <select id="filterCompulsory" aria-label="教材册次" class="glass-select text-xs px-2.5 py-2.5 rounded-xl">
+                                    <option value="">所有教材册次</option>
                                 </select>
                             </label>
                             <label>章节
@@ -579,7 +580,7 @@
             </nav>
 
             <div class="question-editor-modal-body bank-editor-content p-6 max-w-4xl mx-auto w-full">
-                <p id="editorValidationHint" class="editor-validation-hint" role="status">题干、学段与章节为必填项。</p>
+                <p id="editorValidationHint" class="editor-validation-hint" role="status">题干、教材册次与章节为必填项。</p>
 
                 <!-- 1. Metadata / Classification Info - Compact Layout -->
                 <div class="bank-editor-panel bank-meta-panel glass-panel p-4 rounded-2xl space-y-3 active" data-editor-panel="classification">
@@ -590,6 +591,7 @@
 
                     <div class="grid grid-cols-2 gap-3">
                         <label class="text-xs">学科<select id="editSubject" class="glass-select w-full" onchange="syncSubjectEditor()"><option>数学</option><option>物理</option><option>化学</option><option>生物</option><option>语文</option><option>英语</option><option>历史</option><option>地理</option><option>政治</option><option>信息技术</option><option>其他</option></select></label>
+                        <label class="text-xs">教育学段<select id="editEducationStage" class="glass-select w-full" aria-label="题目教育学段"></select></label>
                         <label class="text-xs">学科知识点（每行一个）<textarea id="editSubjectTopics" class="glass-input w-full" maxlength="2000" rows="2" placeholder="例如：牛顿第二定律"></textarea></label>
                     </div>
                     <p class="text-xs text-slate-500">数学可继续使用下方教材目录与主辅知识点；其他学科使用上方知识点名称。批量 AI 建议入口位于题库筛选区。</p>
@@ -622,15 +624,15 @@
                     <!-- Row 2: Cascade Selection -->
                     <div class="grid grid-cols-3 gap-3">
                         <div>
-                            <label for="editCompulsory" class="block text-[11px] font-medium text-slate-500 mb-1">学段</label>
+                            <label for="editCompulsory" class="block text-[11px] font-medium text-slate-500 mb-1">教材册次</label>
                             <select id="editCompulsory" aria-required="true" aria-describedby="editorValidationHint" class="glass-select w-full px-2.5 text-xs rounded-xl">
-                                <option value="">选择学段</option>
+                                <option value="">选择教材册次</option>
                             </select>
                         </div>
                         <div>
                             <label for="editChapter" class="block text-[11px] font-medium text-slate-500 mb-1">章节</label>
                             <select id="editChapter" aria-required="true" aria-describedby="editorValidationHint" class="glass-select w-full px-2.5 text-xs rounded-xl disabled:opacity-50" disabled>
-                                <option value="">先选学段</option>
+                                <option value="">先选教材册次</option>
                             </select>
                         </div>
                         <div>
@@ -1166,6 +1168,21 @@
                                 <!-- Injected by JS -->
                             </div>
                         </div>
+
+                        <!-- Similar Questions and Typed Relations -->
+                        <div class="border-t border-dashed border-slate-200 pt-4 space-y-2.5" id="paperRelationsWrapper" hidden>
+                            <div class="flex items-center justify-between gap-2">
+                                <h5 class="text-xs font-extrabold tracking-wider text-violet-600 uppercase flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-diagram-project text-violet-500 text-xs"></i>
+                                    <span>相似题与关系</span>
+                                </h5>
+                                <button type="button" id="findSimilarBtn" onclick="findSimilarQuestions()" class="min-h-[36px] rounded-lg border border-violet-200 bg-violet-50 px-3 text-[11px] font-bold text-violet-700 hover:bg-violet-100 disabled:opacity-50">
+                                    找相似
+                                </button>
+                            </div>
+                            <p id="paperRelationsStatus" class="text-[10px] leading-relaxed text-slate-400">相似度只用于召回排序，不代表重复判定。</p>
+                            <div class="space-y-2 text-xs max-h-64 overflow-y-auto custom-scrollbar" id="paperRelationsList"></div>
+                        </div>
                     </div>
 
                     <!-- Footer of Paper -->
@@ -1311,6 +1328,7 @@
                                 <h3 id="learningPracticeTitle" class="font-semibold">练习与记录</h3>
                                 <div class="learning-form-grid">
                                     <label>记录方式<select id="learningOrigin" class="glass-select"><option value="practice">在线练习：先作答后看原答案</option><option value="manual">手工录入：已有作业或考试结果</option></select></label>
+                                    <label>教育学段<select id="learningEducationStage" class="glass-select"></select></label>
                                     <label>学科<select id="learningSubject" class="glass-select"><option value="">全部学科</option><option>数学</option><option>物理</option><option>化学</option><option>生物</option><option>语文</option><option>英语</option><option>历史</option><option>地理</option><option>政治</option><option>信息技术</option><option>其他</option></select></label>
                                 </div>
                                 <form id="learningQuestionSearch" class="learning-toolbar"><label class="learning-search-label">查找题目<input id="learningQuery" class="glass-input" maxlength="100" placeholder="题干关键词或 #题号"></label><button type="submit" class="glass-btn px-3 py-2 rounded-xl">查找</button></form>
@@ -2140,7 +2158,7 @@
                                 <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400">选择教材学段</label>
                                 <select id="statsQueryCompulsory" onchange="onStatsQueryCompulsoryChange()" 
                                         class="glass-select w-full px-2.5 py-1.5 rounded-lg">
-                                    <option value="">-- 选择学段 --</option>
+                                    <option value="">-- 选择教材册次 --</option>
                                 </select>
                             </div>
 
@@ -2148,7 +2166,7 @@
                                 <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400">选择具体章节</label>
                                 <select id="statsQueryChapter" onchange="onStatsQueryChapterChange()" 
                                         class="glass-select w-full px-2.5 py-1.5 rounded-lg disabled:opacity-50" disabled>
-                                    <option value="">-- 先选择学段 --</option>
+                                    <option value="">-- 先选择教材册次 --</option>
                                 </select>
                             </div>
                         </div>
@@ -2157,7 +2175,7 @@
                         <div class="bg-slate-50/50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 rounded-xl p-3.5 flex-1 flex flex-col justify-center items-center text-center space-y-2 min-h-[120px]">
                             <div id="statsQueryResultEmpty" class="space-y-1">
                                 <i class="fa-solid fa-chart-bar text-slate-400 dark:text-slate-600 text-xl"></i>
-                                <p class="text-[10px] text-slate-500 dark:text-slate-400">选择学段章节查看具体统计数据</p>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400">选择教材册次章节查看具体统计数据</p>
                             </div>
                             <div id="statsQueryResultData" class="hidden w-full text-left space-y-2.5">
                                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
@@ -2347,6 +2365,7 @@
                                     <option value="paper">试卷</option><option value="book">书籍（例题、习题及原答案）</option>
                                 </select>
                             </label>
+                            <label id="bookEducationStageOption" hidden class="text-xs font-semibold text-slate-700">书籍学段（可在题卡逐题修正）<select id="bookEducationStage" class="glass-select w-full rounded-lg px-2 py-2 text-xs"></select></label>
                             <label id="bookSubjectOption" hidden class="text-xs font-semibold text-slate-700">书籍学科
                                 <select id="bookSubject" class="glass-select w-full rounded-lg px-2 py-2 text-xs">
                                     <option>数学</option><option>物理</option><option>化学</option><option>生物</option><option>语文</option><option>英语</option><option>历史</option><option>地理</option><option>政治</option><option>信息技术</option><option>其他</option>
@@ -2630,6 +2649,7 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/subject-annotations.js"></script>
     <script src="/static/js/editor.js"></script>
+    <script src="/static/js/semantic.js"></script>
     <script src="/static/js/ocr.js"></script>
     <script src="/static/js/import.js"></script>
     <script src="/static/js/book-import.js"></script>

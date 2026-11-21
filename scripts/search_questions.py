@@ -119,6 +119,7 @@ def build_parser():
     )
     parser.add_argument("-q", "--query", help="字面关键词；保留原册/章/小节、正文、来源和标签检索")
     parser.add_argument("-t", "--type", dest="qtype", help="题型值；通过 --capabilities 查看当前可用值")
+    parser.add_argument("--education-stage", default="", help="精确教育学段：小学、初中、高中、本科等；未标注单独匹配")
     parser.add_argument("-d", "--difficulty", help="难度值；支持当前与历史自定义值")
     parser.add_argument("-n", "--limit", type=int, help="本页题数（Markdown默认50，JSON默认20）；-1保留显式全量兼容")
     parser.add_argument("-a", "--with-answers", action="store_true", help="包含答案、解析和评析")
@@ -220,7 +221,7 @@ def _read(reader, args):
             knowledge=args.knowledge, knowledge_point_codes=args.knowledge_point,
             knowledge_query=args.knowledge_query, knowledge_point_mode=args.knowledge_mode,
             knowledge_point_role=args.knowledge_role, qtype=args.qtype or "",
-            difficulty=args.difficulty or "", related_to=args.related_to,
+            education_stage=args.education_stage, difficulty=args.difficulty or "", related_to=args.related_to,
             profile=profile, include_answers=include_answers, sort=args.sort,
             version_code=args.version_code, include_seq_num=include_seq_num,
         )

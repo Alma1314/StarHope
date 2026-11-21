@@ -157,7 +157,7 @@ def export_database_to_files(db: Session = None, *, quiet: bool = False):
                     markdown_questions.append(SimpleNamespace(**{
                         field: payload[field] for field in (
                             "id", "content", "question_type", "category_compulsory",
-                            "category_chapter", "category_knowledge", "subject", "subject_topics", "difficulty", "source",
+                            "category_chapter", "category_knowledge", "subject", "subject_topics", "education_stage", "difficulty", "source",
                             "association_group_id", "tags", "tikz_code", "content_tikz_assets",
                         )
                     }, display_image_paths=payload["image_paths"]))
@@ -397,6 +397,7 @@ def generate_markdown_library(questions, filepath: str, *, curriculum_mappings=N
                             f.write(f"#### 📌 题目 #{seq_num} (数据库 ID: {q.id})\n")
                             f.write(f"- **题型**：`{q_type_display}`\n")
                             f.write(f"- **学科**：{getattr(q, 'subject', '数学') or '数学'}\n")
+                            f.write(f"- **教育学段**：{getattr(q, 'education_stage', '未标注') or '未标注'}\n")
                             if getattr(q, 'subject_topics', ''):
                                 f.write("- **学科知识点**：" + q.subject_topics.replace("\n", "、") + "\n")
                             f.write(f"- **难度级别**：{q_diff_display}\n")

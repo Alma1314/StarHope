@@ -82,7 +82,7 @@ function bindSidebarSearchInput(input) {
 function setupBankSearchControls() {
     const input = document.getElementById('searchInput');
     if (input) bindSidebarSearchInput(input);
-    for (const id of ['filterSubject', 'filterType', 'filterDifficulty', 'filterSort']) {
+    for (const id of ['filterEducationStage', 'filterSubject', 'filterType', 'filterDifficulty', 'filterSort']) {
         document.getElementById(id)?.addEventListener('change', runSidebarSearchImmediately);
     }
 }
@@ -1206,6 +1206,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 answer_markdown: snapshot.answer_markdown,
                 review: snapshot.review,
                 question_type: snapshot.question_type,
+                education_stage: snapshot.education_stage || '未标注',
                 subject: snapshot.subject || '数学',
                 subject_topics: snapshot.subject_topics || '',
                 difficulty: snapshot.difficulty,
@@ -1347,6 +1348,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                    currentAnswer === snapshot.answer_markdown &&
                    currentReview === snapshot.review &&
                    currentType === snapshot.question_type &&
+                   readSubjectEditor().education_stage === (snapshot.education_stage || '未标注') &&
                    readSubjectEditor().subject === (snapshot.subject || '数学') &&
                    readSubjectEditor().subject_topics === (snapshot.subject_topics || '') &&
                    currentDifficulty === snapshot.difficulty &&
@@ -1463,7 +1465,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                             </div>
                         </div>
                         <p class="text-xs text-slate-500 leading-relaxed">
-                            为了确保题目能够被精准定位和检索，每道题都需要分配<strong>学段（如：必修一）</strong>与<strong>章节</strong>。您可以选择：
+                            为了确保题目能够被精准定位和检索，每道题都需要分配<strong>教材册次（如：必修一）</strong>与<strong>章节</strong>。您可以选择：
                         </p>
                         <div class="flex flex-col space-y-2 pt-1">
                             <button id="manualCompulsoryBtn" type="button" class="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100 active:scale-[0.99] text-slate-700 rounded-xl font-semibold transition-all text-xs flex items-center justify-center space-x-2 border border-slate-200/50">
@@ -1712,7 +1714,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             const label = document.getElementById('bankFilterToggleText');
             const clear = document.getElementById('clearBankFiltersBtn');
             if (!label || !clear) return;
-            const selected = ['filterCompulsory', 'filterChapter', 'filterKnowledge', 'filterSubject', 'filterType', 'filterDifficulty', 'filterSource']
+            const selected = ['filterCompulsory', 'filterChapter', 'filterKnowledge', 'filterEducationStage', 'filterSubject', 'filterType', 'filterDifficulty', 'filterSource']
                 .map(id => document.getElementById(id)).filter(element => element && element.value);
             const subdivisions = getFilterSubKnowledge();
             const searchRules = getBankSearchRules();
@@ -1733,7 +1735,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             KnowledgePointState.setFilter('bank', {knowledge_point_codes: [], knowledge_point_mode:'any',
                 knowledge_point_role:'main', knowledge_point_status:'all', knowledge_point_unlabeled:false});
             renderKnowledgePointPicker('bank');
-            ['filterCompulsory', 'filterChapter', 'filterKnowledge', 'filterSubject', 'filterType', 'filterDifficulty', 'filterSource'].forEach(id => {
+            ['filterCompulsory', 'filterChapter', 'filterKnowledge', 'filterEducationStage', 'filterSubject', 'filterType', 'filterDifficulty', 'filterSource'].forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.value = '';
             });
@@ -2234,6 +2236,8 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             }
             
             const subject = document.getElementById('filterSubject')?.value;
+            const stage = document.getElementById('filterEducationStage')?.value;
+            if (stage) drafts = drafts.filter(item => (item.education_stage || '未标注') === stage);
             if (subject) drafts = drafts.filter(item => (item.subject || '数学') === subject);
             // Filter by difficulty
             if (difficulty) {
@@ -2488,7 +2492,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                         // Reset query selections
                         document.getElementById('statsQueryCompulsory').value = '';
                         const chapSelect = document.getElementById('statsQueryChapter');
-                        chapSelect.innerHTML = '<option value="">-- 先选择学段 --</option>';
+                        chapSelect.innerHTML = '<option value="">-- 先选择教材册次 --</option>';
                         chapSelect.disabled = true;
                         document.getElementById('statsQueryResultEmpty').classList.remove('hidden');
                         document.getElementById('statsQueryResultData').classList.add('hidden');
@@ -2539,7 +2543,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
         function populateStatsQueryCompulsory() {
             const compSelect = document.getElementById('statsQueryCompulsory');
-            compSelect.innerHTML = '<option value="">-- 选择学段 --</option>';
+            compSelect.innerHTML = '<option value="">-- 选择教材册次 --</option>';
             if (globalStatsData && globalStatsData.compulsory_chapter_counts) {
                 Object.keys(globalStatsData.compulsory_chapter_counts).forEach(comp => {
                     compSelect.innerHTML += `<option value="${window.StarHopeSafe.escapeAttribute(comp)}">${window.StarHopeSafe.escapeText(comp)}</option>`;
@@ -2717,7 +2721,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             const selectedKnow = knowSelect.value;
             
             // 1. Compulsory
-            compSelect.innerHTML = '<option value="">-- 选择学段 --</option>';
+            compSelect.innerHTML = '<option value="">-- 选择教材册次 --</option>';
             Object.keys(categoryTree).forEach(c => {
                 compSelect.innerHTML += `<option value="${window.StarHopeSafe.escapeAttribute(c)}">${window.StarHopeSafe.escapeText(c)}</option>`;
             });
@@ -2792,7 +2796,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             }
             function fillChapters(chapter = '', knowledge = '') {
                 const chapters = categoryTree[compSelect.value];
-                fill(chapSelect, chapters ? Object.keys(chapters) : [], chapters ? '所有章节' : '先选择学段', chapter);
+                fill(chapSelect, chapters ? Object.keys(chapters) : [], chapters ? '所有章节' : '先选择教材册次', chapter);
                 chapSelect.disabled = !chapters;
                 chapSelect.classList.remove('hidden');
                 fillKnowledge(knowledge);
@@ -2805,7 +2809,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 if (activeSidebarTab === 'bank') loadQuestions();
                 else loadDrafts();
             }
-            fill(compSelect, Object.keys(categoryTree), '所有学段', previous[0]);
+            fill(compSelect, Object.keys(categoryTree), '所有教材册次', previous[0]);
             fillChapters(previous[1], previous[2]);
             compSelect.onchange = () => { fillChapters(); renderSubKnowledgeOptions('filter', []); reload(); };
             chapSelect.onchange = () => { fillKnowledge(); renderSubKnowledgeOptions('filter', []); reload(); };
@@ -2850,6 +2854,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             getBankSearchRules().forEach(({field, operator, keyword}) =>
                 params.append('search_rule', JSON.stringify({field, operator, keyword})));
             if (qtype) params.append('qtype', qtype);
+            if (document.getElementById('filterEducationStage')?.value) params.append('education_stage', document.getElementById('filterEducationStage').value);
             if (document.getElementById('filterSubject')?.value) params.append('subject', document.getElementById('filterSubject').value);
             if (difficulty) params.append('difficulty', difficulty);
             if (compulsory) params.append('compulsory', compulsory);
@@ -2968,7 +2973,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                         
                         const subjectBadge = document.createElement('span');
                         subjectBadge.className = 'text-xs text-slate-500';
-                        subjectBadge.textContent = [item.subject || '数学', item.subject_topics || ''].filter(Boolean).join(' · ').replace(/\n/g, '、');
+                        subjectBadge.textContent = [item.education_stage || '未标注', item.subject || '数学', item.subject_topics || ''].filter(Boolean).join(' · ').replace(/\n/g, '、');
                         itemCard.append(subjectBadge);
                         renderKnowledgePointBadges(itemCard, item.knowledge_points || [], KnowledgePointState.filter('bank'), true);
                         // Render KaTeX inline for this card
@@ -3143,7 +3148,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
             badges.innerHTML = `
                 ${seqBadge}
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700">学科：${escapeEditorMetaText(readSubjectEditor().subject)}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700">${escapeEditorMetaText(readSubjectEditor().education_stage)} · 学科：${escapeEditorMetaText(readSubjectEditor().subject)}</span>
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 text-brand-700">题型：${escapeEditorMetaText(getTypeText(editQType.value))}</span>
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${diffColor}">难度：${escapeEditorMetaText(getDifficultyText(editDifficulty.value))}</span>
                 ${createdAtBadge}
@@ -3439,6 +3444,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
             editQType.addEventListener('change', renderEditorPaperMeta);
             editDifficulty.addEventListener('change', renderEditorPaperMeta);
+            document.getElementById('editEducationStage')?.addEventListener('change', renderEditorPaperMeta);
             document.getElementById('editSubject')?.addEventListener('change', renderEditorPaperMeta);
             document.getElementById('editSubjectTopics')?.addEventListener('input', renderEditorPaperMeta);
             editSource.addEventListener('input', renderEditorPaperMeta);

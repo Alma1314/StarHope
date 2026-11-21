@@ -28,6 +28,7 @@
             show_secret: true
         },
         filters: {
+            education_stage: '',
             compulsory: '',
             chapter: '',
             knowledge: '',
@@ -477,7 +478,7 @@
     function paperFilterCount() {
         const f = window.PaperStore.filters;
         const points = KnowledgePointState.filter('paper');
-        return ['compulsory', 'chapter', 'knowledge', 'question_type', 'difficulty'].filter(key => f[key]).length
+        return ['education_stage', 'compulsory', 'chapter', 'knowledge', 'question_type', 'difficulty'].filter(key => f[key]).length
             + activePaperSearchRules().length + (f.sub_knowledge?.length ? 1 : 0)
             + (points.knowledge_point_codes?.length || points.knowledge_point_unlabeled ? 1 : 0);
     }
@@ -491,9 +492,10 @@
         if (button) button.setAttribute('aria-expanded', String(!collapsed));
         const summary = document.getElementById('paperFilterConditions');
         if (!summary) return;
-        summary.hidden = !activePaperSearchRules().length;
+        summary.hidden = !activePaperSearchRules().length && !window.PaperStore.filters.education_stage;
         summary.replaceChildren();
         if (!summary.hidden) {
+            if (window.PaperStore.filters.education_stage) summary.append(createQuestionFilterChip("学段：" + window.PaperStore.filters.education_stage, () => { window.onPaperFilterChange("education_stage", ""); renderPart2FilterSection(); }));
             readQuestionSearchRows(document.getElementById('paperSearchRules')).forEach(({row, label, operator, keyword}) => {
                 if (!keyword.trim()) return;
                 const exclude = operator === 'exclude';
@@ -555,7 +557,7 @@
         if (!meta && open) window.loadPaperReferenceExams();
     };
     window.clearPaperFilters = function () {
-        Object.assign(window.PaperStore.filters, {compulsory:'', chapter:'', knowledge:'', sub_knowledge:[], sub_knowledge_mode:'any', question_type:'', difficulty:''});
+        Object.assign(window.PaperStore.filters, {education_stage:'', compulsory:'', chapter:'', knowledge:'', sub_knowledge:[], sub_knowledge_mode:'any', question_type:'', difficulty:''});
         window.PaperStore.keywordRules = [];
         KnowledgePointState.setFilter('paper', {knowledge_point_codes:[], knowledge_point_mode:'any', knowledge_point_role:'main',
             knowledge_point_status:'all', knowledge_point_unlabeled:false});
@@ -870,6 +872,7 @@
         const pagination = window.PaperStore.streamPagination.all;
         const targetPage = Math.max(1, parseInt(requestedPage, 10) || pagination.page || 1);
         const params = new URLSearchParams();
+        if (f.education_stage) params.append('education_stage', f.education_stage);
         if (f.compulsory) {
             params.append('compulsory', f.compulsory);
             params.append('category_compulsory', f.compulsory);
@@ -970,13 +973,13 @@
         const metadata = window.systemMetadata || {};
 
         // 1. Build Compulsory Book options
-        let bookOptions = `<option value="">-- 选择学段 --</option>`;
+        let bookOptions = `<option value="">-- 选择教材册次 --</option>`;
         Object.keys(tree).forEach(b => {
             bookOptions += `<option value="${escapeHtml(b)}" ${f.compulsory === b ? 'selected' : ''}>${escapeHtml(b)}</option>`;
         });
 
         // 2. Build Chapter options (Level 2)
-        let chapterOptions = `<option value="">-- 先选学段 --</option>`;
+        let chapterOptions = `<option value="">-- 先选教材册次 --</option>`;
         let isChapterDisabled = true;
         if (f.compulsory && tree[f.compulsory]) {
             isChapterDisabled = false;
@@ -1041,7 +1044,8 @@
                     </header>
                     <div id="paperFilterScroll" class="workspace-filter-grid question-filter-scroll">
                         <div class="question-scope-filters" role="group" aria-label="题目范围">
-                            <label>学段<select id="paperFilterCompulsory" class="glass-select" onchange="onPaperFilterChange('compulsory', this.value)">${bookOptions}</select></label>
+                            <label>教育学段<select id="paperFilterEducationStage" class="glass-select" onchange="onPaperFilterChange('education_stage', this.value)">${educationStageOptions(f.education_stage, true)}</select></label>
+                            <label>教材册次<select id="paperFilterCompulsory" class="glass-select" onchange="onPaperFilterChange('compulsory', this.value)">${bookOptions}</select></label>
                             <label>章节<select id="paperFilterChapter" class="glass-select" onchange="onPaperFilterChange('chapter', this.value)" ${isChapterDisabled ? 'disabled' : ''}>${chapterOptions}</select></label>
                             <label>小节<select id="paperFilterKnowledge" class="glass-select" onchange="onPaperFilterChange('knowledge', this.value)" ${isKnowledgeDisabled ? 'disabled' : ''}>${knowledgeOptions}</select></label>
                             <label>题型<select id="paperFilterType" class="glass-select" onchange="onPaperFilterChange('question_type', this.value)">${qTypeOptions}</select></label>
@@ -1314,6 +1318,7 @@
             reference_key: store.aiReferenceMode === 'none' ? '' : store.aiReferenceKey,
             exclude_ids: store.cart.map(item => Number(item.id)),
             paper_type: store.meta.paper_type,
+            education_stage: f.education_stage,
             compulsory: f.compulsory,
             chapter: f.chapter,
             knowledge: f.knowledge,
@@ -2033,7 +2038,7 @@
 
                     <div class="paper-resource-meta">
                         ${diffTag}
-                        <span class="paper-resource-category" title="${escapeHtml([q.category_compulsory, q.category_chapter].filter(Boolean).join(' · '))}">${escapeHtml([q.category_compulsory, q.category_chapter].filter(Boolean).join(' · '))}</span>
+                        <span class="paper-resource-category" title="${escapeHtml([q.education_stage || '未标注', q.category_compulsory, q.category_chapter].filter(Boolean).join(' · '))}">${escapeHtml([q.education_stage || '未标注', q.category_compulsory, q.category_chapter].filter(Boolean).join(' · '))}</span>
                         ${usageCount ? `<span class="paper-resource-usage">引用 ${escapeHtml(usageCount)} 次</span>` : ''}
                     </div>
                     ${questionSource ? `<p class="paper-resource-source" data-tooltip="${escapeHtml(questionSource)}" data-tooltip-variant="paper-source"><span class="paper-resource-source-text">来源：${escapeHtml(questionSource)}</span></p>` : ''}

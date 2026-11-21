@@ -106,7 +106,7 @@ window.LearningWorkspace = (() => {
         if (!rows.length) node('p', query ? '没有匹配的知识点。' : '暂无可统计的知识点。请给题目标注知识点，并核对作答结果。', host, 'text-sm text-slate-500');
         rows.slice(0, masteryLimit).forEach(row => {
             const card = node('div', undefined, host, 'learning-mastery-row learning-stack');
-            node('strong', `${row.subject} · ${row.name}`, card, 'text-sm');
+            node('strong', `${row.education_stage || '未标注'} · ${row.subject} · ${row.name}`, card, 'text-sm');
             node('p', `${row.status} · 核对得分率 ${row.score_rate}% · ${row.sample_count} 道不同题`, card, 'text-xs text-slate-500');
             const progress = node('progress', undefined, card); progress.max = 100; progress.value = row.score_rate;
             progress.setAttribute('aria-label', `${row.name}：${row.sample_count}道不同题的人工核对得分率${row.score_rate}%`);
@@ -237,6 +237,7 @@ window.LearningWorkspace = (() => {
     async function searchQuestions() {
         const id = learnerId, token = ++querySerial;
         const parameters = new URLSearchParams({page: questionPage, page_size: 10, q: $('learningQuery').value.trim()});
+        if ($('learningEducationStage').value) parameters.set('education_stage', $('learningEducationStage').value);
         if ($('learningSubject').value) parameters.set('subject', $('learningSubject').value);
         const response = await fetch('/api/questions?' + parameters);
         if (!response.ok) throw new Error('题目查询失败，请重试');
@@ -247,7 +248,7 @@ window.LearningWorkspace = (() => {
         const host = $('learningQuestions'); host.replaceChildren();
         if (!rows.length) node('p', '没有找到题目。请调整条件，或先向题库导入题目。', host, 'text-sm text-slate-500');
         rows.forEach(row => {
-            const button = node('button', `#${row.id} · ${row.subject || '数学'} · ${String(row.content || '').slice(0, 120)}`, host, 'learning-row'); button.type = 'button';
+            const button = node('button', `#${row.id} · ${row.education_stage || '未标注'} · ${row.subject || '数学'} · ${String(row.content || '').slice(0, 120)}`, host, 'learning-row'); button.type = 'button';
             button.addEventListener('click', action(() => chooseQuestion(row.id)));
         });
         $('learningQuestionsPage').textContent = `第 ${questionPage} 页`;
@@ -430,6 +431,7 @@ window.LearningWorkspace = (() => {
             $('learningGenerateProfile').disabled = false; await refresh();
         }));
         $('learningQuestionSearch').addEventListener('submit', action(event => { event.preventDefault(); questionPage = 1; return searchQuestions(); }));
+        $('learningEducationStage').addEventListener('change', action(() => { questionPage = 1; return searchQuestions(); }));
         $('learningSubject').addEventListener('change', action(() => { questionPage = 1; return searchQuestions(); }));
         $('learningQuestionsPrev').addEventListener('click', action(() => { questionPage--; return searchQuestions(); }));
         $('learningQuestionsNext').addEventListener('click', action(() => { questionPage++; return searchQuestions(); }));

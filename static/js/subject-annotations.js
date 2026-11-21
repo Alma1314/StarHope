@@ -1,9 +1,21 @@
 /* Multi-subject editing and explicit review of bounded AI suggestions. */
+const EDUCATION_STAGES = ['未标注', '小学', '初中', '高中', '本科', '研究生', '其他'];
+function educationStageOptions(current = '未标注', all = false) {
+    return (all ? '<option value="">全部学段（跨学段）</option>' : '') + EDUCATION_STAGES.map(value =>
+        `<option value="${value}" ${value === current ? 'selected' : ''}>${value}</option>`).join('');
+}
+document.addEventListener('DOMContentLoaded', () => {
+    ['editEducationStage', 'filterEducationStage', 'learningEducationStage', 'bookEducationStage'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) select.innerHTML = educationStageOptions(id.startsWith('edit') || id.startsWith('book') ? '未标注' : '', id.startsWith('filter') || id.startsWith('learning'));
+    });
+});
 function readSubjectEditor() {
-    return {subject: document.getElementById('editSubject')?.value || '数学',
+    return {education_stage: document.getElementById('editEducationStage')?.value || '未标注', subject: document.getElementById('editSubject')?.value || '数学',
         subject_topics: document.getElementById('editSubjectTopics')?.value || ''};
 }
 function hydrateSubjectEditor(record) {
+    document.getElementById('editEducationStage').value = record.education_stage || '未标注';
     document.getElementById('editSubject').value = record.subject || '数学';
     document.getElementById('editSubjectTopics').value = record.subject_topics || '';
     syncSubjectEditor();
@@ -58,19 +70,20 @@ const SubjectAnnotations = (() => {
                 if (!Array.from(input.options).some(opt => opt.value === current)) { const opt = node('option', current || '未定', input); opt.value = current || ''; }
                 input.value = current || ''; return input;
             }
+            const stage = select('教育学段', Object.fromEntries(options.education_stages.map(s => [s, s])), item.education_stage || '未标注');
             const subject = select('学科', Object.fromEntries(options.subjects.map(s => [s, s])), item.subject);
             const difficulty = select('难度', options.difficulties, item.difficulty);
             const label = node('label', '学科知识点（每行一个）', card);
             const topics = node('textarea', undefined, label); topics.className = 'glass-input w-full px-2 py-2 rounded-xl'; topics.rows = 3; topics.maxLength = 2000; topics.value = item.subject_topics || '';
             if (item.reason) node('p', 'AI 建议依据（待核对）：' + item.reason, card);
-            return {item, check, subject, difficulty, topics};
+            return {item, check, stage, subject, difficulty, topics};
         });
     }
     function ensureDialog() {
         if (dialog) return;
         dialog = document.createElement('dialog'); dialog.className = 'glass-panel'; dialog.setAttribute('aria-labelledby', 'subjectAnnotationHeading');
         dialog.style.cssText = 'width:min(900px,95vw);max-height:90vh;border-radius:16px;padding:20px;overflow:auto;';
-        const title = node('h2', '学科与批量标注', dialog); title.id = 'subjectAnnotationHeading'; title.tabIndex = -1; title.className = 'text-lg font-semibold';
+        const title = node('h2', '学段、学科与批量标注', dialog); title.id = 'subjectAnnotationHeading'; title.tabIndex = -1; title.className = 'text-lg font-semibold';
         node('p', '每批最多20题。可手动编辑，或先生成 AI 建议；确认保存只应用勾选题。数学主辅知识点保留在原编辑器，本入口补充学科知识点名称。', dialog);
         const status = node('p', '', dialog); status.dataset.status = ''; status.setAttribute('role', 'status');
         const toolbar = node('div', undefined, dialog); toolbar.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;margin:12px 0;';
@@ -95,7 +108,7 @@ const SubjectAnnotations = (() => {
         const cancel = button('取消生成', async () => { await request('tasks/' + taskId + '/cancel', {}); await poll(); }); cancel.dataset.cancel = ''; cancel.hidden = true;
         button('确认保存选中标注', async () => {
             const items = selected().map(row => ({id: row.item.id, revision: row.item.revision,
-                subject: row.subject.value, subject_topics: row.topics.value, difficulty: row.difficulty.value}));
+                education_stage: row.stage.value, subject: row.subject.value, subject_topics: row.topics.value, difficulty: row.difficulty.value}));
             if (!items.length) throw new Error('请先勾选题目');
             setBusy(true);
             try {

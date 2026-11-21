@@ -29,6 +29,9 @@ from starhope.sub_knowledge import normalize_sub_knowledge, resolve_active_versi
 
 FIGURE_ALIGN_VALUES = frozenset({"right", "center", "bottom_left", "bottom_right"})
 FIGURE_SIZE_VALUES = frozenset({"auto", "small", "medium", "large"})
+RELATION_TYPES = frozenset({
+    "variant_of", "special_case_of", "same_method", "prerequisite", "related",
+})
 
 
 def normalize_figure_size(value) -> str:
@@ -157,6 +160,7 @@ class Question(Base):
     category_chapter = Column(String(100), default="", index=True)  # 章节
     category_knowledge = Column(String(100), default="", index=True)  # 知识点
     subject = Column(String(30), nullable=False, default="数学", server_default="数学", index=True)
+    education_stage = Column(String(20), nullable=False, default="未标注", server_default="未标注", index=True)
     subject_topics = Column(Text, nullable=False, default="", server_default="")
     difficulty = Column(String(50), default="medium", index=True)  # easy, medium, hard
     source = Column(String(200), default="")  # 来源
@@ -284,6 +288,7 @@ class Question(Base):
             "sub_knowledge": self.sub_knowledge_for_version(version_code) if sub_knowledge is None else sub_knowledge,
             "knowledge_points": [row.to_dict() for row in self.knowledge_points],
             "subject": self.subject or "数学",
+            "education_stage": self.education_stage or "未标注",
             "subject_topics": self.subject_topics or "",
             "difficulty": self.difficulty,
             "source": self.source,
@@ -321,6 +326,7 @@ class Question(Base):
                 for row in self.knowledge_points
             ],
             "subject": self.subject or "数学",
+            "education_stage": self.education_stage or "未标注",
             "subject_topics": self.subject_topics or "",
             "difficulty": self.difficulty,
             "source": self.source,
@@ -557,6 +563,36 @@ class QuestionReference(Base):
     suffix = Column(Text, nullable=False, default="", server_default="")
     resolution_state = Column(String(20), nullable=False, default="unresolved", server_default="unresolved")
     reason = Column(String(100), nullable=False, default="", server_default="")
+
+
+class QuestionRelation(Base):
+    """Typed directed edge between two questions.
+
+    Deliberately separate from ``association_group_id``: similarity is not
+    transitive, so a similarity chain must never merge variant groups.
+    """
+
+    __tablename__ = "question_relations"
+    __table_args__ = (
+        UniqueConstraint("source_id", "target_id", "relation_type", name="uq_question_relation_edge"),
+        CheckConstraint("source_id <> target_id", name="ck_question_relation_no_self"),
+        CheckConstraint(
+            "relation_type IN ('variant_of','special_case_of','same_method','prerequisite','related')",
+            name="ck_question_relation_type",
+        ),
+        CheckConstraint("origin IN ('manual','ai')", name="ck_question_relation_origin"),
+        CheckConstraint("status IN ('suggested','confirmed')", name="ck_question_relation_status"),
+        Index("idx_question_relations_source", "source_id", "relation_type"),
+        Index("idx_question_relations_target", "target_id", "relation_type"),
+    )
+    id = Column(Integer, primary_key=True)
+    source_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False)
+    target_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False)
+    relation_type = Column(String(30), nullable=False)
+    basis = Column(Text, nullable=False, default="", server_default="")
+    origin = Column(String(20), nullable=False, default="manual", server_default="manual")
+    status = Column(String(20), nullable=False, default="confirmed", server_default="confirmed")
+    created_at = Column(DateTime, nullable=False, default=_utcnow_naive)
 
 
 class QuestionFingerprint(Base):

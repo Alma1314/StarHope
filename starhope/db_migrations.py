@@ -20,7 +20,7 @@ from starhope.paths import SCHEMA_SNAPSHOT_DIR
 from starhope.sub_knowledge import normalize_sub_knowledge
 
 
-LATEST_SCHEMA_VERSION = 19
+LATEST_SCHEMA_VERSION = 21
 LEGACY_REQUIRED_TABLES = {
     "questions",
     "question_curriculums",
@@ -30,7 +30,8 @@ LEGACY_REQUIRED_TABLES = {
 KNOWLEDGE_POINT_TABLES = {"knowledge_points", "knowledge_point_curriculums", "question_knowledge_points"}
 QUESTION_REFERENCE_TABLES = {"question_source_labels", "question_references"}
 LEARNING_TABLES = {"learners", "learning_attempts", "learning_reviews"}
-REQUIRED_TABLES = LEGACY_REQUIRED_TABLES | {"question_fingerprints", "question_sub_knowledge", "document_import_receipts", "library_import_receipts"} | KNOWLEDGE_POINT_TABLES | QUESTION_REFERENCE_TABLES | LEARNING_TABLES
+RELATION_TABLES = {"question_relations"}
+REQUIRED_TABLES = LEGACY_REQUIRED_TABLES | {"question_fingerprints", "question_sub_knowledge", "document_import_receipts", "library_import_receipts"} | KNOWLEDGE_POINT_TABLES | QUESTION_REFERENCE_TABLES | LEARNING_TABLES | RELATION_TABLES
 
 V6_QUESTION_FINGERPRINT_COLUMNS = {
     "question_id",
@@ -389,11 +390,13 @@ def _ensure_tikz_asset_columns(connection) -> dict[str, int]:
 def _ensure_subject_columns(connection):
     columns = {row[1] for row in connection.exec_driver_sql('PRAGMA table_info("questions")')}
     additions = {"subject": "VARCHAR(30) NOT NULL DEFAULT '数学'",
-                 "subject_topics": "TEXT NOT NULL DEFAULT ''"}
+                 "subject_topics": "TEXT NOT NULL DEFAULT ''",
+                 "education_stage": "VARCHAR(20) NOT NULL DEFAULT '未标注'"}
     for name, definition in additions.items():
         if name not in columns:
             connection.exec_driver_sql(f"ALTER TABLE questions ADD COLUMN {name} {definition}")
     connection.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_questions_subject ON questions(subject)")
+    connection.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_questions_education_stage ON questions(education_stage)")
 
 
 def _validate_learning_schema(connection, *, reviews=True):
@@ -436,6 +439,45 @@ def _ensure_learning_tables(connection):
         if name not in columns:
             connection.exec_driver_sql(f"ALTER TABLE learners ADD COLUMN {name} {definition}")
     _validate_learning_schema(connection)
+
+
+def _validate_question_relations(connection) -> None:
+    from starhope.database import QuestionRelation
+
+    table = QuestionRelation.__table__
+    info = {row[1]: row for row in connection.exec_driver_sql('PRAGMA table_info("question_relations")')}
+    if set(info) != set(table.columns.keys()):
+        raise RuntimeError("题目关系表结构不完整")
+    for column in table.columns:
+        if not column.nullable and not column.primary_key and not info[column.name][3]:
+            raise RuntimeError("题目关系表非空约束不完整")
+    for fk in table.foreign_keys:
+        if not any(row[2] == fk.column.table.name and row[3] == fk.parent.name
+                   and row[4] == fk.column.name and row[6].upper() == fk.ondelete.upper()
+                   for row in connection.exec_driver_sql('PRAGMA foreign_key_list("question_relations")')):
+            raise RuntimeError("题目关系外键不完整")
+    indexes = {tuple(row[2] for row in connection.exec_driver_sql(f'PRAGMA index_info("{index[1]}")'))
+               for index in connection.exec_driver_sql('PRAGMA index_list("question_relations")')}
+    if any(tuple(c.name for c in index.columns) not in indexes for index in table.indexes):
+        raise RuntimeError("题目关系索引不完整")
+    ddl = connection.exec_driver_sql(
+        "SELECT sql FROM sqlite_master WHERE name='question_relations'"
+    ).scalar_one_or_none()
+    if not ddl:
+        raise RuntimeError("题目关系表缺失")
+    for constraint in table.constraints:
+        if hasattr(constraint, "sqltext") and str(constraint.sqltext) not in ddl:
+            raise RuntimeError("题目关系值域约束不完整")
+    if connection.exec_driver_sql('PRAGMA foreign_key_check("question_relations")').fetchall():
+        raise RuntimeError("题目关系外键异常")
+
+
+def _ensure_question_relation_tables(connection) -> dict[str, int]:
+    from starhope.database import QuestionRelation
+
+    QuestionRelation.__table__.create(connection, checkfirst=True)
+    _validate_question_relations(connection)
+    return {"added_question_relations": 1}
 
 
 def _ensure_figure_layout_columns(connection) -> dict[str, int]:
@@ -1055,6 +1097,7 @@ def _rebuild_relationship_tables(engine: Engine) -> dict[str, int]:
 
             _ensure_subject_columns(connection)
             _ensure_learning_tables(connection)
+            relation_stats = _ensure_question_relation_tables(connection)
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1068,6 +1111,7 @@ def _rebuild_relationship_tables(engine: Engine) -> dict[str, int]:
                 **knowledge_point_stats,
                 **question_reference_stats,
                 **question_order_stats,
+                **relation_stats,
             }
         except Exception:
             if transaction_started:
@@ -1102,6 +1146,7 @@ def _upgrade_derived_schema(engine: Engine) -> dict[str, int]:
             _validate_figure_layout_schema(connection)
             _ensure_subject_columns(connection)
             _ensure_learning_tables(connection)
+            stats.update(_ensure_question_relation_tables(connection))
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1178,6 +1223,7 @@ def _upgrade_v6_or_v7_fingerprint_schema(
             _validate_figure_layout_schema(connection)
             _ensure_subject_columns(connection)
             _ensure_learning_tables(connection)
+            relation_stats = _ensure_question_relation_tables(connection)
             connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
             connection.exec_driver_sql("COMMIT")
             transaction_started = False
@@ -1190,6 +1236,7 @@ def _upgrade_v6_or_v7_fingerprint_schema(
                 **knowledge_point_stats,
                 **question_reference_stats,
                 **question_order_stats,
+                **relation_stats,
             }
         except Exception:
             if transaction_started:
@@ -1224,8 +1271,9 @@ def migrate_database(
             _validate_library_import_receipts(connection)
             _validate_question_order_schema(connection)
             _validate_learning_schema(connection)
+            _validate_question_relations(connection)
             columns = {row[1] for row in connection.exec_driver_sql('PRAGMA table_info("questions")')}
-            if not {"subject", "subject_topics"}.issubset(columns):
+            if not {"subject", "subject_topics", "education_stage"}.issubset(columns):
                 raise RuntimeError("数据库缺少学科标注字段")
         return {"from_version": current, "to_version": current, "backup": None}
 

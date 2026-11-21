@@ -40,7 +40,7 @@ def question_summary_load_options():
 
 def find_association_candidates(
     db, *, q="", page=1, page_size=20, exclude_id=None,
-    seq_num=None, question_id=None,
+    seq_num=None, question_id=None, education_stage="",
 ):
     """Find at most 20 labels, never loading question/point ORM graphs.
 
@@ -55,6 +55,8 @@ def find_association_candidates(
         Question.question_type,
         func.substr(Question.content, 1, 2048).label("content"),
     )
+    from starhope.subject_annotations import apply_education_stage
+    query = apply_education_stage(query, education_stage)
     if seq_num is not None:
         target = (
             db.query(Question.id).order_by(*sequence_order())

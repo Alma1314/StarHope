@@ -925,6 +925,9 @@ def validate_windows_runtime(root):
         root / "python" / "site-packages" / "colorama",
         root / "python" / "site-packages" / "pymupdf",
         root / "python" / "site-packages" / "pdf_inspector",
+        root / "python" / "site-packages" / "sqlite_vec",
+        root / "python" / "site-packages" / "cozo_embedded",
+        root / "python" / "site-packages" / "pycozo",
         root / "python" / MSVC_RUNTIME_NOTICE_NAME,
         *(root / "python" / name for name in MSVC_RUNTIME_DLLS),
     )
@@ -951,7 +954,9 @@ def validate_windows_runtime(root):
             "runtime=pathlib.Path(sys.executable).with_name('msvcp140.dll').resolve(); "
             "ctypes.WinDLL(str(runtime)); "
             "import sqlite3, fastapi, uvicorn, sqlalchemy, greenlet, colorama; "
-            "import pymupdf, pdf_inspector, starhope.ai_json, scripts"
+            "import pymupdf, pdf_inspector, sqlite_vec, cozo_embedded, pycozo; "
+            "import starhope.ai_json, scripts; "
+            "assert sqlite_vec.loadable_path().endswith('vec0')"
         )
         subprocess.check_call(
             [

@@ -237,7 +237,7 @@ def changed_review_image_ids(fingerprints, *, uploads_dir=None):
 def candidate_revision(question):
     """Freeze selection-relevant facts before a potentially long model wait."""
     return (_content_key(question), question.question_type, question.difficulty,
-            question.source, question.category_compulsory, question.category_chapter,
+            question.education_stage, question.source, question.category_compulsory, question.category_chapter,
             question.category_knowledge, question.tags,
             tuple(sorted((row.point_code, row.role, row.status) for row in question.knowledge_points)))
 

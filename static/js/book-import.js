@@ -1,7 +1,7 @@
 /* Book-specific controls share the existing import cards and save pipeline. */
 function syncBookImportOptions() {
     const book = document.getElementById('pdfDocumentKind')?.value === 'book';
-    ['bookSubjectOption', 'bookImportHint'].forEach(id => { document.getElementById(id).hidden = !book; });
+    ['bookSubjectOption', 'bookEducationStageOption', 'bookImportHint'].forEach(id => { document.getElementById(id).hidden = !book; });
     const generate = document.getElementById('importGenerateAnswers');
     if (generate) { generate.disabled = book && Boolean(window.currentPdfFile); if (generate.disabled) generate.checked = false; }
 }
@@ -17,6 +17,9 @@ function renderParsedSubjectFields(card, question, index) {
         const option = document.createElement('option'); option.value = value; option.textContent = value; select.append(option);
     });
     select.value = question.subject || '数学'; label.append(select); host.append(label);
+    const stageLabel = document.createElement('label'); stageLabel.className = 'text-xs text-slate-600'; stageLabel.textContent = '教育学段';
+    const stage = document.createElement('select'); stage.className = 'card-education-stage glass-select w-full px-2 py-2 rounded-lg';
+    stage.innerHTML = educationStageOptions(question.education_stage || '未标注'); stageLabel.append(stage); host.append(stageLabel);
     const topicsLabel = document.createElement('label');
     topicsLabel.className = 'text-xs text-slate-600'; topicsLabel.textContent = '知识点（每行一个，可修改 AI 建议）';
     const topics = document.createElement('textarea'); topics.rows = 2; topics.maxLength = 2000;
@@ -24,7 +27,7 @@ function renderParsedSubjectFields(card, question, index) {
     topics.value = question.subject_topics || ''; topicsLabel.append(topics); host.append(topicsLabel);
     card.insertBefore(host, card.children[1]);
     const update = () => {
-        question.subject = select.value; question.subject_topics = topics.value;
+        question.education_stage = stage.value; question.subject = select.value; question.subject_topics = topics.value;
         const math = parsedUsesMathCurriculum(question);
         [card.querySelector('.card-compulsory')?.parentElement, card.querySelector('.card-knowledge-points'),
             card.querySelector('.card-classification-review')].filter(Boolean).forEach(el => {
@@ -33,7 +36,7 @@ function renderParsedSubjectFields(card, question, index) {
         updateParsedSavedState(index);
         window.StarHopeDocumentImportSession?.saveSoon();
     };
-    select.addEventListener('change', update); topics.addEventListener('input', update); update();
+    stage.addEventListener('change', update); select.addEventListener('change', update); topics.addEventListener('input', update); update();
     if (question.book_import) {
         const note = document.createElement('p'); note.className = 'text-xs text-slate-500';
         note.textContent = '书籍题目按原书章节和 PDF 页码记录来源；知识点与难度是待核对的 AI 建议。'; host.after(note);

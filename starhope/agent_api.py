@@ -65,7 +65,7 @@ def create_agent_router(
         knowledge_query: str = "", knowledge_point_mode: Literal["any", "all"] = "any",
         knowledge_point_role: Literal["main", "all"] = "main",
         knowledge_point_status: Literal["all", "confirmed"] = "all",
-        qtype: str = "", difficulty: str = "", page: int = Query(1, ge=1),
+        education_stage: str = "", qtype: str = "", difficulty: str = "", page: int = Query(1, ge=1),
         page_size: int = Query(20, ge=1, le=100),
         related_to: Optional[int] = Query(None, ge=1), profile: Profile = "candidate",
         include_answers: Optional[bool] = None, include_seq_num: bool = True,
@@ -73,7 +73,7 @@ def create_agent_router(
         version_code: Optional[str] = None,
     ):
         return read(
-            "search", query=q, source=source, compulsory=compulsory, chapter=chapter,
+            "search", education_stage=education_stage, query=q, source=source, compulsory=compulsory, chapter=chapter,
             knowledge=knowledge, knowledge_point_codes=knowledge_point_codes,
             knowledge_query=knowledge_query, knowledge_point_mode=knowledge_point_mode,
             knowledge_point_role=knowledge_point_role,
