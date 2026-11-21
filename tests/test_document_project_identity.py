@@ -5,8 +5,8 @@ import uuid
 
 import pytest
 
-from mathbank.document_project_service import DocumentProjectService, project_question_ids
-from mathbank.document_projects import DocumentProjectError, DocumentProjectStore
+from starhope.document_project_service import DocumentProjectService, project_question_ids
+from starhope.document_projects import DocumentProjectError, DocumentProjectStore
 
 
 PROJECT = "306e1124-1fec-4313-86a3-051fce4d67a7"
@@ -174,7 +174,7 @@ def test_fork_keeps_unknown_edited_card_baseline_and_candidate_correspondence(se
 
 def test_mapping_historical_id_reuses_existing_database_receipt(environment):
     # Reuse the file-SQLite fixture, never the running application/database.
-    from mathbank.document_project_import import prepare_project_import
+    from starhope.document_project_import import prepare_project_import
     from test_document_project_import import _import, _counts
     _, _, factory, store, project_id, card = environment
     question_id = _import(factory, store, project_id, card)

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Locate Python; the shared local launcher prepares the environment and opens MathBank.
+# Locate Python; the shared local launcher prepares the environment and opens StarHope.
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 1
 cd "$SCRIPT_DIR" || exit 1
 
@@ -27,7 +27,7 @@ else
     "$PYTHON_BIN" -B -m scripts.local_launcher
     LAUNCHER_EXIT=$?
 fi
-if [ "$LAUNCHER_EXIT" -ne 0 ] && [ -t 0 ] && [ "$MATHBANK_NO_PAUSE" != "1" ]; then
+if [ "$LAUNCHER_EXIT" -ne 0 ] && [ -t 0 ] && [ "$STARHOPE_NO_PAUSE" != "1" ]; then
     read -r -n 1 -p "按任意键退出..." _unused
     echo ""
 fi

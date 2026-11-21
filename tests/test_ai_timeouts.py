@@ -8,7 +8,7 @@ import warnings
 
 import pytest
 
-from mathbank.ai_timeouts import (
+from starhope.ai_timeouts import (
     AI_REQUEST_TIMEOUT_ENV, DOCUMENT_AI_TIMEOUT_ENV,
     DEFAULT_AI_REQUEST_TIMEOUT_SECONDS, DEFAULT_DOCUMENT_AI_TIMEOUT_SECONDS,
     resolve_ai_timeouts,
@@ -65,14 +65,14 @@ def test_request_and_document_overrides_are_independent():
 def test_runtime_aliases_and_default_deadlines_use_one_frozen_policy():
     script = """
 import inspect, json, os
-from mathbank.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS, DOCUMENT_AI_TIMEOUT_SECONDS
-from mathbank.ai_classification import CLASSIFICATION_TIMEOUT_SECONDS
-from mathbank.ocr_figure_review import REVIEW_TIMEOUT_SECONDS
-from mathbank.document_requests import DOCUMENT_AI_TIMEOUT_SECONDS as document
-from mathbank.pdf_vision_request import PDF_VISION_TIMEOUT_SECONDS, request_pdf_vision
-from mathbank.paper_parse import PAPER_SPLIT_TIMEOUT_SECONDS
-from mathbank.source_review_repair import repair_verified_differences
-os.environ["MATHBANK_AI_REQUEST_TIMEOUT_SECONDS"] = "60"
+from starhope.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS, DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_classification import CLASSIFICATION_TIMEOUT_SECONDS
+from starhope.ocr_figure_review import REVIEW_TIMEOUT_SECONDS
+from starhope.document_requests import DOCUMENT_AI_TIMEOUT_SECONDS as document
+from starhope.pdf_vision_request import PDF_VISION_TIMEOUT_SECONDS, request_pdf_vision
+from starhope.paper_parse import PAPER_SPLIT_TIMEOUT_SECONDS
+from starhope.source_review_repair import repair_verified_differences
+os.environ["STARHOPE_AI_REQUEST_TIMEOUT_SECONDS"] = "60"
 print(json.dumps([AI_REQUEST_TIMEOUT_SECONDS, CLASSIFICATION_TIMEOUT_SECONDS,
     REVIEW_TIMEOUT_SECONDS, DOCUMENT_AI_TIMEOUT_SECONDS, document, PDF_VISION_TIMEOUT_SECONDS,
     PAPER_SPLIT_TIMEOUT_SECONDS, inspect.signature(request_pdf_vision).parameters["timeout_seconds"].default,
@@ -91,7 +91,7 @@ def test_startup_warning_redacts_an_accidentally_sensitive_override():
     sensitive = "private-token-or-path-must-not-be-logged"
     environment = {"PYTHONDONTWRITEBYTECODE": "1", AI_REQUEST_TIMEOUT_ENV: sensitive}
     result = subprocess.run([sys.executable, "-B", "-c",
-        "from mathbank.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS; print(AI_REQUEST_TIMEOUT_SECONDS)"],
+        "from starhope.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS; print(AI_REQUEST_TIMEOUT_SECONDS)"],
         cwd=Path(__file__).parents[1], env=environment, capture_output=True, text=True, timeout=30)
     assert result.returncode == 0 and result.stdout.strip() == "900"
     assert AI_REQUEST_TIMEOUT_ENV in result.stderr and "default 900" in result.stderr

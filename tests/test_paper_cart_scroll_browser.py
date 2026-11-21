@@ -1,6 +1,6 @@
 """Real cart-click scroll regressions in a disposable source-only app.
 
-Run with MATHBANK_TEST_BROWSER=1 python3 -m pytest --noconftest
+Run with STARHOPE_TEST_BROWSER=1 python3 -m pytest --noconftest
 tests/test_paper_cart_scroll_browser.py. The shared fixture owns its own
 database, server, uploads directory, and Chromium session.
 """

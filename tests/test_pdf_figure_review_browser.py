@@ -13,7 +13,7 @@ from test_document_projects_browser import MOCK, _click
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / '.system_generated/pdf-figure-review-ui-20261020/browser'
-pytestmark = pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1', reason='opt-in isolated browser')
+pytestmark = pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1', reason='opt-in isolated browser')
 
 
 @pytest.mark.parametrize('width,height', [(1600, 1100), (390, 844)])
@@ -31,7 +31,7 @@ def test_figure_review_progress_pending_crop_and_teacher_edits(browser, width, h
     browser.command('network', 'route', '**/api/ai/**', '--abort')
     browser.evaluate('window.__figureReviewWidth=' + str(width))
     browser.evaluate(r"""(()=>{
-      window.MathBankDocumentImportSession.clear();selectWorkspace('import','导入中心');
+      window.StarHopeDocumentImportSession.clear();selectWorkspace('import','导入中心');
       const id='figure-ui-'+window.__figureReviewWidth,now=Date.now()/1000;
       const q={project_card_id:'figure-card',source_number:16,content:'演示题：求三角形面积。[插图待补: 图1]',
        answer_markdown:'原版答案：$6$。',question_type:'detailed_answer',difficulty:'normal',
@@ -47,27 +47,27 @@ def test_figure_review_progress_pending_crop_and_teacher_edits(browser, width, h
        last_used_at:now,expires_at:now+7*86400,total_bytes:2048,diagnostics,
        page_images:['/static/uploads/tmp/pdf_page_figure-demo_3.png','/static/uploads/tmp/pdf_page_figure-demo_7.png'],
        page_numbers:[3,7],draft:{questions:[q],baselineQuestions:[q],paperTitle:'配图核验演示'},source_pages:[]};
-      localStorage.setItem('mathbank_project_browser_server',JSON.stringify({[id]:project}));
+      localStorage.setItem('starhope_project_browser_server',JSON.stringify({[id]:project}));
       window.__figureReviewProject=id;window.__figureReviewDiagnostics=diagnostics;return true;
     })()""")
     browser.evaluate(MOCK)
-    browser.evaluate('MathBankDocumentImportSession.openProject(window.__figureReviewProject).then(()=>true)')
+    browser.evaluate('StarHopeDocumentImportSession.openProject(window.__figureReviewProject).then(()=>true)')
     browser.command('wait', '--fn', "!!document.getElementById('pdfFigureReviewPanel')")
     assert browser.evaluate("document.querySelector('#pdfFigureReviewPanel .pdf-figure-review-receipt').textContent==='首次正文稿已保存。'")
     assert browser.evaluate("document.querySelector('#pdfFigureReviewPanel .pdf-figure-review-summary').textContent.includes('配图通过 1/4')")
     browser.evaluate(r"""(()=>{
-      MathBankDocumentImportSession.update({phase:'layout_analysis',diagnostics:window.__figureReviewDiagnostics,log:'演示核验开始'});
+      StarHopeDocumentImportSession.update({phase:'layout_analysis',diagnostics:window.__figureReviewDiagnostics,log:'演示核验开始'});
       window.__figurePanel=document.getElementById('pdfFigureReviewPanel');
       window.__figureSaveStatus=document.querySelector('#documentImportRecoveryPanel .document-project-save-status');
       window.__projectBrowserActions=[];
       for(let i=0;i<3;i++){
        const diagnostics=JSON.parse(JSON.stringify(window.__figureReviewDiagnostics));diagnostics.pdf_figure_review.calls=i;
-       MathBankDocumentImportSession.update({phase:'layout_analysis',diagnostics,log:'演示核验进度'+i});
+       StarHopeDocumentImportSession.update({phase:'layout_analysis',diagnostics,log:'演示核验进度'+i});
        renderPdfFigureReviewPanel(diagnostics);
       }
       return true;
     })()""")
-    browser.command('wait', '--fn', "!JSON.parse(localStorage.getItem('mathbank_document_import_session_v1')).projectLocalDirty")
+    browser.command('wait', '--fn', "!JSON.parse(localStorage.getItem('starhope_document_import_session_v1')).projectLocalDirty")
     assert browser.evaluate("document.getElementById('pdfFigureReviewPanel')===window.__figurePanel")
     assert browser.evaluate("document.querySelector('#documentImportRecoveryPanel .document-project-save-status')===window.__figureSaveStatus")
     assert browser.evaluate("window.__projectBrowserActions.every(x=>x.method==='GET')")
@@ -82,7 +82,7 @@ def test_figure_review_progress_pending_crop_and_teacher_edits(browser, width, h
     browser.command('fill', '#parsed-card-0 .card-content-textarea', '教师刚调整的题文与待补图说明。')
     browser.command('wait', '--fn', "document.querySelector('#pdfFigureReviewPanel .pdf-figure-review-edited').hidden===false")
     assert browser.evaluate("document.querySelector('#pdfFigureReviewPanel .pdf-figure-review-summary').textContent.includes('配图通过 1/4')")
-    browser.command('wait', '--fn', "JSON.parse(localStorage.getItem('mathbank_project_browser_server'))[window.__figureReviewProject].draft.questions[0].content==='教师刚调整的题文与待补图说明。'")
+    browser.command('wait', '--fn', "JSON.parse(localStorage.getItem('starhope_project_browser_server'))[window.__figureReviewProject].draft.questions[0].content==='教师刚调整的题文与待补图说明。'")
     browser.command('scrollintoview', '#pdfFigureReviewPanel')
     browser.settle()
     assert browser.evaluate('document.documentElement.scrollWidth<=innerWidth+1')

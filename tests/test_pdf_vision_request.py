@@ -1,6 +1,6 @@
 """PDF-only retry budgets and evidence; every provider boundary is mocked."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 from copy import deepcopy
 import hashlib
@@ -10,9 +10,9 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank import pdf_vision_request as vision
-from mathbank.ai_http import post_chat_completion
-from mathbank.task_manager import TaskCancelled
+from starhope import pdf_vision_request as vision
+from starhope.ai_http import post_chat_completion
+from starhope.task_manager import TaskCancelled
 
 _SESSION_REQUEST = requests.sessions.Session.request
 

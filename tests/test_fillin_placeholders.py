@@ -2,7 +2,7 @@
 
 import pytest
 
-from mathbank.fillin_placeholders import (
+from starhope.fillin_placeholders import (
     fillin_placeholder_edits, normalize_fillin_placeholder_clusters,
 )
 
@@ -75,9 +75,9 @@ def test_last_macros_existing_suffix_and_separation_survive_exactly(suffix):
     "[链接](https://example.test/" + CLUSTER + ")",
     "https://example.test/" + CLUSTER,
     r"\includegraphics{" + CLUSTER + ".png}",
-    '<mathbank-math id="MBM_0001">' + CLUSTER + '</mathbank-math>',
-    '<mathbank-math id="MBM_0001">' + CLUSTER,
-    "<!-- MathBank source attribution:\n" + CLUSTER + "\n-->\n\n正文",
+    '<starhope-math id="MBM_0001">' + CLUSTER + '</starhope-math>',
+    '<starhope-math id="MBM_0001">' + CLUSTER,
+    "<!-- StarHope source attribution:\n" + CLUSTER + "\n-->\n\n正文",
 ])
 def test_real_symbols_arguments_math_malformed_source_and_literals_stay_exact(source):
     assert fillin_placeholder_edits(source) == []

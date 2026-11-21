@@ -6,14 +6,14 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from mathbank.database import (
+from starhope.database import (
     Base, KnowledgePoint, KnowledgePointCurriculum, Question,
     QuestionCurriculum, QuestionKnowledgePoint,
 )
-from mathbank.question_references import (
+from starhope.question_references import (
     serialize_question_reference_data, sync_question_references, sync_question_source_labels,
 )
-from mathbank.sync_helper import serialize_exchange_questions
+from starhope.sync_helper import serialize_exchange_questions
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ def test_export_catalog_is_serialized_once_and_metadata_remains_per_question(cat
 
 
 def test_shared_catalog_survives_the_real_json_and_markdown_export(catalog_library, tmp_path, monkeypatch):
-    from mathbank import sync_helper
+    from starhope import sync_helper
 
     db, questions, _ = catalog_library
     expected, _ = serialize_exchange_questions(db, questions, "A")

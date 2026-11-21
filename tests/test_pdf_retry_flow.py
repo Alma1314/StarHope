@@ -1,6 +1,6 @@
 """PDF retry routing in an isolated source copy, with no provider networking."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 import json
 from pathlib import Path
@@ -15,7 +15,7 @@ import requests
 
 @pytest.fixture(autouse=True)
 def isolated_network(monkeypatch):
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
     monkeypatch.setattr(requests.sessions.Session, "request", lambda *_a, **_kw: pytest.fail("No live AI calls"))
 
 
@@ -28,8 +28,8 @@ def document(count=2):
 
 def test_failed_page_keeps_parallel_success_source_images_and_attempts(monkeypatch):
     import main
-    from mathbank import pdf_page_vision, pdf_native_regions
-    from mathbank.ai_providers import resolve_ocr_provider
+    from starhope import pdf_page_vision, pdf_native_regions
+    from starhope.ai_providers import resolve_ocr_provider
 
     monkeypatch.setattr(main, "inspect_and_extract_pdf", lambda *_a, **_kw: {
         "pages": [{"page_index": 0, "markdown": "", "needs_ocr": True},
@@ -78,7 +78,7 @@ def test_failed_page_keeps_parallel_success_source_images_and_attempts(monkeypat
 
 def test_ordinary_pdf_ocr_uses_same_provider_and_one_retry(monkeypatch, tmp_path):
     import main
-    from mathbank.ai_providers import resolve_ocr_provider
+    from starhope.ai_providers import resolve_ocr_provider
     from PIL import Image
 
     image = tmp_path / "page.png"
@@ -101,7 +101,7 @@ def test_ordinary_pdf_ocr_uses_same_provider_and_one_retry(monkeypatch, tmp_path
 
 def test_removed_task_stops_before_any_paid_page_call(monkeypatch):
     import main
-    from mathbank import pdf_page_vision, pdf_native_regions
+    from starhope import pdf_page_vision, pdf_native_regions
 
     monkeypatch.setattr(main, "inspect_and_extract_pdf", lambda *_a, **_kw: {
         "pages": [{"page_index": 0, "markdown": "", "needs_ocr": True}]})
@@ -123,8 +123,8 @@ def test_removed_task_stops_before_any_paid_page_call(monkeypatch):
 @pytest.mark.parametrize("outcome", ["recovered", "failed", "cancelled", "removed", "postprocess_failure"])
 def test_text_split_retry_preserves_prepared_input_without_repeating_page_vision(monkeypatch, outcome):
     import main
-    from mathbank import pdf_page_vision, pdf_native_regions
-    from mathbank.ai_providers import resolve_ocr_provider, resolve_text_provider
+    from starhope import pdf_page_vision, pdf_native_regions
+    from starhope.ai_providers import resolve_ocr_provider, resolve_text_provider
 
     source = "1. 计算 $x+1$。"
     monkeypatch.setattr(main, "inspect_and_extract_pdf", lambda *_a, **_kw: {
@@ -187,7 +187,7 @@ def test_text_split_retry_preserves_prepared_input_without_repeating_page_vision
             cache = task["pdf_source_cache"]
             assert cache["status"] == "complete" and source in cache["source_markdown"]
             assert cache["model_source"] == split_calls[0][0]["messages"][1]["content"]
-            assert '<mathbank-math id="' in cache["model_source"]
+            assert '<starhope-math id="' in cache["model_source"]
             assert len(cache["source_sha256"]) == len(cache["model_source_sha256"]) == 64
             assert all((main.PROJECT_ROOT / path.lstrip("/")).is_file() for path in task["page_images"])
     finally:
@@ -196,7 +196,7 @@ def test_text_split_retry_preserves_prepared_input_without_repeating_page_vision
 
 def test_regular_word_internal_split_uses_document_timeout_without_added_retry(monkeypatch):
     import main
-    from mathbank.ai_providers import resolve_text_provider
+    from starhope.ai_providers import resolve_text_provider
     provider = resolve_text_provider("deepseek-flash", {"DEEPSEEK_API_KEY": "unused"})
     monkeypatch.setattr(main, "resolve_text_provider", lambda _model: provider)
     monkeypatch.setattr(main, "get_current_curriculum", lambda: {})

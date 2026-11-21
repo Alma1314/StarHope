@@ -15,14 +15,14 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-from mathbank import database
-from mathbank.database import (
+from starhope import database
+from starhope.database import (
     KnowledgePoint, KnowledgePointCurriculum, LibraryImportReceipt, Question, QuestionCurriculum, QuestionFingerprint,
     QuestionKnowledgePoint, QuestionReference, QuestionSourceLabel,
 )
-from mathbank import library_transfer as transfer
-from mathbank.question_duplicate_service import fingerprint_for_question, prepare_fingerprint_values
-from mathbank.question_references import (
+from starhope import library_transfer as transfer
+from starhope.question_duplicate_service import fingerprint_for_question, prepare_fingerprint_values
+from starhope.question_references import (
     reference_payloads, sync_question_references, sync_question_source_labels,
 )
 
@@ -62,7 +62,7 @@ def share(tmp_path):
         local = KnowledgePoint(code="local:test", name="本地点", original_name="本地点", source="local")
         local.aliases = []
         db.add_all([platform, local])
-        first = Question(id=1, content='<!-- MathBank source attribution:\n新高掌\n-->\n\n先看图 ![图](/static/uploads/figure.png) 然后见例1.2。\n`![字面](/static/uploads/figure.png)`',
+        first = Question(id=1, content='<!-- StarHope source attribution:\n新高掌\n-->\n\n先看图 ![图](/static/uploads/figure.png) 然后见例1.2。\n`![字面](/static/uploads/figure.png)`',
             source="新高掌 | 例1.1", answer_markdown="见《赵礼显》例1.3。", review="点评 ![图](/static/uploads/review.png)",
             association_group_id="shared-group", difficulty="challenge", tags="复习,图像", tikz_code=r"\begin{tikzpicture}\end{tikzpicture}",
             figure_align="center", figure_size="large", figure_align_custom=True,
@@ -113,7 +113,7 @@ def rewrite_zip(path, *, mutate_manifest=None, mutate_records=None, extra=None, 
 
 
 def test_share_contains_one_hashed_scoped_source_catalog_not_per_question(share):
-    from mathbank.content_sources import content_source_export_files
+    from starhope.content_sources import content_source_export_files
     package, _ = share
     expected = content_source_export_files()
     with zipfile.ZipFile(package) as archive:
@@ -194,7 +194,7 @@ def test_roundtrip_preserves_content_and_relations_without_touching_existing(sha
         assert result["imported_count"] == 2 and result["image_count"] == 3
         first, second = (db.get(Question, result["id_map"][number]) for number in (1, 2))
         assert first.id > 50 and second.id > first.id
-        assert first.content.startswith("<!-- MathBank source attribution:\n新高掌\n-->\n\n")
+        assert first.content.startswith("<!-- StarHope source attribution:\n新高掌\n-->\n\n")
         assert '`![字面](/static/uploads/figure.png)`' in first.content
         assert first.category_compulsory == "B册" and first.category_knowledge == "B小节"
         assert first.curriculum_mappings[0].sub_knowledge == [{"compulsory": "旧册", "chapter": "旧章", "knowledge": "旧关系证据"}]
@@ -226,7 +226,7 @@ def test_roundtrip_preserves_content_and_relations_without_touching_existing(sha
         assert external["reason"] == "target_outside_share"
         assert db.query(QuestionFingerprint).count() == 2
         assert db.connection().exec_driver_sql("PRAGMA foreign_key_check").all() == []
-        from mathbank.db_migrations import _validate_knowledge_point_schema, _validate_question_reference_schema
+        from starhope.db_migrations import _validate_knowledge_point_schema, _validate_question_reference_schema
         _validate_knowledge_point_schema(db.connection())
         _validate_question_reference_schema(db.connection())
 
@@ -280,7 +280,7 @@ def test_share_preflight_rejects_startup_invalid_relations_before_database_or_as
 @pytest.mark.parametrize("receiving_version", ["A", "B", "N"])
 @pytest.mark.parametrize("source_mirror", [True, False])
 def test_historical_null_textbook_locations_roundtrip_without_rewriting_source(tmp_path, receiving_version, source_mirror):
-    from mathbank.db_migrations import _validate_knowledge_point_schema, _validate_question_reference_schema
+    from starhope.db_migrations import _validate_knowledge_point_schema, _validate_question_reference_schema
     package, uploads = tmp_path / "nullable.zip", tmp_path / "source_uploads"
     uploads.mkdir()
     locations = {"A": (None, "历史章", None), "B": ("历史册", None, "历史节")}
@@ -890,7 +890,7 @@ def test_export_streams_question_json_and_cleans_temporary_files(share, tmp_path
         output = tmp_path / "streamed.zip"
         transfer.export_library_zip(db, output, uploads_dir=uploads)
         assert transfer.inspect_library_zip(output)["question_count"] == 2
-        assert not list(tmp_path.glob(".mathbank-share-*"))
+        assert not list(tmp_path.glob(".starhope-share-*"))
         # The current full library exceeds the old 64 MiB limit.
         assert transfer.MAX_JSON_BYTES >= 256 * 1024 * 1024
 
@@ -907,7 +907,7 @@ def test_streaming_json_limit_failure_preserves_previous_export(share, tmp_path,
         with pytest.raises(ValueError, match="上限"):
             transfer.export_library_zip(db, output, uploads_dir=uploads)
         assert output.read_bytes() == previous
-        assert not list(tmp_path.glob(".mathbank-share-*"))
+        assert not list(tmp_path.glob(".starhope-share-*"))
 
 
 def test_export_fsync_uses_writable_handles_for_windows(tmp_path, monkeypatch):
@@ -916,7 +916,7 @@ def test_export_fsync_uses_writable_handles_for_windows(tmp_path, monkeypatch):
         os.write(descriptor, b"")
         synced.append(descriptor)
         real_fsync(descriptor)
-    monkeypatch.setattr("mathbank.asset_security.os.fsync", windows_flush)
+    monkeypatch.setattr("starhope.asset_security.os.fsync", windows_flush)
     output = tmp_path / "中文 空格分享.zip"
     with isolated_db(tmp_path / "source.db") as db:
         db.add(Question(content="隔离题目 $x^2$"))
@@ -1064,7 +1064,7 @@ def test_incremental_question_json_rejects_ambiguous_or_malformed_data(tmp_path,
 
 
 def test_image_layout_rewrites_reuse_package_mapping_and_skip_empty_layouts():
-    from mathbank.question_assets import rewrite_image_layout_paths
+    from starhope.question_assets import rewrite_image_layout_paths
     class NoRepeatedMapping(dict):
         def items(self):
             raise AssertionError("do not rebuild the package mapping per question")

@@ -7,13 +7,13 @@ import pytest
 from sqlalchemy import create_engine, event, select, update
 from sqlalchemy.orm import sessionmaker
 
-from mathbank.database import Base, Question
-from mathbank import question_queries
-from mathbank.question_queries import QuestionReadSnapshot, page_questions
-from mathbank.question_references import (
+from starhope.database import Base, Question
+from starhope import question_queries
+from starhope.question_queries import QuestionReadSnapshot, page_questions
+from starhope.question_references import (
     reference_payloads, sync_question_references, sync_question_source_labels,
 )
-from mathbank.question_search import (
+from starhope.question_search import (
     SQLITE_SEARCH_FUNCTION, apply_question_search, searchable_question_text,
 )
 

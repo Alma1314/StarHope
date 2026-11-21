@@ -47,7 +47,7 @@ def test_cut_restore_draft_reload_and_recover_original_image(browser):
     subprocess.run([sys.executable, "-c", """
 import sys
 from pathlib import Path
-from mathbank.asset_lifecycle import register_asset_store, quarantine_asset
+from starhope.asset_lifecycle import register_asset_store, quarantine_asset
 root=Path.cwd()
 register_asset_store(root/'static/uploads', root/'.system_generated/retained_uploads/uploads')
 assert quarantine_asset(sys.argv[1], uploads_dir=root/'static/uploads',url_prefix='static/uploads',reason='browser-draft-regression')

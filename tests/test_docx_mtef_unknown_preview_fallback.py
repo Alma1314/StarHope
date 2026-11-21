@@ -14,10 +14,10 @@ import zipfile
 from PIL import Image
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.docx_source_scopes import verify_source_review_evidence
-from mathbank.mtef_helper import decode_mtef_formula
-from mathbank.omml_helper import normalize_word_formula_latex
+from starhope.docx_helper import extract_docx_markdown
+from starhope.docx_source_scopes import verify_source_review_evidence
+from starhope.mtef_helper import decode_mtef_formula
+from starhope.omml_helper import normalize_word_formula_latex
 
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
@@ -185,8 +185,8 @@ def test_repeated_preview_assets_keep_every_formula_reference_and_each_native_ri
 
 
 def test_unknown_formula_preview_cannot_become_empty_administrative_or_reliable_word_metadata(tmp_path):
-    from mathbank.docx_source_assets import verified_empty_asset_urls
-    from mathbank.source_metadata import prepare_word_source_metadata
+    from starhope.docx_source_assets import verified_empty_asset_urls
+    from starhope.source_metadata import prepare_word_source_metadata
     body = '<w:p>' + text('1. 已知原公式') + object_xml() + text('求值。') + '</w:p>'
     blob = package(body)
     result = extract(blob, tmp_path)
@@ -214,7 +214,7 @@ def test_multiple_true_ole_records_in_one_carrier_never_certify_only_the_first_f
     assert any('多个嵌入记录' in warning for warning in diag['warnings'])
     proof = scope(blob, result)
     assert proof['status'] == 'ready' and proof['blocks'][0]['has_risk']
-    from mathbank.source_metadata import prepare_word_source_metadata
+    from starhope.source_metadata import prepare_word_source_metadata
     assert not prepare_word_source_metadata(result['markdown'], diag)['eligible']
 
 

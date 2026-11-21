@@ -4,9 +4,9 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine, event
 from sqlalchemy.exc import OperationalError
 
-from mathbank.database import configure_sqlite_wal
-from mathbank.db_migrations import LATEST_SCHEMA_VERSION
-from mathbank.health import readiness_report
+from starhope.database import configure_sqlite_wal
+from starhope.db_migrations import LATEST_SCHEMA_VERSION
+from starhope.health import readiness_report
 
 
 @pytest.fixture
@@ -198,7 +198,7 @@ def test_configure_sqlite_wal_fails_when_delete_fallback_also_fails(tmp_path):
 
 def test_healthz_endpoint_is_lightweight_and_ready(client, monkeypatch):
     from main import SERVER_INSTANCE_ID, UPLOAD_DIR
-    from mathbank import health
+    from starhope import health
 
     # The test app stores images in test_uploads, so readiness must not depend
     # on a real user's uploads directory existing beside the source checkout.
@@ -209,7 +209,7 @@ def test_healthz_endpoint_is_lightweight_and_ready(client, monkeypatch):
     assert response.status_code == 200, response.text
     assert response.json()["status"] == "ready"
     assert response.json()["server_instance_id"] == SERVER_INSTANCE_ID
-    from mathbank.paths import project_instance_id
+    from starhope.paths import project_instance_id
     version = client.get("/api/version").json()
     assert response.json()["project_instance_id"] == project_instance_id()
     assert version["project_instance_id"] == response.json()["project_instance_id"]

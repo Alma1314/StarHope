@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from mathbank import source_review_focus as focus
-from mathbank import prompts
+from starhope import source_review_focus as focus
+from starhope import prompts
 
 
 def content(source, output):

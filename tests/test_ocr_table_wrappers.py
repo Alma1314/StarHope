@@ -2,8 +2,8 @@
 
 import pytest
 
-from mathbank.math_markdown import normalize_table_math_wrappers
-from mathbank.content_locks import lock_visible_math, restore_visible_math
+from starhope.math_markdown import normalize_table_math_wrappers
+from starhope.content_locks import lock_visible_math, restore_visible_math
 
 
 TABLE = r"\begin{tabular}{|c|c|}\hline 值 & $x_1\leqslant 2$ \\ \hline ![图](/static/uploads/a.png) & $\dfrac{1}{2}$ \\ \hline \end{tabular}"
@@ -26,7 +26,7 @@ def test_removes_only_complete_table_outer_math_shell(opening, closing, environm
     r"\verb|$$TABLE$$|", r"\Verb|$$TABLE$$|", r"\lstinline[language=TeX]|$$TABLE$$|",
     r"\lstinline{$$TABLE$$}", r"\mintinline{tex}|$$TABLE$$|", r"\mintinline{tex}{$$TABLE$$}",
     r"\detokenize{$$TABLE$$}", r"\url{$$TABLE$$}", r"\path{$$TABLE$$}",
-    r"<mathbank-math id='MBM_A_1'>$$TABLE$$</mathbank-math>",
+    r"<starhope-math id='MBM_A_1'>$$TABLE$$</starhope-math>",
     '<span data-example="$$TABLE$$">literal attribute</span>',
     '<code>$$TABLE$$</code>', '<pre class="example">$$TABLE$$</pre>',
     '<CODE class="example">$$TABLE$$</code>', '<pre>$$TABLE$$',

@@ -24,7 +24,7 @@ def test_association_baseline_and_stale_responses():
     ]
     setup = r"""
 const assert = require('node:assert/strict');
-const window = {MathBankSafe: {escapeText: String}};
+const window = {StarHopeSafe: {escapeText: String}};
 let originalQuestionState = null, uploadedImages = [];
 const TikzState = {contentAssets: [], answerAssets: []};
 const FigureLayoutState = {align: 'right', size: 'auto', customAlign: false, imageLayouts: {}};

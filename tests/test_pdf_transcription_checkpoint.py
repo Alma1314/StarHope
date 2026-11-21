@@ -9,11 +9,11 @@ from PIL import Image
 import pytest
 import requests
 
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
-from mathbank.pdf_transcription_checkpoint import restore_project_pdf_transcription_witnesses
-from mathbank.pdf_transcription_scopes import finalize_pdf_transcription_snapshot, verify_pdf_transcription_snapshot
-from mathbank.task_manager import TaskCancelled
+from starhope.document_projects import DocumentProjectStore
+from starhope.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
+from starhope.pdf_transcription_checkpoint import restore_project_pdf_transcription_witnesses
+from starhope.pdf_transcription_scopes import finalize_pdf_transcription_snapshot, verify_pdf_transcription_snapshot
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(autouse=True)
@@ -61,7 +61,7 @@ def setup(tmp_path):
     project = store.create(source, "原卷.pdf", {"pdf_strategy": "layout_aware"}, {})["project_id"]
     state = prepare_pdf_checkpoint(None, task_id="original-task", document_sha256=hashlib.sha256(source).hexdigest(),
         page_indices=[0, 1], strategy="layout_aware", verify_suspicions=False, resolve_asset=files.__getitem__)
-    state["pages"] = {str(i): {"markdown": f"<!-- MATHBANK_PDF_PAGE:{i+1} -->\n" + texts[i],
+    state["pages"] = {str(i): {"markdown": f"<!-- STARHOPE_PDF_PAGE:{i+1} -->\n" + texts[i],
                                "joint": deepcopy(joints[i])} for i in range(2)}
     state["prepared"] = {"page_texts": ["working prepared content must never be signed", "other prepared content"]}
     def save(value=state):
@@ -128,7 +128,7 @@ def test_no_repair_of_bad_or_missing_original_payload(setup, change):
         page["joint"]["ocr_succeeded"] = False
     elif change == "quality_body":
         page["joint"]["markdown"] = "1. 原题\n\\begin{choices}\\item \\item 2\\end{choices}"
-        page["markdown"] = "<!-- MATHBANK_PDF_PAGE:1 -->\n" + page["joint"]["markdown"]
+        page["markdown"] = "<!-- STARHOPE_PDF_PAGE:1 -->\n" + page["joint"]["markdown"]
     elif change == "missing_joint":
         page["joint"] = None
     elif change == "missing_detail_input":

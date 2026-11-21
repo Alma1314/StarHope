@@ -1,28 +1,28 @@
-# MathBank - 本地化数学题库与组卷排版工作台
+# StarHope - 本地化数学题库与组卷排版工作台
 
 [中文](README.md) | [English](README_EN.md)
 
-📖 **使用帮助**：[MathBank 帮助网页](https://mathbank.pages.dev/)
+📖 **使用帮助**：[StarHope 帮助网页](https://mathbank.pages.dev/)
 
 > **项目标签**：数学题库 | 高中数学 | 备课教研 | A4 仿真排版 | 智能组卷 | 高考级导出 | OCR 识图 | DeepSeek AI | 教育技术
 
-**MathBank** 是一个专为中学数学教师打造的、完全运行在您自己电脑上的轻量级半自动化数学题库与组卷排版工作台。
+**StarHope** 是一个专为中学数学教师打造的、完全运行在您自己电脑上的轻量级半自动化数学题库与组卷排版工作台。
 
 它支持数学公式与几何图形秒级实时预览，深度集成一键组卷、A4 仿真画布排版、高考级 PDF / Word 试卷导出、AI 辅助解题以及一键 OCR 题目识别。项目无需复杂的前端编译：Windows 10/11 x64 便携包内置 Python 与匹配的 VC++ 运行库，解压即可双击启动；macOS 便携包自动检测本机 Python 3.10+ 并准备独立运行环境。
 
 https://github.com/user-attachments/assets/46834cbd-3499-4c06-9d8e-c81bdc10a0a7
 
-![MathBank 首页工作台（深海蓝主题）](docs/images/screenshot1.png)
+![StarHope 首页工作台（深海蓝主题）](docs/images/screenshot1.png)
 
-![MathBank 题库管理与题目解析（深海蓝主题）](docs/images/screenshot2.png)
+![StarHope 题库管理与题目解析（深海蓝主题）](docs/images/screenshot2.png)
 
 ---
 
 ## ✨ 核心亮点
 
-只需了解一些基础的 LaTeX 数学公式语法，MathBank 就能帮一线数学老师高效解决组卷与备课难题：
+只需了解一些基础的 LaTeX 数学公式语法，StarHope 就能帮一线数学老师高效解决组卷与备课难题：
 
-- 🧑‍🏫 **让 AI 备课工作流读取自己的题库**：提供只读 Agent 取题接口与结构化命令行检索。本地 AI 备课工具可先发现教材、题型与知识点目录，分页筛选候选后，按稳定题目 ID 读取完整题干、解析、教师评析和配图清单，用于准备教案、例题与分层作业。读取过程不修改题库，也不自动调用模型；采用前仍需教师核对原题与图片。详见 [接入指南](https://github.com/JudgePeach/math-question-bank/blob/main/docs/AI_DATABASE_GUIDE.md) 及下方命令示例。
+- 🧑‍🏫 **让 AI 备课工作流读取自己的题库**：提供只读 Agent 取题接口与结构化命令行检索。本地 AI 备课工具可先发现教材、题型与知识点目录，分页筛选候选后，按稳定题目 ID 读取完整题干、解析、教师评析和配图清单，用于准备教案、例题与分层作业。读取过程不修改题库，也不自动调用模型；采用前仍需教师核对原题与图片。详见 [接入指南](https://github.com/Alma1314/StarHope/blob/main/docs/AI_DATABASE_GUIDE.md) 及下方命令示例。
 - 🎨 **1:1 A4 仿真组卷排版**：提供像 Word 一样直观的仿真试卷画布，密封线、大标题、注意事项框一应俱全。支持拖拽排序、解答题留白高度（0–30 cm）调整，以及一键切换 A3 答题卡与高考 19 题预设。
 - ⚡ **秒级公式渲染与高考级导出**：内置专业数学公式排版引擎，网页修改秒级预览。选择题完整显示题干、选项与图片，并按实际宽度在四列、两列、单列间自动适配；长文字自然换行，仅超宽不可拆分的公式独立横向滚动。小问分段保留前置标点，网页预览原生兼容 `\iu` / `\upi`（正体 i）与 `\eu` / `\upe`（正体 e）。支持一键导出高考标准的高清 PDF 试卷、可编辑公式的 Word 文档与完整 LaTeX 源码包。
 - 🤖 **AI 智能选题与辅助解答**：在组卷工作台按教材范围、知识点、题型与难度梯度从题库已有题目中挑选题目加入草稿，支持参考库内高考卷风格并自动匹配随程序保存的课标选摘；支持单题一键 AI 生成详细解析与教学反思。
@@ -90,7 +90,7 @@ flowchart LR
   * **macOS 用户**：推荐安装 [**MacTeX 官网**](https://www.tug.org/mactex/)（安装包约 5GB，国内推荐使用 [清华大学镜像站](https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/mac/mactex/) 下载）
   * **Windows 用户**：推荐安装 [**TeX Live 官网**](https://www.tug.org/texlive/)（ISO 镜像约 5GB，国内推荐使用 [清华大学镜像站](https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/Images/) 下载；也可选择 MiKTeX）
 - **📄 Word (.docx) 试卷免依赖导入**：无需安装 Microsoft Word 或 MathType。系统自动转换常见 OMML 公式，并通过 `olefile` + MTEF v5 记录树解析 MathType 结构（普通数字 `32`、拉丁字母 `p` 等不会因旧字符规则被误判），递归保留超链接、修订文字、Symbol 字符、表格与原图。拆卷报告会分别列出结构转换、内嵌 LaTeX、有限兼容及需人工核对的数量。
-- **📝 Word 可编辑公式导出（Pandoc 自动准备）**：导出含可编辑公式的 Word 时，优先复用本机已安装的 Pandoc。若首次导出未检测到，经用户确认后会自动从官方 GitHub Release（或 SourceForge 备用线路）下载并安装到 MathBank 本地运行目录，通过固定 SHA-256 校验后自动继续导出，无需管理员权限或手动配置环境变量 `PATH`。
+- **📝 Word 可编辑公式导出（Pandoc 自动准备）**：导出含可编辑公式的 Word 时，优先复用本机已安装的 Pandoc。若首次导出未检测到，经用户确认后会自动从官方 GitHub Release（或 SourceForge 备用线路）下载并安装到 StarHope 本地运行目录，通过固定 SHA-256 校验后自动继续导出，无需管理员权限或手动配置环境变量 `PATH`。
 
 ---
 
@@ -120,22 +120,22 @@ flowchart LR
 <details>
 <summary>⚙️ <strong>高级配置：处理超时与常用容量限制（点击展开）</strong></summary>
 
-- **慢推理与大文件等待时限**：普通 AI 请求默认等待 15 分钟，文档识图/拆卷/来源核验默认 30 分钟；本地 PDF 每遍编译、Word 转换及原 Word 渲染各允许 5 分钟。可在 `.env` 中通过 `MATHBANK_AI_REQUEST_TIMEOUT_SECONDS` 和 `MATHBANK_DOCUMENT_AI_TIMEOUT_SECONDS` 分别设置为 `60`–`7200` 秒的整数，重启后生效。超时后结果未知的远端请求不会自动重发。
-- **常用容量与并发配置**：上传文件大小（默认 PDF 30 MiB / 80 页）、图片像素、文档队列及分类图片容量集中在 `.env.example` 所列的 `MATHBANK_*` 项中配置，修改后重启生效。`PDF_OCR_CONCURRENCY`（`1`–`12`）控制普通 PDF 请求总并发门并与辅助核验共享名额；独立解压、渲染与图像证据安全预算保持不变。
+- **慢推理与大文件等待时限**：普通 AI 请求默认等待 15 分钟，文档识图/拆卷/来源核验默认 30 分钟；本地 PDF 每遍编译、Word 转换及原 Word 渲染各允许 5 分钟。可在 `.env` 中通过 `STARHOPE_AI_REQUEST_TIMEOUT_SECONDS` 和 `STARHOPE_DOCUMENT_AI_TIMEOUT_SECONDS` 分别设置为 `60`–`7200` 秒的整数，重启后生效。超时后结果未知的远端请求不会自动重发。
+- **常用容量与并发配置**：上传文件大小（默认 PDF 30 MiB / 80 页）、图片像素、文档队列及分类图片容量集中在 `.env.example` 所列的 `STARHOPE_*` 项中配置，修改后重启生效。`PDF_OCR_CONCURRENCY`（`1`–`12`）控制普通 PDF 请求总并发门并与辅助核验共享名额；独立解压、渲染与图像证据安全预算保持不变。
 </details>
 
 ---
 
 ## 🚀 快速开始
 
-**版本与下载（2026-11-17 核对）**：当前源码版本为 **3.1.0**，新增了 PDF 拆题恢复和可选 MinerU 配图定位、TikZ 几何验算、包含与排除关键词筛选、ZIP 重复导入确认，并改进了 Word 公式与列表导出。GitHub 最新正式便携包为北京时间 **2026 年 11 月 17 日**发布的 [**V3.1.0**](https://github.com/JudgePeach/math-question-bank/releases/tag/V3.1.0)。
+**版本与下载（2026-11-17 核对）**：当前源码版本为 **3.1.0**，新增了 PDF 拆题恢复和可选 MinerU 配图定位、TikZ 几何验算、包含与排除关键词筛选、ZIP 重复导入确认，并改进了 Word 公式与列表导出。GitHub 最新正式便携包为北京时间 **2026 年 11 月 17 日**发布的 [**V3.1.0**](https://github.com/Alma1314/StarHope/releases/tag/V3.1.0)。
 
 ### 📦 方式一：下载便携包（推荐一线教师使用）
 
-如果您不熟悉命令行或 Python 环境，请直接前往 [**V3.1.0 发布页面**](https://github.com/JudgePeach/math-question-bank/releases/tag/V3.1.0)，在 Assets 中下载对应系统的 ZIP 附件并**完整解压**：
+如果您不熟悉命令行或 Python 环境，请直接前往 [**V3.1.0 发布页面**](https://github.com/Alma1314/StarHope/releases/tag/V3.1.0)，在 Assets 中下载对应系统的 ZIP 附件并**完整解压**：
 
-* **Windows 用户**：使用 Windows 10/11 x64，下载 [`MathBank-Windows-x64.zip`](https://github.com/JudgePeach/math-question-bank/releases/download/V3.1.0/MathBank-Windows-x64.zip)（内置完整 Python 3.10 与应用本地 VC++ 运行时，无需另行安装），完整解压后双击 **`启动题库系统.bat`**。
-* **macOS 用户**：下载 [`MathBank-macOS.zip`](https://github.com/JudgePeach/math-question-bank/releases/download/V3.1.0/MathBank-macOS.zip)。**macOS 包不内置 Python，运行前请先确认本机已安装 Python 3.10 或更高版本**。首次准备或修复项目隔离环境 `venv` 时需保持联网，随后双击 **`启动题库系统.command`**。
+* **Windows 用户**：使用 Windows 10/11 x64，下载 [`StarHope-Windows-x64.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-Windows-x64.zip)（内置完整 Python 3.10 与应用本地 VC++ 运行时，无需另行安装），完整解压后双击 **`启动题库系统.bat`**。
+* **macOS 用户**：下载 [`StarHope-macOS.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-macOS.zip)。**macOS 包不内置 Python，运行前请先确认本机已安装 Python 3.10 或更高版本**。首次准备或修复项目隔离环境 `venv` 时需保持联网，随后双击 **`启动题库系统.command`**。
 
 两个启动器会自动检查 Python 与依赖；若题库服务已在运行，会直接打开网页，无需先关闭再重开。端口冲突或启动失败时会直接显示具体原因与服务日志。
 
@@ -145,7 +145,7 @@ flowchart LR
 
 1. **克隆项目**：
    ```bash
-   git clone https://github.com/JudgePeach/math-question-bank.git
+   git clone https://github.com/Alma1314/StarHope.git
    cd math-question-bank
    ```
 
@@ -160,7 +160,7 @@ flowchart LR
    * **Windows 用户**：双击 **`启动题库系统.bat`**
    * **命令行启动**：运行 `python -m uvicorn main:app --reload`，浏览器访问 `http://127.0.0.1:8000`
 
-   **V3.0.3 启动器**：双击启动器默认使用 8000，并优先复用本目录已运行的题库；更新后旧服务未关闭时，会打开旧服务或提示先在原网页正常关闭，不另开一份。若端口被其他应用占用，启动器会建议可用端口，明确输入 `y` 后才切换并记住，下次优先使用记住的地址。可用环境变量 `MATHBANK_PORT` 固定端口；直接运行 Uvicorn 仍须使用 `--port`。浏览器草稿、选题篮及未保存的卷面信息按地址保存，换端口不会自动搬迁，原数据仍留在原浏览器、原地址；切换前请先保存需要保留的工作。
+   **V3.0.3 启动器**：双击启动器默认使用 8000，并优先复用本目录已运行的题库；更新后旧服务未关闭时，会打开旧服务或提示先在原网页正常关闭，不另开一份。若端口被其他应用占用，启动器会建议可用端口，明确输入 `y` 后才切换并记住，下次优先使用记住的地址。可用环境变量 `STARHOPE_PORT` 固定端口；直接运行 Uvicorn 仍须使用 `--port`。浏览器草稿、选题篮及未保存的卷面信息按地址保存，换端口不会自动搬迁，原数据仍留在原浏览器、原地址；切换前请先保存需要保留的工作。
 
 > [!TIP]
 > **PDF & Word 试卷智能拆解建议**：
@@ -242,7 +242,7 @@ macOS 启动器优先复用可用的原 `venv`；安装新 Python 不会替换�
 2. 将原项目中的 `venv` 改名为一个未占用的备份名，例如 `venv-before-python-upgrade`，先不要删除。
 3. 在终端进入原项目，用**新解释器的明确路径**创建同名 `venv`。下面的项目路径和 Python 3.13 路径均为示例，必须按实际安装情况替换；不要只把命令改成 `python3`：
    ```bash
-   cd "/你的/MathBank目录"
+   cd "/你的/StarHope目录"
    "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13" -m venv venv
    ```
 4. 联网双击原目录中的 `启动题库系统.command`，等待依赖安装与服务就绪，再在同一目录核对实际版本：
@@ -290,12 +290,12 @@ python3 -m scripts.search_questions --knowledge-point 1136 --format json -n 10
 python3 -m scripts.search_questions --ids 123,456 --profile teaching --format json
 python3 -m scripts.search_questions --ids 123,456 --assets --format json
 ```
-查询全程采用只读快照，不修改题库。JSON 搜索默认返回 20 条候选摘要；`--profile teaching/evidence` 可读取完整题干、评析与按需依据，`--assets` 返回图片用途、状态和可读路径。完整说明见 [Agent 只读取题指南](https://github.com/JudgePeach/math-question-bank/blob/main/docs/AI_DATABASE_GUIDE.md)，服务运行时也可调用只读 `/api/agent/` HTTP 接口。
+查询全程采用只读快照，不修改题库。JSON 搜索默认返回 20 条候选摘要；`--profile teaching/evidence` 可读取完整题干、评析与按需依据，`--assets` 返回图片用途、状态和可读路径。完整说明见 [Agent 只读取题指南](https://github.com/Alma1314/StarHope/blob/main/docs/AI_DATABASE_GUIDE.md)，服务运行时也可调用只读 `/api/agent/` HTTP 接口。
 
 ### 2. 数据清洗与构建脚本
 - **填空题下划线全量升级**：`python3 -m scripts.migrate_fillin`（将旧下划线规范化为 `\fillin` 宏）
 - **选择题题干空括号净化**：`python3 -m scripts.migrate_choice_parentheses`（自动抹除题干末尾空括号，防止与 `\paren` 重叠）
-- **构建跨平台 Release（源码仓库专用）**：在源码仓库中确认 `mathbank/__init__.py` 的版本号后，运行 `python3 -m scripts.build_release`（便携包不含此脚本）。构建器会校验固定 SHA-256 的官方运行时、Release 白名单、运行时布局与源码 smoke，并生成包内 `RELEASE-MANIFEST.json` 和包外 `.zip.sha256`。
+- **构建跨平台 Release（源码仓库专用）**：在源码仓库中确认 `starhope/__init__.py` 的版本号后，运行 `python3 -m scripts.build_release`（便携包不含此脚本）。构建器会校验固定 SHA-256 的官方运行时、Release 白名单、运行时布局与源码 smoke，并生成包内 `RELEASE-MANIFEST.json` 和包外 `.zip.sha256`。
 
 ### 3. 完整备份与恢复
 
@@ -307,10 +307,10 @@ python3 -m scripts.backup
 python3 -m scripts.backup --allow-missing-images
 
 # 只校验备份完整性，不改动当前数据
-python3 -m scripts.restore data_backup/snapshots/mathbank-backup-时间戳.zip
+python3 -m scripts.restore data_backup/snapshots/starhope-backup-时间戳.zip
 
 # 实际恢复（替换当前数据）：必须先完全关闭题库服务
-python3 -m scripts.restore data_backup/snapshots/mathbank-backup-时间戳.zip --apply --yes
+python3 -m scripts.restore data_backup/snapshots/starhope-backup-时间戳.zip --apply --yes
 ```
 
 完整备份附带逐文件 SHA-256 清单，不包含 `.env`、本地 Token 或 API 密钥。服务与恢复工具共用跨平台运行锁，服务未完全关闭时恢复会拒绝执行。`questions_backup.json` 仅用于兼容检索与同步，不能代替完整备份。
@@ -335,7 +335,7 @@ python3 -m scripts.restore data_backup/snapshots/mathbank-backup-时间戳.zip -
 先正常关闭题库服务，在项目目录执行（将占位符换成实际 UUID）：
 
 ```bash
-python3 -m scripts.tiered_storage enable --volume-uuid "YOUR-VOLUME-UUID" --directory "业务资料/MathBank"
+python3 -m scripts.tiered_storage enable --volume-uuid "YOUR-VOLUME-UUID" --directory "业务资料/StarHope"
 python3 -m scripts.tiered_storage status
 ```
 
@@ -360,7 +360,7 @@ python3 -m scripts.tiered_storage status
 ├── docs/                       # 项目文档与 README 展示图片
 │   ├── AI_DATABASE_GUIDE.md    # AI 题库检索使用指南
 │   └── images/                 # 产品界面预览图
-├── mathbank/                   # 后端业务领域包
+├── starhope/                   # 后端业务领域包
 │   ├── database.py             # SQLite 数据模型与 Session
 │   ├── db_migrations.py        # 版本化、备份优先的 SQLite 迁移
 │   ├── backup.py               # 完整备份、验证、恢复与回滚
@@ -406,7 +406,7 @@ python3 -m scripts.tiered_storage status
 ├── templates/                  # LaTeX 试卷模板与 exam-zh 宏包库
 ├── tests/                      # Pytest 自动化测试与 artifacts
 ├── main.py                     # FastAPI 服务主入口与路由逻辑
-├── math_question_bank.db       # 本地 SQLite 主数据库（根目录兼容保留）
+├── starhope.db       # 本地 SQLite 主数据库（根目录兼容保留）
 ├── 启动题库系统.bat            # Windows 一键启动脚本
 ├── 启动题库系统.command        # macOS 一键启动脚本
 ├── README.md                   # 中文说明文档
@@ -426,8 +426,8 @@ python3 -m scripts.tiered_storage status
 
 ## 💬 QQ 用户交流群
 
-欢迎加入 MathBank 用户交流群，群号：`1107557945`。
+欢迎加入 StarHope 用户交流群，群号：`1107557945`。
 
 <p align="center">
-  <img src="docs/images/qq-user-group.jpg" alt="MathBank QQ 用户交流群二维码" width="420">
+  <img src="docs/images/qq-user-group.jpg" alt="StarHope QQ 用户交流群二维码" width="420">
 </p>

@@ -1,6 +1,6 @@
 """Safety and cost boundaries for optional PDF source suspicion verification."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 from copy import deepcopy
 import json
@@ -10,9 +10,9 @@ from PIL import Image
 import pytest
 import requests
 
-from mathbank import pdf_source_verify as verify
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.task_manager import TaskCancelled
+from starhope import pdf_source_verify as verify
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.task_manager import TaskCancelled
 
 
 def add_question(state, *, source=None, output=None, page=1, extra_reason=None):
@@ -462,7 +462,7 @@ def first_pass_cache(setup):
         sources = [match["source_excerpt"] for match in setup.diagnostics["source_matches"]
                    if setup.diagnostics["pdf_review_items"][match["question_index"]]["source_pages"] == [number]]
         cached.append({"page_number": number, "origin": "ocr", "figures": [],
-                       "markdown": f"<!-- MATHBANK_PDF_PAGE:{number} -->\n" + "\n\n".join(sources)
+                       "markdown": f"<!-- STARHOPE_PDF_PAGE:{number} -->\n" + "\n\n".join(sources)
                                    + f"\n\nUNRELATED_CACHE_MUST_NOT_SEND_{number}"})
     baseline = verify._source_baseline(cached, setup.numbers)
     for match in setup.diagnostics["source_matches"]:
@@ -495,7 +495,7 @@ def test_incomplete_or_mismatched_cache_never_qualifies_a_referee_call(setup, ch
     elif change == "reordered_page": cache[0], cache[1] = cache[1], cache[0]
     elif change == "wrong_number": cache[0]["page_number"] = 2
     elif change == "wrong_marker": cache[0]["markdown"] = cache[0]["markdown"].replace("PAGE:1", "PAGE:2")
-    elif change == "duplicate_marker": cache[0]["markdown"] += "<!-- MATHBANK_PDF_PAGE:1 -->"
+    elif change == "duplicate_marker": cache[0]["markdown"] += "<!-- STARHOPE_PDF_PAGE:1 -->"
     elif change == "missing_origin": cache[0].pop("origin")
     elif change == "missing_figures": cache[0].pop("figures")
     elif change == "truncated": cache[0]["truncated"] = True
@@ -572,7 +572,7 @@ def test_unresolved_formula_or_missing_replaced_moved_image_is_not_certified(set
     "原文公式定位信息不完整，请对照原文核对。",
 ])
 def test_formula_suspicion_can_be_cleared_only_by_full_visual_verdict(setup, reason):
-    from mathbank.pdf_figures import _review_explanations
+    from starhope.pdf_figures import _review_explanations
     setup.questions.clear()
     setup.diagnostics = {"source_matches": [], "pdf_review_items": []}
     add_question(setup, source="14. 已知 $x-1=2$，求值。", output="已知 $x+1=2$，求值。")
@@ -859,7 +859,7 @@ def test_picture_moved_from_answer_to_stem_still_requires_editing(setup):
 
 
 def test_picture_batch_budget_splits_once_without_partial_image_requests(setup, monkeypatch):
-    from mathbank import source_review_images
+    from starhope import source_review_images
     monkeypatch.setattr(source_review_images, "MAX_BATCH_IMAGES", 1)
     setup.questions.clear()
     setup.diagnostics = {"source_matches": [], "pdf_review_items": []}

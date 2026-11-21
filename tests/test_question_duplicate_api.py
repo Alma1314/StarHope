@@ -6,8 +6,8 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from PIL import Image
 
-from mathbank.database import Base, Question, QuestionFingerprint
-from mathbank.question_duplicate_service import (
+from starhope.database import Base, Question, QuestionFingerprint
+from starhope.question_duplicate_service import (
     find_indexed_candidates,
     recall_question_ids,
     recall_text_fragment_question_ids,
@@ -17,7 +17,7 @@ from mathbank.question_duplicate_service import (
     visible_image_signatures,
     backfill_missing_fingerprints,
 )
-from mathbank.question_duplicates import build_question_fingerprint
+from starhope.question_duplicates import build_question_fingerprint
 
 
 def _headers():
@@ -413,7 +413,7 @@ def test_atomic_fingerprint_upsert_is_idempotent(db_session):
 def test_candidate_refinement_is_bounded_before_expensive_rebuild(
     db_session, tmp_path, monkeypatch
 ):
-    import mathbank.question_duplicate_service as service
+    import starhope.question_duplicate_service as service
 
     questions = [
         Question(content="密集重复题 $x=1$", question_type="detailed_answer")
@@ -621,7 +621,7 @@ def test_text_fragment_fallback_recalls_real_prefix_trimmed_variant(
 def test_text_fragment_fallback_is_skipped_when_primary_result_is_review_worthy(
     db_session, tmp_path, monkeypatch
 ):
-    import mathbank.question_duplicate_service as service
+    import starhope.question_duplicate_service as service
 
     question = Question(
         content="主索引已命中的题 $x=1$。",
@@ -848,7 +848,7 @@ def test_text_cross_band_global_budget_drop_reaches_api_warning(client, db_sessi
 def test_two_stage_candidate_rebuilds_share_one_bounded_budget(
     db_session, tmp_path, monkeypatch
 ):
-    import mathbank.question_duplicate_service as service
+    import starhope.question_duplicate_service as service
 
     query = build_question_fingerprint(
         {"content": _ID53_CONTENT, "question_type": "fill_in_blank"}

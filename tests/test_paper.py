@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from main import LOCAL_TOKEN
-from mathbank.database import Paper, PaperQuestion, Question
+from starhope.database import Paper, PaperQuestion, Question
 
 def test_paper_api_flow(client):
     headers = {"X-Local-Token": LOCAL_TOKEN}
@@ -121,7 +121,7 @@ def test_paper_bundle_compile_failure_never_returns_a_partial_archive(client, fa
     assert response.json()["preflight"]["status"] == "passed"
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_EXPORT_NATIVE") != "1" or not shutil.which("xelatex"),
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_EXPORT_NATIVE") != "1" or not shutil.which("xelatex"),
                     reason="Opt-in real XeLaTeX API bundle validation")
 def test_native_paper_bundle_contains_both_real_pdfs_and_formula_content(client):
     import re
@@ -197,7 +197,7 @@ def test_ai_paper_selection_uses_shared_provider_and_clean_effort(
     }
 
     with patch.dict(os.environ, provider_env, clear=False), patch(
-        "mathbank.ai_http.robust_request_post", return_value=response
+        "starhope.ai_http.robust_request_post", return_value=response
     ) as mock_post:
         result = client.post(
             "/api/paper/ai-select",
@@ -253,7 +253,7 @@ def test_invalid_paper_items_are_rejected_without_partial_rows(
 def test_exam_19_and_answer_sheet_generation(client, db_session):
     headers = {"X-Local-Token": LOCAL_TOKEN}
     
-    from mathbank.paper_helper import build_answer_sheet_latex
+    from starhope.paper_helper import build_answer_sheet_latex
     
     questions_data = [
         {
@@ -310,7 +310,7 @@ def test_exam_19_and_answer_sheet_generation(client, db_session):
     assert sheet_pdf_res.headers.get("content-type") == "application/pdf"
 
 def test_solution_space_latex_generation():
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
     questions_data_65 = [{
         "question": {
             "id": 99,
@@ -334,7 +334,7 @@ def test_solution_space_latex_generation():
     
     # The physical answer space remains pageable in every paper template.
     tex = build_latex_document("单元测试", "试卷", "exam", questions_data_65, include_answers=False)
-    assert r"\mathbanksolutionspace{6.5cm}" in tex
+    assert r"\starhopesolutionspace{6.5cm}" in tex
     
     # Explicit nonzero settings still work after switching to compact exam_19.
     questions_data_3 = [{
@@ -348,15 +348,15 @@ def test_solution_space_latex_generation():
         "solution_space": "3.0"
     }]
     tex_19_three = build_latex_document("高考模拟", "试卷", "exam_19", questions_data_3, include_answers=False)
-    assert r"\mathbanksolutionspace{3.0cm}" in tex_19_three
+    assert r"\starhopesolutionspace{3.0cm}" in tex_19_three
 
     # 3. exam_19 paper mode with 0.0cm solution space -> should not inject \vspace
     tex_19_zero = build_latex_document("高考模拟", "试卷", "exam_19", questions_data_zero, include_answers=False)
-    assert r"\mathbanksolutionspace{0.0cm}" not in tex_19_zero
+    assert r"\starhopesolutionspace{0.0cm}" not in tex_19_zero
 
 
 def test_latex_export_renders_every_editable_content_tikz_asset_once():
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     first_code = r"\begin{tikzpicture}\draw (0,0)--(1,0);\end{tikzpicture}"
     second_code = r"\begin{tikzpicture}\draw (0,0) circle (1);\end{tikzpicture}"
@@ -401,7 +401,7 @@ def test_latex_export_renders_every_editable_content_tikz_asset_once():
 
 
 def test_latex_export_preserves_complex_inline_and_tabular_image_positions():
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     content = (
         "【课本回顾】如图 1，在三角形中研究中线。\n\n"
@@ -447,7 +447,7 @@ def test_latex_export_preserves_complex_inline_and_tabular_image_positions():
 
 
 def test_latex_export_keeps_single_trailing_figure_alignment_layout():
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     questions = [{
         "question": {
@@ -471,7 +471,7 @@ def test_latex_export_keeps_single_trailing_figure_alignment_layout():
 
 
 def test_quiz_legacy_right_default_respects_persisted_custom_alignment():
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     base_question = {
         "id": 104,
@@ -524,7 +524,7 @@ def test_latex_export_maps_explicit_figure_size_by_alignment(
     expected_width,
     expected_height,
 ):
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     questions = [{
         "question": {
@@ -563,7 +563,7 @@ def test_latex_export_maps_explicit_tikz_size_and_caps_right_layout(
     expected_width,
     expected_height,
 ):
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     tikz_code = r"\begin{tikzpicture}\draw (0,0)--(8,0);\end{tikzpicture}"
     questions = [{
@@ -601,7 +601,7 @@ def test_large_lower_figure_is_contained_in_a_safe_solution_space_box(
     figure_align,
     environment,
 ):
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     questions = [{
         "question": {
@@ -632,7 +632,7 @@ def test_multiple_large_lower_figures_remain_page_breakable(
     figure_align,
     environment,
 ):
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     images = "\n\n".join(
         f"![图{index}](/static/uploads/large-{index}.png)"
@@ -654,13 +654,13 @@ def test_multiple_large_lower_figures_remain_page_breakable(
 
     assert r"\begin{minipage}[t][32.0cm][t]{\linewidth}" not in tex
     assert tex.count(r"max width=11.0cm,max height=8.0cm") == 4
-    assert r"\mathbankneedspace{8.5cm}" in tex
+    assert r"\starhopeneedspace{8.5cm}" in tex
     assert tex.count(rf"\begin{{{environment}}}") == 4
-    assert r"\mathbanksolutionspace{7.0cm}" in tex
+    assert r"\starhopesolutionspace{7.0cm}" in tex
 
 
 def test_latex_export_bounds_full_width_multicolumn_and_keeps_multirow():
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     long_title = "综合探究表格总标题需要在页面正文宽度内自动换行显示"
     content = (
@@ -694,7 +694,7 @@ def test_latex_export_bounds_full_width_multicolumn_and_keeps_multirow():
     ["tabular", "tabular*", "tabularx", "longtable", "tblr", "longtblr", "talltblr"],
 )
 def test_latex_table_environments_keep_images_in_lr_safe_cells(environment):
-    from mathbank.paper_helper import clean_content_for_latex
+    from starhope.paper_helper import clean_content_for_latex
 
     source = (
         rf"\begin{{{environment}}}{{cc}}"
@@ -716,7 +716,7 @@ def test_latex_table_environments_keep_images_in_lr_safe_cells(environment):
 
 
 def test_right_figure_choice_stem_has_no_extra_first_line_indent():
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     questions = [{
         "question": {

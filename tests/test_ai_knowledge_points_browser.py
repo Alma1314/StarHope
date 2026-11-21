@@ -7,7 +7,7 @@ import pytest
 from test_preview_browser import browser  # noqa: F401
 
 
-pytestmark = pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1",
+pytestmark = pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1",
                                 reason="opt-in isolated browser regression")
 EVIDENCE = Path(__file__).resolve().parents[1] / ".system_generated" / "ai-knowledge-browser"
 

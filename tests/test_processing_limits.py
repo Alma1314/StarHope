@@ -3,9 +3,9 @@ from dataclasses import FrozenInstanceError, asdict
 
 import pytest
 
-from mathbank.processing_limits import ProcessingLimits, LIMIT_SPECS, resolve_processing_limits
-from mathbank.classification_policy import resolve_classification_policy
-from mathbank.ai_providers import apply_model_thinking_policy, resolve_text_provider
+from starhope.processing_limits import ProcessingLimits, LIMIT_SPECS, resolve_processing_limits
+from starhope.classification_policy import resolve_classification_policy
+from starhope.ai_providers import apply_model_thinking_policy, resolve_text_provider
 
 
 def test_existing_defaults_and_immutable_policy():
@@ -49,12 +49,12 @@ def test_classification_profiles_and_explicit_mode_validation():
     with pytest.raises(ValueError, match='quick'):
         resolve_classification_policy({}, mode='PRIVATE_TOKEN_OR_PATH')
     with pytest.warns(RuntimeWarning) as captured:
-        assert resolve_classification_policy({'MATHBANK_CLASSIFY_MODE':'PRIVATE_TOKEN_OR_PATH'}).mode == 'quick'
+        assert resolve_classification_policy({'STARHOPE_CLASSIFY_MODE':'PRIVATE_TOKEN_OR_PATH'}).mode == 'quick'
     assert 'PRIVATE_TOKEN_OR_PATH' not in str(captured[0].message)
 
 
-@pytest.mark.parametrize('mode,name,default', [('quick','MATHBANK_CLASSIFY_QUICK_MAX_TOKENS',4096),
-                                            ('precise','MATHBANK_CLASSIFY_PRECISE_MAX_TOKENS',8192)])
+@pytest.mark.parametrize('mode,name,default', [('quick','STARHOPE_CLASSIFY_QUICK_MAX_TOKENS',4096),
+                                            ('precise','STARHOPE_CLASSIFY_PRECISE_MAX_TOKENS',8192)])
 def test_profile_output_budget_is_bounded(mode, name, default):
     assert resolve_classification_policy({name:'2048'},mode=mode).output_tokens == 2048
     with pytest.warns(RuntimeWarning):

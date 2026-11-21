@@ -19,14 +19,14 @@ def _fixture():
 
 
 SCENARIO=r'''
-from mathbank import pdf_page_vision, pdf_figures, pdf_source_verify
-from mathbank.pdf_page_fragments import SCHEMA as FRAGMENTS_SCHEMA
-from mathbank.pdf_fragment_draft import RULES_VERSION as FRAGMENT_RULES_VERSION
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.pdf_figure_review import CHECKS
+from starhope import pdf_page_vision, pdf_figures, pdf_source_verify
+from starhope.pdf_page_fragments import SCHEMA as FRAGMENTS_SCHEMA
+from starhope.pdf_fragment_draft import RULES_VERSION as FRAGMENT_RULES_VERSION
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.pdf_figure_review import CHECKS
 
 # Use the normal asset namespace inside this disposable source-only root. The
-# canonical PNG verifier intentionally validates mathbank.paths.UPLOADS_DIR;
+# canonical PNG verifier intentionally validates starhope.paths.UPLOADS_DIR;
 # no production directory is used or copied by this fixture.
 main.UPLOAD_DIR=str(ROOT/"static"/"uploads")
 main.UPLOAD_DIR_REL="static/uploads"
@@ -120,7 +120,7 @@ main.ocr_pdf_page_image=forbidden_rewrite
 pdf_figures.post_chat_completion=forbidden_rewrite
 regional_planner_calls=[]
 if CASE=="fresh_regional_candidate":
-    from mathbank import pdf_native_regions, pdf_region_vision
+    from starhope import pdf_native_regions, pdf_region_vision
     def regional_candidate(page,page_info):
         regional_planner_calls.append(page_info["page_index"])
         return {"kind":"mixed","pieces":[{"text":"可靠原生片段"},{"region_id":"r1"}],
@@ -129,7 +129,7 @@ if CASE=="fresh_regional_candidate":
             "native_characters":6,"area_ratio":0.64}
     pdf_native_regions.plan_pdf_regions=regional_candidate
     pdf_region_vision.request_pdf_regions=forbidden_rewrite
-from mathbank import pdf_local_draft
+from starhope import pdf_local_draft
 pdf_local_draft.prepare_pdf_local_draft=forbidden_rewrite
 # Optional textual suspicion checking is outside this structural entry test;
 # this read-only stub certifies nothing and never changes source or cards.
@@ -325,7 +325,7 @@ with TestClient(main.app)as api_client:
             continue
         cached=state["pages"][str(index)]
         assert cached["joint"]["markdown"]==text
-        assert cached["markdown"]==f"<!-- MATHBANK_PDF_PAGE:{index+1} -->\n"+text
+        assert cached["markdown"]==f"<!-- STARHOPE_PDF_PAGE:{index+1} -->\n"+text
         assert "fragments"in cached["joint"]
     if delayed_page7:
         assert main.DOCUMENT_PROJECTS.get_baseline(pid)==early_baseline
@@ -433,7 +433,7 @@ with TestClient(main.app)as api_client:
         # Keep all immutable first-pass packets and the actual teacher draft.
         # Only make the synthetic accepted machine result represent an old
         # assembler version; re-analysis must rebuild from local blocks.
-        from mathbank.document_project_parse import _decode,_encode
+        from starhope.document_project_parse import _decode,_encode
         old_rules="pdf-fragment-draft.rules.v0"
         manifest=json.loads((main.DOCUMENT_PROJECTS.root/pid/"manifest.json").read_text())
         changed=0
@@ -485,7 +485,7 @@ main.DOCUMENT_TASKS._executor.shutdown(wait=True)
 def test_first_pass_fragments_actual_upload_preview_cache_and_legacy_resume(tmp_path,case):
     root=Path(__file__).resolve().parents[1];workspace=tmp_path/"source-only-workspace";workspace.mkdir()
     shutil.copy2(root/"main.py",workspace/"main.py")
-    shutil.copytree(root/"mathbank",workspace/"mathbank",ignore=shutil.ignore_patterns("__pycache__","*.pyc"))
+    shutil.copytree(root/"starhope",workspace/"starhope",ignore=shutil.ignore_patterns("__pycache__","*.pyc"))
     if(root/"templates").is_dir():shutil.copytree(root/"templates",workspace/"templates")
     (workspace/"static").mkdir()
     base=_fixture();script=workspace/"fragment_draft_http.py"

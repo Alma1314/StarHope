@@ -1,26 +1,26 @@
-# MathBank - Localized Math Question Bank & Exam Layout Workbench
+# StarHope - Localized Math Question Bank & Exam Layout Workbench
 
 [中文](README.md) | [English](README_EN.md)
 
-📖 **User Guide**: [MathBank Help Site](https://mathbank.pages.dev/)
+📖 **User Guide**: [StarHope Help Site](https://mathbank.pages.dev/)
 
 > **Project Tags**: Math Question Bank | High School Math | Lesson Prep & Teaching Research | A4 Layout Simulation | Intelligent Exam Generation | Gaokao-Level Export | Formula OCR | DeepSeek AI | EdTech
 
-**MathBank** is a lightweight, semi-automated math question bank and exam paper layout workbench running entirely on your local computer, tailored specifically for secondary school mathematics teachers.
+**StarHope** is a lightweight, semi-automated math question bank and exam paper layout workbench running entirely on your local computer, tailored specifically for secondary school mathematics teachers.
 
 It provides second-level real-time previews of LaTeX formulas and geometric figures, deeply integrated with one-click exam paper creation, A4 simulation canvas layout, Gaokao-level PDF / Word exam export, AI problem solving, and one-click formula OCR recognition. No frontend build step is required: the Windows 10/11 x64 portable package bundles Python and its matching app-local VC++ Runtime so it runs right after extraction; the macOS package automatically detects Python 3.10+ on your Mac and prepares an isolated `venv`.
 
-![MathBank Home Dashboard (Ocean Blue Theme)](docs/images/screenshot1.png)
+![StarHope Home Dashboard (Ocean Blue Theme)](docs/images/screenshot1.png)
 
-![MathBank Question Bank and Solution Preview (Ocean Blue Theme)](docs/images/screenshot2.png)
+![StarHope Question Bank and Solution Preview (Ocean Blue Theme)](docs/images/screenshot2.png)
 
 ---
 
 ## ✨ Key Highlights
 
-With just basic LaTeX math formula syntax, MathBank empowers frontline math teachers to efficiently solve exam generation and lesson preparation challenges:
+With just basic LaTeX math formula syntax, StarHope empowers frontline math teachers to efficiently solve exam generation and lesson preparation challenges:
 
-- 🧑‍🏫 **Connect your bank to AI lesson-preparation workflows**: Read-only Agent endpoints and a structured search CLI let a locally connected AI tool discover curricula, question types, and knowledge points, page through candidates, and retrieve complete questions, solutions, teacher reviews, and image manifests by stable ID. Reading does not modify the bank, generate lesson materials, or invoke a model; check the original questions and images before teaching. See the [integration guide](https://github.com/JudgePeach/math-question-bank/blob/main/docs/AI_DATABASE_GUIDE.md) and CLI examples below.
+- 🧑‍🏫 **Connect your bank to AI lesson-preparation workflows**: Read-only Agent endpoints and a structured search CLI let a locally connected AI tool discover curricula, question types, and knowledge points, page through candidates, and retrieve complete questions, solutions, teacher reviews, and image manifests by stable ID. Reading does not modify the bank, generate lesson materials, or invoke a model; check the original questions and images before teaching. See the [integration guide](https://github.com/Alma1314/StarHope/blob/main/docs/AI_DATABASE_GUIDE.md) and CLI examples below.
 - 🎨 **1:1 A4 Simulation Exam Layout**: Provides an intuitive exam paper canvas just like Word, complete with sealing line, title, and notice box. Supports drag-and-drop sorting, solution blank-space adjustment (0–30 cm), and one-click switching to an A3 answer sheet or the Gaokao 19-question preset.
 - ⚡ **Second-Level Formula Rendering & Exam-Level Export**: Built-in professional math formula typesetting engine with real-time web preview. Choice options adapt to 4, 2, or 1 columns according to their rendered widths; long text wraps naturally while only indivisible wide formulas scroll horizontally. Sub-questions preserve leading punctuation, and web previews natively support `\iu` / `\upi` (upright i) and `\eu` / `\upe` (upright e). Supports one-click export of high-definition PDFs, editable-formula Word documents, and complete LaTeX source packages.
 - 🤖 **AI Exam Selection & Solving Assistance**: Selects existing questions from your bank according to scope, knowledge points, question types, and difficulty progression, with optional style references from complete Gaokao papers in your bank and automatic matching of bundled curriculum-standard excerpts. Single-question AI tools can also generate detailed solutions and teaching reflections.
@@ -36,7 +36,7 @@ With just basic LaTeX math formula syntax, MathBank empowers frontline math teac
 
 ## 🤖 AI Agent / Harness Workflows
 
-MathBank features multiple automated, fault-tolerant, and self-healing AI workflows to ensure high reliability across exam parsing, geometry redrawing, and concurrent solving:
+StarHope features multiple automated, fault-tolerant, and self-healing AI workflows to ensure high reliability across exam parsing, geometry redrawing, and concurrent solving:
 
 ### 1. PDF Parsing Harness
 ```mermaid
@@ -91,7 +91,7 @@ flowchart LR
   * **macOS users**: Recommend installing [**MacTeX Official Website**](https://www.tug.org/mactex/) (~5GB; Tsinghua University mirror recommended in China).
   * **Windows users**: Recommend installing [**TeX Live Official Website**](https://www.tug.org/texlive/) (~5GB ISO; Tsinghua University mirror recommended; MiKTeX is also supported).
 - **📄 Dependency-Free Word (.docx) Import**: No Microsoft Word or MathType installation is needed. The system converts standard OMML formulas and uses `olefile` + MTEF v5 record trees to parse MathType structures (numbers like `32` and Latin letters like `p` are not misidentified by legacy character rules), while recursively preserving hyperlinks, tracked revisions, Symbol characters, tables, and original images. The parser report details counts for structural conversion, embedded LaTeX, limited compatibility, and manual review needed.
-- **📝 Editable Word Formula Export (Automatic Pandoc Setup)**: Word export reuses an existing system Pandoc when available. If none is detected on first export, after user confirmation MathBank automatically downloads and installs Pandoc from the official GitHub Release (with a SourceForge fallback) into its local runtime directory, verifies the pinned SHA-256 digest, and continues the export without requiring administrator privileges or manual `PATH` changes.
+- **📝 Editable Word Formula Export (Automatic Pandoc Setup)**: Word export reuses an existing system Pandoc when available. If none is detected on first export, after user confirmation StarHope automatically downloads and installs Pandoc from the official GitHub Release (with a SourceForge fallback) into its local runtime directory, verifies the pinned SHA-256 digest, and continues the export without requiring administrator privileges or manual `PATH` changes.
 
 ---
 
@@ -121,24 +121,24 @@ flowchart LR
 <details>
 <summary>⚙️ <strong>Advanced Settings: Processing Timeouts & Common Capacities (Click to expand)</strong></summary>
 
-- **Longer Processing Waits**: General AI requests default to 15 minutes; document OCR, splitting, and source review default to 30 minutes; local PDF compilation per pass, Word conversion, and native Word rendering allow 5 minutes each. You can set `MATHBANK_AI_REQUEST_TIMEOUT_SECONDS` and `MATHBANK_DOCUMENT_AI_TIMEOUT_SECONDS` in `.env` (`60`–`7200` seconds) and restart. Timed-out requests with unknown remote state are not automatically resent.
-- **Configurable Capacities**: File sizes (default PDF 30 MiB / 80 pages), image pixels, document queue, and classification image limits are configured via the bounded `MATHBANK_*` settings in `.env.example` (restart required). `PDF_OCR_CONCURRENCY` (`1`–`12`) controls the ordinary PDF concurrency gate shared with auxiliary review, while independent archive, rendering, and evidence safeguards remain in place.
+- **Longer Processing Waits**: General AI requests default to 15 minutes; document OCR, splitting, and source review default to 30 minutes; local PDF compilation per pass, Word conversion, and native Word rendering allow 5 minutes each. You can set `STARHOPE_AI_REQUEST_TIMEOUT_SECONDS` and `STARHOPE_DOCUMENT_AI_TIMEOUT_SECONDS` in `.env` (`60`–`7200` seconds) and restart. Timed-out requests with unknown remote state are not automatically resent.
+- **Configurable Capacities**: File sizes (default PDF 30 MiB / 80 pages), image pixels, document queue, and classification image limits are configured via the bounded `STARHOPE_*` settings in `.env.example` (restart required). `PDF_OCR_CONCURRENCY` (`1`–`12`) controls the ordinary PDF concurrency gate shared with auxiliary review, while independent archive, rendering, and evidence safeguards remain in place.
 </details>
 
 ---
 
 ## 🚀 Quick Start
 
-**Version and downloads (verified 2026-11-17)**: Source version **3.1.0** adds PDF import recovery and optional MinerU figure localization, TikZ geometry checks, include/exclude keyword filters, and confirmation for repeated ZIP imports. It also improves Word equations and lists. The latest official GitHub portable download is [**V3.1.0**](https://github.com/JudgePeach/math-question-bank/releases/tag/V3.1.0), published on **November 17, 2026** (China Standard Time).
+**Version and downloads (verified 2026-11-17)**: Source version **3.1.0** adds PDF import recovery and optional MinerU figure localization, TikZ geometry checks, include/exclude keyword filters, and confirmation for repeated ZIP imports. It also improves Word equations and lists. The latest official GitHub portable download is [**V3.1.0**](https://github.com/Alma1314/StarHope/releases/tag/V3.1.0), published on **November 17, 2026** (China Standard Time).
 
 ### 📦 Option 1: Download Portable Package (Recommended for Teachers)
 
-If you are unfamiliar with command line or Python environments, open the [**V3.1.0 release page**](https://github.com/JudgePeach/math-question-bank/releases/tag/V3.1.0), choose the ZIP asset for your platform under Assets, and **extract the complete archive**:
+If you are unfamiliar with command line or Python environments, open the [**V3.1.0 release page**](https://github.com/Alma1314/StarHope/releases/tag/V3.1.0), choose the ZIP asset for your platform under Assets, and **extract the complete archive**:
 
-* **Windows Users**: Use Windows 10/11 x64 and download [`MathBank-Windows-x64.zip`](https://github.com/JudgePeach/math-question-bank/releases/download/V3.1.0/MathBank-Windows-x64.zip) (includes complete Python 3.10 and app-local VC++ runtimes; no separate installation required), extract it, and double-click **`启动题库系统.bat`**.
-* **macOS Users**: Download [`MathBank-macOS.zip`](https://github.com/JudgePeach/math-question-bank/releases/download/V3.1.0/MathBank-macOS.zip). **The macOS package does not include Python, so confirm that Python 3.10 or newer is installed on your Mac before launching MathBank.** Keep network access enabled when the launcher first creates or repairs the isolated `venv`, then double-click **`启动题库系统.command`**.
+* **Windows Users**: Use Windows 10/11 x64 and download [`StarHope-Windows-x64.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-Windows-x64.zip) (includes complete Python 3.10 and app-local VC++ runtimes; no separate installation required), extract it, and double-click **`启动题库系统.bat`**.
+* **macOS Users**: Download [`StarHope-macOS.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-macOS.zip). **The macOS package does not include Python, so confirm that Python 3.10 or newer is installed on your Mac before launching StarHope.** Keep network access enabled when the launcher first creates or repairs the isolated `venv`, then double-click **`启动题库系统.command`**.
 
-Both launchers check Python and required packages, and open an already-running MathBank service directly without restarting it. Port conflicts and startup failures display the specific error and service log.
+Both launchers check Python and required packages, and open an already-running StarHope service directly without restarting it. Port conflicts and startup failures display the specific error and service log.
 
 ---
 
@@ -146,7 +146,7 @@ Both launchers check Python and required packages, and open an already-running M
 
 1. **Clone Repository**:
    ```bash
-   git clone https://github.com/JudgePeach/math-question-bank.git
+   git clone https://github.com/Alma1314/StarHope.git
    cd math-question-bank
    ```
 
@@ -161,7 +161,7 @@ Both launchers check Python and required packages, and open an already-running M
    * **Windows Users**: Double-click **`启动题库系统.bat`**
    * **CLI Start**: Run `python -m uvicorn main:app --reload`, open browser at `http://127.0.0.1:8000`
 
-   **V3.0.3 launchers**: The launchers default to port 8000 and reuse a running service from this project directory. If an older service remains after an update, they open it or ask you to close it normally from its original page before restarting. If another application occupies the port, the launcher suggests an available port and switches and remembers it only after an explicit `y`; later launches prefer that address. `MATHBANK_PORT` can select a fixed port; direct Uvicorn commands still require `--port`. Browser drafts, the question basket, and unsaved paper information are stored separately for each address. Changing ports does not migrate them; the originals remain in the original browser and address. Save your work before switching.
+   **V3.0.3 launchers**: The launchers default to port 8000 and reuse a running service from this project directory. If an older service remains after an update, they open it or ask you to close it normally from its original page before restarting. If another application occupies the port, the launcher suggests an available port and switches and remembers it only after an explicit `y`; later launches prefer that address. `STARHOPE_PORT` can select a fixed port; direct Uvicorn commands still require `--port`. Browser drafts, the question basket, and unsaved paper information are stored separately for each address. Changing ports does not migrate them; the originals remain in the original browser and address. Save your work before switching.
 
 > [!TIP]
 > **PDF & Word Smart Parsing Recommendations**:
@@ -177,7 +177,7 @@ The source build can use a MinerU precision API token from **System Settings →
 Whether running from source or portable packages, AI tasks rely on external APIs. After launching, click the **Settings (Gear Icon)** button in the top right corner of the web interface to save API keys and configure the provider and model separately for solving, paper parsing, classification, OCR, and drawing:
 
 ### 1. 🤖 Text Task Models (Solving / Parsing / Classification)
-MathBank integrates with [DeepSeek Official Open Platform](https://platform.deepseek.com/), [SiliconFlow](https://cloud.siliconflow.cn/i/hkgjSWrg), [Aliyun Bailian](https://bailian.console.aliyun.com/), and custom relays. DeepSeek official presets include `deepseek-flash` and `deepseek-v4-pro` (use V4 Pro for text tasks, and choose a vision-capable model below for image OCR).
+StarHope integrates with [DeepSeek Official Open Platform](https://platform.deepseek.com/), [SiliconFlow](https://cloud.siliconflow.cn/i/hkgjSWrg), [Aliyun Bailian](https://bailian.console.aliyun.com/), and custom relays. DeepSeek official presets include `deepseek-flash` and `deepseek-v4-pro` (use V4 Pro for text tasks, and choose a vision-capable model below for image OCR).
 
 ### 2. 📷 Default Formula OCR Model (Must Support Image Input)
 * **Use an image-capable model**: OCR reads screenshots and page images; text-only models cannot perform image recognition.
@@ -212,7 +212,7 @@ MathBank integrates with [DeepSeek Official Open Platform](https://platform.deep
 
 - **✨ In-App One-Click Update Check & Portable Direct Link**: Go to top-right 【Settings】$\rightarrow$【Version Updates】to compare against GitHub Releases, view release notes, and download portable packages directly, or ignore updates.
 - **Method A: Git Upgrade (Recommended for Source Users)**
-  Save your edits, create a verified full backup, and shut MathBank down safely before pulling:
+  Save your edits, create a verified full backup, and shut StarHope down safely before pulling:
   ```bash
   git pull
   ```
@@ -226,9 +226,9 @@ MathBank integrates with [DeepSeek Official Open Platform](https://platform.deep
   3. **Extract to a temporary folder**: Extract the new ZIP into a **separate temporary directory**, not directly into the existing installation.
   4. **Windows**: Rename the existing installation's `python` folder to an unused backup name such as `python-before-upgrade`. Copy the entire contents of the extracted folder into the existing installation and replace matching files. Keep the old runtime until the new launcher works.
   5. **macOS: copy in two passes using Finder**. Press `Command + Shift + .` to show hidden files in the newly extracted folder, then follow these steps.
-     - **First pass**: Copy everything except `static` from the extracted folder into the existing MathBank folder. Replace matching application files.
+     - **First pass**: Copy everything except `static` from the extracted folder into the existing StarHope folder. Replace matching application files.
      - **Second pass**: Open both `static` folders. Copy everything except `uploads` from the new `static` into the existing `static` and replace matching application files. **Leave the existing `static/uploads` untouched.** Keep the existing `static` folder in place.
-     - **Terminal fallback**: Run `/usr/bin/ditto "newly extracted folder" "existing MathBank folder"` with the actual paths. You can drag the folders into Terminal to insert the paths. Put the newly extracted folder first.
+     - **Terminal fallback**: Run `/usr/bin/ditto "newly extracted folder" "existing StarHope folder"` with the actual paths. You can drag the folders into Terminal to insert the paths. Put the newly extracted folder first.
   6. **Relaunch**: Double-click the new launcher, open the same address in the same browser, and check the version and a few saved questions. If the old version is still running, stop it via the webpage power button and launch again.
 
   Overlay upgrades preserve root databases and their WAL/SHM files, `.env`, `data_backup/`, `static/uploads/`, `.system_generated/`, and `venv/`. Never delete the existing installation directory.
@@ -237,13 +237,13 @@ MathBank integrates with [DeepSeek Official Open Platform](https://platform.deep
 
 **3.1.0 retains the V3.0.3 Python compatibility policy.** The Windows portable environment keeps Python 3.10. Source installations and macOS project environments on Python 3.11 or newer use Pillow 13.0.0, and Python 3.10 keeps 12.3.0. **The known image decoder security issues in 12.3.0 remain.** Source/macOS launchers update dependencies when the list changes. Install the updated requirements yourself before starting directly from the command line.
 
-The macOS launcher reuses an existing working `venv`; installing a newer Python does not replace it. Without a `venv`, the launcher may still find a `python3` command pointing to the older interpreter first. Python 3.10 users can continue running MathBank. To use Pillow 13, you may **optionally** migrate after checking that the new Python supports your macOS version; this is not required for this update:
+The macOS launcher reuses an existing working `venv`; installing a newer Python does not replace it. Without a `venv`, the launcher may still find a `python3` command pointing to the older interpreter first. Python 3.10 users can continue running StarHope. To use Pillow 13, you may **optionally** migrate after checking that the new Python supports your macOS version; this is not required for this update:
 
 1. Save your edits, create a full backup, and stop the service with the webpage power button. Keep the original project directory, `.env`, `data_backup/`, `static/uploads/`, and `.system_generated/`, and continue using the same browser and URL, including its port. Full backups exclude `.env` and browser drafts.
 2. Rename the project's existing `venv` to an unused backup name, such as `venv-before-python-upgrade`. Keep that backup.
 3. In Terminal, enter the original project directory and create its replacement `venv` using the **explicit path to the new interpreter**. Both paths below are examples; replace them with your actual project and installed Python paths rather than using an ambiguous `python3` command:
    ```bash
-   cd "/path/to/MathBank"
+   cd "/path/to/StarHope"
    "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13" -m venv venv
    ```
 4. With network access available, double-click `启动题库系统.command` in the original directory. Wait for dependency installation and service readiness, then check the actual versions from that directory:
@@ -291,12 +291,12 @@ After confirming the knowledge-point code and choosing questions, use their actu
 python3 -m scripts.search_questions --ids 123,456 --profile teaching --format json
 python3 -m scripts.search_questions --ids 123,456 --assets --format json
 ```
-Queries use read-only snapshots and do not modify the bank. JSON search defaults to 20 candidate summaries; `--profile teaching/evidence` returns complete questions, teacher reviews, and optional evidence, while `--assets` returns image roles, availability, and readable paths. See the [Agent read-only guide](https://github.com/JudgePeach/math-question-bank/blob/main/docs/AI_DATABASE_GUIDE.md) and the read-only `/api/agent/` HTTP endpoints.
+Queries use read-only snapshots and do not modify the bank. JSON search defaults to 20 candidate summaries; `--profile teaching/evidence` returns complete questions, teacher reviews, and optional evidence, while `--assets` returns image roles, availability, and readable paths. See the [Agent read-only guide](https://github.com/Alma1314/StarHope/blob/main/docs/AI_DATABASE_GUIDE.md) and the read-only `/api/agent/` HTTP endpoints.
 
 ### 2. Data Cleaning & Release Scripts
 - **Fill-in-the-blank Underline Upgrade**: `python3 -m scripts.migrate_fillin` (Standardizes old underlines to `\fillin` macro)
 - **Multiple-Choice Empty Parentheses Cleanup**: `python3 -m scripts.migrate_choice_parentheses` (Cleans trailing empty parentheses in stems to avoid overlap with `\paren`)
-- **Build Cross-Platform Release (Source Repository Only)**: Confirm the version in `mathbank/__init__.py`, then run `python3 -m scripts.build_release` (excluded from portable packages). The builder verifies pinned SHA-256 values for official Python/NuGet runtimes, the Release allowlist, runtime layout, and a source smoke check, emitting an in-archive `RELEASE-MANIFEST.json` and an external `.zip.sha256` file.
+- **Build Cross-Platform Release (Source Repository Only)**: Confirm the version in `starhope/__init__.py`, then run `python3 -m scripts.build_release` (excluded from portable packages). The builder verifies pinned SHA-256 values for official Python/NuGet runtimes, the Release allowlist, runtime layout, and a source smoke check, emitting an in-archive `RELEASE-MANIFEST.json` and an external `.zip.sha256` file.
 
 ### 3. Full Backup and Restore
 
@@ -308,10 +308,10 @@ python3 -m scripts.backup
 python3 -m scripts.backup --allow-missing-images
 
 # Verify only; this does not modify current data
-python3 -m scripts.restore data_backup/snapshots/mathbank-backup-TIMESTAMP.zip
+python3 -m scripts.restore data_backup/snapshots/starhope-backup-TIMESTAMP.zip
 
-# Restore for real (replaces current data): completely stop MathBank first
-python3 -m scripts.restore data_backup/snapshots/mathbank-backup-TIMESTAMP.zip --apply --yes
+# Restore for real (replaces current data): completely stop StarHope first
+python3 -m scripts.restore data_backup/snapshots/starhope-backup-TIMESTAMP.zip --apply --yes
 ```
 
 Full backups include a per-file SHA-256 manifest and exclude `.env`, local tokens, and API secrets. The server and restore tool share a cross-platform runtime lock, so restore refuses to run while the service is active. `questions_backup.json` is a compatibility JSON export for search/sync, not a disaster-recovery backup.
@@ -321,9 +321,9 @@ Full backups include a per-file SHA-256 manifest and exclude `.env`, local token
 In **Settings → Question Bank Sharing (题库分享)**, you can package selected questions into a ZIP archive for colleagues or batch-import a shared ZIP without re-running OCR or configuring SQLite:
 
 - **Filter & Export**: Filter by source, keyword, textbook volume/chapter/section, and confirmed primary knowledge points (match any or match all). Selections persist across pages and filter changes. Background packaging bundles the selected stems, solutions, teacher reviews, classifications, knowledge points, TikZ code, and required original images into a ZIP.
-- **Additive Import & Automatic Backup**: Switch to **Import Sharing Package (导入分享包)** to import a MathBank sharing ZIP. **Imports are strictly additive: every question receives a new ID, images are safely renamed, and in-package question associations are preserved. Existing questions are preserved, and the importer skips per-question duplicate checks.**
-- **Repeat ZIP Warning (current working copy)**: MathBank checks the uploaded ZIP's exact bytes against successful import records, including renamed copies. Tick the confirmation checkbox to import the ZIP you just uploaded and append every question. The temporary upload expires after 10 minutes, and you can cancel before confirming. Full backups preserve the import records committed with the database.
-- **Background Progress & Reconnection**: After validation, MathBank automatically creates a full backup before writing in bounded batches within a single commit. Closing Settings or refreshing reconnects to the same task without re-uploading.
+- **Additive Import & Automatic Backup**: Switch to **Import Sharing Package (导入分享包)** to import a StarHope sharing ZIP. **Imports are strictly additive: every question receives a new ID, images are safely renamed, and in-package question associations are preserved. Existing questions are preserved, and the importer skips per-question duplicate checks.**
+- **Repeat ZIP Warning (current working copy)**: StarHope checks the uploaded ZIP's exact bytes against successful import records, including renamed copies. Tick the confirmation checkbox to import the ZIP you just uploaded and append every question. The temporary upload expires after 10 minutes, and you can cancel before confirming. Full backups preserve the import records committed with the database.
+- **Background Progress & Reconnection**: After validation, StarHope automatically creates a full backup before writing in bounded batches within a single commit. Closing Settings or refreshing reconnects to the same task without re-uploading.
 - **Missing-Image Backup Tolerance**: If existing questions in your bank reference missing image files, the pre-import automatic backup preserves the database text and image references, records the missing files in a v3 manifest with a warning, and continues importing (permission, disk-space, or database integrity failures still block import).
 - **Limits**: Sharing ZIPs and question payloads are capped at 512 MiB each (1 GiB uncompressed total); split larger banks by source. Sharing packages exclude API keys, system settings, and saved papers, and do not replace a full backup.
 
@@ -336,7 +336,7 @@ Storage remains local by default. The opt-in tier identifies an external volume 
 Stop the service normally, then run from the project directory:
 
 ```bash
-python3 -m scripts.tiered_storage enable --volume-uuid "YOUR-VOLUME-UUID" --directory "BusinessData/MathBank"
+python3 -m scripts.tiered_storage enable --volume-uuid "YOUR-VOLUME-UUID" --directory "BusinessData/StarHope"
 python3 -m scripts.tiered_storage status
 ```
 
@@ -361,7 +361,7 @@ The tree below describes the **source repository** and its runtime data location
 ├── docs/                       # Project documentation & README preview images
 │   ├── AI_DATABASE_GUIDE.md    # AI question bank search guide
 │   └── images/                 # Product interface preview screenshots
-├── mathbank/                   # Backend domain package
+├── starhope/                   # Backend domain package
 │   ├── database.py             # SQLite data models & Session
 │   ├── db_migrations.py        # Versioned, backup-first SQLite migrations
 │   ├── backup.py               # Full backup, verification, restore & rollback
@@ -407,7 +407,7 @@ The tree below describes the **source repository** and its runtime data location
 ├── templates/                  # LaTeX templates & exam-zh macro package library
 ├── tests/                      # Pytest automated testing & artifacts
 ├── main.py                     # FastAPI service entry point & routing
-├── math_question_bank.db       # Local SQLite database (retained for backward compatibility)
+├── starhope.db       # Local SQLite database (retained for backward compatibility)
 ├── 启动题库系统.bat            # Windows one-click start script
 ├── 启动题库系统.command        # macOS one-click start script
 ├── README.md                   # Chinese documentation
@@ -427,8 +427,8 @@ This project is open-source under the [GNU AGPLv3](LICENSE) license.
 
 ## 💬 QQ User Group
 
-Welcome to join the MathBank QQ user group: `1107557945`.
+Welcome to join the StarHope QQ user group: `1107557945`.
 
 <p align="center">
-  <img src="docs/images/qq-user-group.jpg" alt="MathBank QQ User Group QR Code" width="420">
+  <img src="docs/images/qq-user-group.jpg" alt="StarHope QQ User Group QR Code" width="420">
 </p>

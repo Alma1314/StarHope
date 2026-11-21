@@ -1,6 +1,6 @@
 """Frozen upstream PDF processing contracts; no Git refs or live API required.
 
-The historical cloud baseline is JudgePeach/math-question-bank 1a6e50a4.
+The historical cloud baseline is Alma1314/StarHope 1a6e50a4.
 The upstream routing is frozen.  Explicit additions for knowledge labels,
 teacher-entered titles and cooperative cancellation are removed from a copy
 before comparing its AST with that baseline.  Every other statement remains
@@ -221,7 +221,7 @@ PDF_FIDELITY_MODULE_SHA256 = {'pdf_figures.py': '0040446c7e9e3f0d3c2a52090041e7b
 
 @pytest.mark.parametrize("filename", MODULE_HASHES)
 def test_cloud_pdf_modules_match_original_bytes(filename):
-    content = (ROOT / "mathbank" / filename).read_bytes()
+    content = (ROOT / "starhope" / filename).read_bytes()
     if filename in PDF_FIDELITY_MODULE_SHA256:
         assert hashlib.sha256(content).hexdigest() == PDF_FIDELITY_MODULE_SHA256[filename]
         return
@@ -284,7 +284,7 @@ def test_cloud_pdf_paid_prompt_outputs_match_original_golden(name):
     frozen upstream revision. Runtime tests neither fetch Git nor execute a
     historical fixture which could accidentally change with current code.
     """
-    from mathbank import prompts
+    from starhope import prompts
 
     regions = [{"id": "r1", "page_info": PROMPT_PAGE_INFO},
                {"id": "r2", "page_info": {"candidates": []}}]
@@ -301,7 +301,7 @@ def test_cloud_pdf_paid_prompt_outputs_match_original_golden(name):
     }
     value = values[name]()
     if name in {"parse_extract", "parse_generate"}:
-        from mathbank.ai_knowledge_points import build_ai_knowledge_prompt
+        from starhope.ai_knowledge_points import build_ai_knowledge_prompt
         addition = build_ai_knowledge_prompt()
         field = '      "knowledge_points": [],\n'
         assert value.count(addition) == value.count(field) == 1

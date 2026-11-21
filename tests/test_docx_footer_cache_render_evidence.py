@@ -12,8 +12,8 @@ from PIL import Image
 import pymupdf as fitz
 import pytest
 
-from mathbank import docx_source_evidence as evidence
-from mathbank.task_manager import TaskCancelled
+from starhope import docx_source_evidence as evidence
+from starhope.task_manager import TaskCancelled
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"

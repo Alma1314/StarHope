@@ -1,12 +1,12 @@
 # Agent 只读取题指南
 
-本指南面向通过终端或本地 HTTP 接口读取 MathBank 的 Agent。推荐流程是：**发现可用条件 → 检索知识点 → 小页搜索候选 → 按 ID 读取完整题目 → 查看必要图片及证据**。
+本指南面向通过终端或本地 HTTP 接口读取 StarHope 的 Agent。推荐流程是：**发现可用条件 → 检索知识点 → 小页搜索候选 → 按 ID 读取完整题目 → 查看必要图片及证据**。
 
 命令行入口为 `scripts.search_questions`；查询使用只读 SQLite 连接和同一读取快照，不初始化、迁移或修改题库。CLI 与 Agent HTTP 接口共用读取模块。题目内容、解析和来源仍需按任务核对，检索结果不保证数学正确性或完整召回。
 
 ## 1. 先发现当前题库的能力与取值
 
-从包含 `mathbank/` 和 `scripts/` 的项目根目录运行，使用项目可用的 Python 解释器：
+从包含 `starhope/` 和 `scripts/` 的项目根目录运行，使用项目可用的 Python 解释器：
 
 ```sh
 python3 -m scripts.search_questions --capabilities --format json
@@ -14,7 +14,7 @@ python3 -m scripts.search_questions --capabilities --format json
 
 先查看当前题库实际支持的题型、难度和教材版本，再构造筛选。不要把旧文档中的 `easy/medium/hard` 当作所有题库的固定枚举，也不要自行猜测自定义取值的含义。
 
-在其他工作目录调用时，应先进入项目目录，或将项目根目录加入 Python 模块搜索路径；数据库和资源位置始终由 `mathbank.paths` 锚定，不随终端当前目录改变。CLI 不需要启动网页服务。
+在其他工作目录调用时，应先进入项目目录，或将项目根目录加入 Python 模块搜索路径；数据库和资源位置始终由 `starhope.paths` 锚定，不随终端当前目录改变。CLI 不需要启动网页服务。
 
 ## 2. 知识点先定位到编码，再用编码找题
 
@@ -81,7 +81,7 @@ python3 -m scripts.search_questions --ids 123 --assets --format json
 
 资产项的 `roles` 区分 `content`（题干）、`answer`（解析）、`review`（评析）及 `reference`（绘图参考）。检查 `exists`、`status`、`width`、`height`、`media_type` 和 `size_bytes`，再通过视觉读取工具打开实际图片；仅收到图片路径不等于已经读过图片。参考图不能直接当作题目展示图，评析专用图也不应遗漏。
 
-本地 CLI 可以提供经过校验的绝对文件路径 `local_path`；HTTP 提供安全同源路径 `url`，不返回本机绝对路径。`/static/uploads/...` 需要与实际 MathBank 服务地址组合，不能直接作为其他目录下 Markdown 的本地文件路径；远端 Agent 也不能假定能访问用户电脑的 `127.0.0.1`。
+本地 CLI 可以提供经过校验的绝对文件路径 `local_path`；HTTP 提供安全同源路径 `url`，不返回本机绝对路径。`/static/uploads/...` 需要与实际 StarHope 服务地址组合，不能直接作为其他目录下 Markdown 的本地文件路径；远端 Agent 也不能假定能访问用户电脑的 `127.0.0.1`。
 
 生成教案或课件时，应将采用且有权使用的图片复制到产物自己的资源目录，验证文件存在、图文对应和链接可用。图片缺失时保留缺失事实，回查原资料或选择其他题目，不补造原图。接口默认返回资产信息，避免无条件将全部图片以 Base64 塞入上下文。
 

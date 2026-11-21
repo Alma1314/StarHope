@@ -6,7 +6,7 @@ import pytest
 from test_preview_browser import browser
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1",
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1",
     reason="opt-in actual browser regression",
 )
 

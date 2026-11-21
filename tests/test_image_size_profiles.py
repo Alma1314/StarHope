@@ -6,7 +6,7 @@ import subprocess
 
 import pytest
 
-from mathbank.image_layout import (
+from starhope.image_layout import (
     BODY_IMAGE_SIZE_CM,
     COMPACT_CHOICE_IMAGE_SIZE_CM,
     CSS_PX_PER_CM,

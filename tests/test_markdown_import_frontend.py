@@ -217,10 +217,10 @@ def test_markdown_import_runtime(markdown_import_script, scenario):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in isolated browser validation")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in isolated browser validation")
 def test_markdown_upload_and_pasted_format_in_browser(browser, tmp_path):
     from PIL import Image
-    from mathbank.markdown_helper import prepare_markdown_question_for_storage
+    from starhope.markdown_helper import prepare_markdown_question_for_storage
 
     literal_path = "/static/uploads/tmp/literal-fence.png"
     examples = [

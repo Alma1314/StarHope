@@ -20,9 +20,9 @@ def _fixture():
 
 
 SCENARIO = r'''
-from mathbank.pdf_navigation_cache import bind_pdf_navigation
-from mathbank.pdf_ocr_archive import retain_pdf_ocr_response
-from mathbank import pdf_ocr_protocol_recovery, pdf_page_vision, pdf_region_vision
+from starhope.pdf_navigation_cache import bind_pdf_navigation
+from starhope.pdf_ocr_archive import retain_pdf_ocr_response
+from starhope import pdf_ocr_protocol_recovery, pdf_page_vision, pdf_region_vision
 
 # A real, tiny two-page PDF and server-rendered navigation PNGs; no personal
 # exam, credentials, production assets or database are copied into this test.
@@ -219,7 +219,7 @@ def test_public_resume_recovers_archived_diagnostics_before_any_new_ocr(tmp_path
     root=Path(__file__).resolve().parents[1]
     workspace=tmp_path/"source-only-workspace";workspace.mkdir()
     shutil.copy2(root/"main.py",workspace/"main.py")
-    shutil.copytree(root/"mathbank",workspace/"mathbank",ignore=shutil.ignore_patterns("__pycache__","*.pyc"))
+    shutil.copytree(root/"starhope",workspace/"starhope",ignore=shutil.ignore_patterns("__pycache__","*.pyc"))
     if(root/"templates").is_dir():shutil.copytree(root/"templates",workspace/"templates")
     (workspace/"static").mkdir()
     base=_fixture();script=workspace/"protocol_recovery_http.py"

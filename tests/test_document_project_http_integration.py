@@ -28,16 +28,16 @@ import requests
 requests.sessions.Session.request = lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("No live HTTP/model calls allowed"))
 import pymupdf as fitz
 from fastapi.testclient import TestClient
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.asset_lifecycle import quarantine_asset
-from mathbank.pdf_task_resume import seal_pdf_checkpoint
-from mathbank.ai_providers import resolve_text_provider
+from starhope.document_projects import DocumentProjectStore
+from starhope.asset_lifecycle import quarantine_asset
+from starhope.pdf_task_resume import seal_pdf_checkpoint
+from starhope.ai_providers import resolve_text_provider
 import main
-from mathbank.database import SessionLocal, Question, DocumentImportReceipt, engine
+from starhope.database import SessionLocal, Question, DocumentImportReceipt, engine
 
 ROOT = Path.cwd().resolve()
 assert Path(main.__file__).resolve().parent == ROOT
-assert Path(engine.url.database).resolve() == ROOT / "math_question_bank.db"
+assert Path(engine.url.database).resolve() == ROOT / "starhope.db"
 assert not (ROOT / ".env").exists()
 now = [time.time()]
 main.DOCUMENT_PROJECTS = DocumentProjectStore(ROOT / ".system_generated" / "document_projects", clock=lambda: now[0])
@@ -314,7 +314,7 @@ def test_project_routes_preserve_first_ocr_working_draft_receipts_and_assets(tmp
     workspace = tmp_path / "source-only-workspace"
     workspace.mkdir()
     shutil.copy2(root / "main.py", workspace / "main.py")
-    shutil.copytree(root / "mathbank", workspace / "mathbank",
+    shutil.copytree(root / "starhope", workspace / "starhope",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if (root / "templates").is_dir():
         shutil.copytree(root / "templates", workspace / "templates")
@@ -336,9 +336,9 @@ def test_slow_progress_callback_cannot_overwrite_completed_project_snapshot(tmp_
     from concurrent.futures import ThreadPoolExecutor
     import threading
     import uuid
-    from mathbank.document_project_service import DocumentProjectService
-    from mathbank.document_projects import DocumentProjectStore
-    from mathbank.document_task_store import DurableDocumentTasks
+    from starhope.document_project_service import DocumentProjectService
+    from starhope.document_projects import DocumentProjectStore
+    from starhope.document_task_store import DurableDocumentTasks
 
     store = DocumentProjectStore(tmp_path / "projects")
     project_id = store.create(b"%PDF-local-only", "fixture.pdf", {}, {})["project_id"]

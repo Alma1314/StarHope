@@ -1,1 +1,1 @@
-"""Maintenance, migration, search, and release tools for MathBank."""
+"""Maintenance, migration, search, and release tools for StarHope."""

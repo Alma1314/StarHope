@@ -10,7 +10,7 @@ from test_document_projects_browser import MOCK, _click
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / '.system_generated/pdf-local-draft-20261019/browser'
-pytestmark = pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1', reason='opt-in isolated browser')
+pytestmark = pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1', reason='opt-in isolated browser')
 
 
 @pytest.mark.parametrize('width,height', [(1600, 1100), (375, 812)])
@@ -20,13 +20,13 @@ def test_first_ocr_local_cards_edit_metadata_failure_and_safe_metadata_adoption(
     browser.command('network', 'route', '**/api/ai/**', '--abort')
     browser.evaluate('window.__localDraftWidth=' + str(width))
     browser.evaluate(r"""(()=>{
-      window.MathBankDocumentImportSession.clear();selectWorkspace('import','导入中心');
+      window.StarHopeDocumentImportSession.clear();selectWorkspace('import','导入中心');
       const id='local-draft-browser-'+window.__localDraftWidth,now=Date.now()/1000;
       const project={project_id:id,revision:1,status:'completed',question_count:0,can_resume:false,task_id:null,
        title:'首次识图本地题稿',last_used_at:now,expires_at:now+7*86400,total_bytes:2048,
        draft:{questions:[],baselineQuestions:[],paperTitle:'首次识图本地题稿'},
        source_pages:Array.from({length:9},(_,i)=>({page_number:i+1,markdown:'首次识图第'+(i+1)+'页原文 $x+1$。'}))};
-      localStorage.setItem('mathbank_project_browser_server',JSON.stringify({[id]:project}));window.__localDraftId=id;
+      localStorage.setItem('starhope_project_browser_server',JSON.stringify({[id]:project}));window.__localDraftId=id;
       window.__localDraftReport={pdf_local_draft:{status:'ready',source_basis:'first_pass_transcription',source_preserved:true,
        question_count:19,unresolved_ranges:[],page_issues:[]},pdf_draft_metadata:{status:'preparing',calls:0,new_calls:0}};
       window.__localDraftCards=Array.from({length:19},(_,i)=>({project_card_id:'local-card-'+(i+1),source_number:i+1,
@@ -37,10 +37,10 @@ def test_first_ocr_local_cards_edit_metadata_failure_and_safe_metadata_adoption(
         original:{category_compulsory:'',category_chapter:'',category_knowledge:''}}}));return true;
     })()""")
     browser.evaluate(MOCK)
-    assert browser.evaluate('window.MathBankDocumentImportSession.openProject(window.__localDraftId)')
+    assert browser.evaluate('window.StarHopeDocumentImportSession.openProject(window.__localDraftId)')
     browser.evaluate(r"""(()=>{
       window.__projectBrowserActions=[];
-      const session=window.MathBankDocumentImportSession;
+      const session=window.StarHopeDocumentImportSession;
       session.update({phase:'local_draft',taskId:'mock-local-draft',projectId:window.__localDraftId,diagnostics:window.__localDraftReport});
       session.previewLocalDraft({status:'local_draft',task_id:'mock-local-draft',project_id:window.__localDraftId,
        diagnostics:window.__localDraftReport,data:structuredClone(window.__localDraftCards)});
@@ -55,9 +55,9 @@ def test_first_ocr_local_cards_edit_metadata_failure_and_safe_metadata_adoption(
     assert not browser.evaluate("window.__projectBrowserActions.some(row=>row.method==='PUT')")
     browser.command('fill', '#parsed-card-0 .card-content-textarea', '教师微调后的原题 $x^2+1$。')
     browser.command('fill', '#parsed-card-0 .card-answer-textarea', '教师微调后的原版答案 $3$。')
-    browser.command('wait', '--fn', "JSON.parse(localStorage.getItem('mathbank_project_browser_server'))[window.__localDraftId].draft.questions[0].answer_markdown==='教师微调后的原版答案 $3$。'")
+    browser.command('wait', '--fn', "JSON.parse(localStorage.getItem('starhope_project_browser_server'))[window.__localDraftId].draft.questions[0].answer_markdown==='教师微调后的原版答案 $3$。'")
     browser.evaluate(r"""(()=>{
-      const session=window.MathBankDocumentImportSession;
+      const session=window.StarHopeDocumentImportSession;
       const report={...window.__localDraftReport,pdf_draft_metadata:{status:'classification_pending',calls:1,new_calls:1,metadata_failed:true}};
       session.update({phase:'completed',diagnostics:report});
       const kept=session.mergeCompletion(structuredClone(window.__localDraftCards));
@@ -77,7 +77,7 @@ def test_first_ocr_local_cards_edit_metadata_failure_and_safe_metadata_adoption(
     browser.command('fill', '#parsed-card-1 .card-content-textarea', '手选分类的人工正文必须保留。')
     browser.command('fill', '#parsed-card-1 .card-answer-textarea', '手选分类的人工答案必须保留。')
     browser.evaluate(r"""(()=>{
-      const session=window.MathBankDocumentImportSession;
+      const session=window.StarHopeDocumentImportSession;
       const report={...window.__localDraftReport,pdf_draft_metadata:{status:'completed',calls:1,new_calls:1}};
       session.update({phase:'completed',diagnostics:report});
       const incoming=window.__localDraftCards.map(q=>{const row={...q,category_compulsory:'必修二',category_chapter:'10. 概率'};
@@ -103,7 +103,7 @@ def test_first_ocr_local_cards_edit_metadata_failure_and_safe_metadata_adoption(
     (EVIDENCE / f'evidence-{width}.json').write_text(json.dumps({'viewport': [width, height], 'cards': 19,
         'preview_progress_puts': 0, 'metadata_failure_cards_retained': True, 'teacher_body_answer_preserved': True,
         'candidate_adopts_only_metadata': True, 'model_calls': 0}, ensure_ascii=False, indent=2))
-    browser.evaluate('window.MathBankDocumentImportSession.clear();true')
+    browser.evaluate('window.StarHopeDocumentImportSession.clear();true')
 
 
 @pytest.mark.parametrize('width,height', [(1600, 1100), (375, 812)])
@@ -114,7 +114,7 @@ def test_fresh_upload_zero_cards_saved_ocr_reopen_and_page_edit_conflict(browser
     browser.command('network', 'route', '**/api/ai/**', '--abort')
     browser.evaluate('window.__freshZeroWidth=' + str(width))
     browser.evaluate(r"""(()=>{
-      window.MathBankDocumentImportSession.clear();selectWorkspace('import','导入中心');
+      window.StarHopeDocumentImportSession.clear();selectWorkspace('import','导入中心');
       const id='fresh-zero-browser-'+window.__freshZeroWidth,now=Date.now()/1000;
       const diagnostics={pdf_project_legacy_parse:{status:'partial',partial:true,new_calls:0},
        pdf_local_draft:{status:'partial',persisted:true,question_count:0,source_preserved:true,
@@ -125,7 +125,7 @@ def test_fresh_upload_zero_cards_saved_ocr_reopen_and_page_edit_conflict(browser
        has_draft:false,has_baseline:false,stage_count:14,draft:null,can_resume:false,task_id:'fresh-zero-task',
        title:'新上传首次识图稿',last_used_at:now,expires_at:now+7*86400,total_bytes:2048,diagnostics,
        source_pages:Array.from({length:9},(_,i)=>({page_number:i+1,markdown:'新上传第'+(i+1)+'页已保存原文'}))};
-      localStorage.setItem('mathbank_project_browser_server',JSON.stringify({[id]:project}));
+      localStorage.setItem('starhope_project_browser_server',JSON.stringify({[id]:project}));
       window.__freshZeroId=id;window.__freshZeroProject=project;
       window.__freshZeroTask={task_id:'fresh-zero-task',project_id:id,project_revision:0,status:'completed',
        partial:true,document_type:'pdf',source_available:true,can_resume:false,diagnostics,data:[],progress:100};
@@ -165,22 +165,22 @@ def test_fresh_upload_zero_cards_saved_ocr_reopen_and_page_edit_conflict(browser
     assert browser.evaluate("document.querySelector('.document-project-manual-reasons').textContent.includes('第 7 页')")
     assert browser.evaluate("document.querySelector('.document-project-manual-reasons').textContent.includes('原版答案分区不唯一')")
     assert not browser.evaluate("window.__projectBrowserActions.some(row=>row.method==='PUT')")
-    assert browser.evaluate("JSON.parse(localStorage.getItem('mathbank_project_browser_server'))[window.__freshZeroId].revision") == 0
-    assert browser.evaluate("JSON.parse(localStorage.getItem('mathbank_project_browser_server'))[window.__freshZeroId].draft") is None
-    browser.evaluate('window.MathBankDocumentImportSession.refreshProjects()')
+    assert browser.evaluate("JSON.parse(localStorage.getItem('starhope_project_browser_server'))[window.__freshZeroId].revision") == 0
+    assert browser.evaluate("JSON.parse(localStorage.getItem('starhope_project_browser_server'))[window.__freshZeroId].draft") is None
+    browser.evaluate('window.StarHopeDocumentImportSession.refreshProjects()')
     assert browser.evaluate("document.querySelector('#documentProjectsList [data-project-id=\"'+window.__freshZeroId+'\"]').textContent.includes('题卡尚未整理')")
     assert not browser.evaluate("document.querySelector('#documentProjectsList [data-project-id=\"'+window.__freshZeroId+'\"] p:nth-child(2)').textContent.includes('可继续校对')")
     browser.command('scrollintoview', '#documentImportRecoveryPanel');browser.settle()
     browser.command('screenshot', str(EVIDENCE / f'fresh-zero-saved-source-{width}.png'))
 
-    assert browser.evaluate('window.MathBankDocumentImportSession.openProject(window.__freshZeroId)')
+    assert browser.evaluate('window.StarHopeDocumentImportSession.openProject(window.__freshZeroId)')
     assert browser.evaluate("document.getElementById('documentImportRecoveryPanel').textContent.includes('原文件和9页识图稿已保存；题卡尚未整理')")
     assert not browser.evaluate("window.__projectBrowserActions.some(row=>row.method==='PUT')")
     browser.evaluate("document.getElementById('documentProjectPageEditor').open=true;true")
     browser.command('fill', '#documentProjectPageEditor textarea[data-page-number="7"]', '第7页人工修正，原公式 $x+1$ 保留。')
-    browser.command('wait', '--fn', "JSON.parse(localStorage.getItem('mathbank_project_browser_server'))[window.__freshZeroId].draft?.page_edits?.[6]?.markdown==='第7页人工修正，原公式 $x+1$ 保留。'")
-    assert browser.evaluate("JSON.parse(localStorage.getItem('mathbank_project_browser_server'))[window.__freshZeroId].revision") == 1
-    browser.evaluate("(()=>{const store=JSON.parse(localStorage.getItem('mathbank_project_browser_server'));store[window.__freshZeroId].revision++;localStorage.setItem('mathbank_project_browser_server',JSON.stringify(store));return true})()")
+    browser.command('wait', '--fn', "JSON.parse(localStorage.getItem('starhope_project_browser_server'))[window.__freshZeroId].draft?.page_edits?.[6]?.markdown==='第7页人工修正，原公式 $x+1$ 保留。'")
+    assert browser.evaluate("JSON.parse(localStorage.getItem('starhope_project_browser_server'))[window.__freshZeroId].revision") == 1
+    browser.evaluate("(()=>{const store=JSON.parse(localStorage.getItem('starhope_project_browser_server'));store[window.__freshZeroId].revision++;localStorage.setItem('starhope_project_browser_server',JSON.stringify(store));return true})()")
     browser.command('fill', '#documentProjectPageEditor textarea[data-page-number="7"]', '冲突时仍保留的本机第7页人工稿。')
     browser.command('wait', '--fn', "document.querySelector('.document-project-save-status')?.textContent.includes('保存冲突')")
     assert not browser.evaluate("document.querySelector('.document-project-save-status').textContent.includes('已保存到本地服务')")
@@ -193,7 +193,7 @@ def test_fresh_upload_zero_cards_saved_ocr_reopen_and_page_edit_conflict(browser
         'saved_ocr_pages': 9, 'progress_and_reopen_puts': 0, 'manual_page_edit_saved': True,
         'conflicting_edit_preserved': True, 'model_calls': 0, 'actions': actions,
     }, ensure_ascii=False, indent=2))
-    browser.evaluate('window.MathBankDocumentImportSession.clear();true')
+    browser.evaluate('window.StarHopeDocumentImportSession.clear();true')
 
 
 @pytest.mark.parametrize('width,height', [(1600, 1100), (375, 812)])
@@ -203,7 +203,7 @@ def test_rule_rebuilt_machine_source_replaces_swallowed_card_and_preserves_teach
     browser.command('network', 'route', '**/api/ai/**', '--abort')
     browser.evaluate('window.__rebuiltWidth=' + str(width))
     browser.evaluate(r"""(()=>{
-      window.MathBankDocumentImportSession.clear();selectWorkspace('import','导入中心');
+      window.StarHopeDocumentImportSession.clear();selectWorkspace('import','导入中心');
       const id='rule-rebuilt-browser-'+window.__rebuiltWidth,now=Date.now()/1000;
       const row=n=>({project_card_id:'rebuild-card-'+n,source_number:n,source:'原PDF',
         content:'原版第'+n+'题 $x+1=2$。',answer_markdown:'',question_type:'detailed_answer',difficulty:'normal',
@@ -231,11 +231,11 @@ def test_rule_rebuilt_machine_source_replaces_swallowed_card_and_preserves_teach
         diagnostics:report(19),latest_result:rebuilt,latest_result_id:'rebuilt-machine-v3'};
       store[id+'-manual']={...common,project_id:id+'-manual',title:'已有人工修改的机器基线恢复',
         draft:structuredClone(baseline),diagnostics:report(13)};
-      localStorage.setItem('mathbank_project_browser_server',JSON.stringify(store));
+      localStorage.setItem('starhope_project_browser_server',JSON.stringify(store));
       window.__rebuiltId=id;window.__rebuiltCards=rebuilt;window.__rebuiltReport=report(19);return true;
     })()""")
     browser.evaluate(MOCK)
-    assert browser.evaluate('window.MathBankDocumentImportSession.openProject(window.__rebuiltId)')
+    assert browser.evaluate('window.StarHopeDocumentImportSession.openProject(window.__rebuiltId)')
     assert browser.evaluate('parsedQuestionsData.length') == 19
     assert browser.evaluate('parsedQuestionsData[12].content') == '原版第13题 $x+1=2$。'
     assert browser.evaluate('parsedQuestionsData[12].answer_markdown') == '原版第13题答案 $1$。'
@@ -245,13 +245,13 @@ def test_rule_rebuilt_machine_source_replaces_swallowed_card_and_preserves_teach
     assert browser.evaluate("document.querySelector('#parsed-card-12 .card-source-review-reasons').textContent.includes('PDF 第2页：配图位置需要核对')")
     assert browser.evaluate("document.querySelector('#parsed-card-12 .card-source-review-reasons').textContent.includes('PDF 第6页：图片裁剪范围需要核对')")
     assert not browser.evaluate("document.getElementById('documentImportRecoveryPanel').textContent.includes('题卡尚未整理')")
-    browser.command('wait', '--fn', "JSON.parse(localStorage.getItem('mathbank_project_browser_server'))[window.__rebuiltId].draft.questions.length===19")
+    browser.command('wait', '--fn', "JSON.parse(localStorage.getItem('starhope_project_browser_server'))[window.__rebuiltId].draft.questions.length===19")
 
-    assert browser.evaluate("window.MathBankDocumentImportSession.openProject(window.__rebuiltId+'-manual')")
+    assert browser.evaluate("window.StarHopeDocumentImportSession.openProject(window.__rebuiltId+'-manual')")
     assert browser.evaluate('parsedQuestionsData.length') == 13
     browser.command('fill', '#parsed-card-0 .card-content-textarea', '教师手工校对第1题，必须保留。')
     browser.evaluate(r"""(()=>{
-      const session=window.MathBankDocumentImportSession;
+      const session=window.StarHopeDocumentImportSession;
       session.update({phase:'completed',diagnostics:window.__rebuiltReport});
       const kept=session.mergeCompletion(structuredClone(window.__rebuiltCards));
       replaceParsedQuestions(kept,{saveDraft:false});renderParsedQuestionsList(kept,{diagnostics:window.__rebuiltReport});
@@ -277,4 +277,4 @@ def test_rule_rebuilt_machine_source_replaces_swallowed_card_and_preserves_teach
         'original_answers_recovered': True, 'teacher_card_preserved_with_full_candidate': True,
         'explicit_full_candidate_adoption': True, 'model_calls': 0,
     }, ensure_ascii=False, indent=2))
-    browser.evaluate('window.MathBankDocumentImportSession.clear();true')
+    browser.evaluate('window.StarHopeDocumentImportSession.clear();true')

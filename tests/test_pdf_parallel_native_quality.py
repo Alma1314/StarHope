@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
+from starhope import pdf_inspector_helper as helper
 
 
 def _exam_table(*, options=("A． C．", "B． D．"), columns=15,

@@ -1,6 +1,6 @@
 import pytest
 
-from mathbank.question_assets import (
+from starhope.question_assets import (
     embedded_question_assets,
     rewrite_question_asset_paths,
     rewrite_structured_asset_paths,

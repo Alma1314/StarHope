@@ -1,6 +1,6 @@
 """Opt-in fraction row/ruled-table geometry in the real offline KaTeX app.
 
-Run with MATHBANK_TEST_BROWSER=1 python3 -m pytest --noconftest
+Run with STARHOPE_TEST_BROWSER=1 python3 -m pytest --noconftest
 tests/test_fraction_spacing_browser.py. The reused fixture owns an isolated
 temporary application, database, server, and Chromium session.
 """
@@ -277,7 +277,7 @@ def test_distribution_rule_keeps_clearance_above_and_below_fraction_glyphs(brows
 
 def test_fraction_normalization_and_preview_entries_preserve_editor_and_database_state(browser, tmp_path):
     question_id = None
-    original_cart = browser.evaluate("localStorage.getItem('mathbank_paper_cart')")
+    original_cart = browser.evaluate("localStorage.getItem('starhope_paper_cart')")
     try:
         browser.evaluate(INSTALL_MEASUREMENTS)
         question_id = browser.evaluate("""
@@ -357,8 +357,8 @@ def test_fraction_normalization_and_preview_entries_preserve_editor_and_database
         (async () => {
             closeQuestionEditorModal();replaceParsedQuestions([]);PaperStore.cart=[];
             if (%s!==null) await fetch('/api/questions/'+%s,{method:'DELETE'});
-            if (%s===null) localStorage.removeItem('mathbank_paper_cart');
-            else localStorage.setItem('mathbank_paper_cart',%s);
+            if (%s===null) localStorage.removeItem('starhope_paper_cart');
+            else localStorage.setItem('starhope_paper_cart',%s);
             delete window.__fractionSpacingMeasure;return true;
         })()
         """ % (json.dumps(question_id), json.dumps(question_id), json.dumps(original_cart), json.dumps(original_cart)))

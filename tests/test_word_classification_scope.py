@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from mathbank.word_classification_scope import (
+from starhope.word_classification_scope import (
     MAX_CHAPTER_CHARACTERS, build_word_classification_scope, classification_scope_diagnostics,
     classification_scope_instruction, word_category_allowed,
 )

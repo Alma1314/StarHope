@@ -9,7 +9,7 @@ import subprocess
 
 import pytest
 
-from mathbank.paper_helper import build_latex_document, build_restricted_tex_environment
+from starhope.paper_helper import build_latex_document, build_restricted_tex_environment
 
 
 def _item(number, content, *, qtype="fill_in_blank", space=0):
@@ -29,8 +29,8 @@ def _tex(items, paper_type="quiz", **kwargs):
 
 
 def _body(tex, number):
-    start = tex.index(f"% MathBank-Question-ID: {number}\n")
-    end = tex.index("% MathBank-Question-End", start)
+    start = tex.index(f"% StarHope-Question-ID: {number}\n")
+    end = tex.index("% StarHope-Question-End", start)
     return tex[start:end]
 
 
@@ -42,16 +42,16 @@ def test_graphic_body_is_typeset_once_and_answer_space_is_outside_its_box():
     body = _body(tex, 42)
     assert item == original
     assert r"\tracinglostchars=3" in tex
-    assert body.count(r"\mathbankbeginquestionbody") == 1
+    assert body.count(r"\starhopebeginquestionbody") == 1
     assert body.count("SHORTSTEM") == 1
-    assert body.index(r"\end{problem}") < body.index(r"\mathbankendquestionbody")
-    assert body.index(r"\mathbankendquestionbody") < body.index(r"\mathbanksolutionspace")
-    assert r"\mathbanksolutionspace{26.0cm}" in body
-    assert r"\unvbox\mathbankquestionbox" in tex
+    assert body.index(r"\end{problem}") < body.index(r"\starhopeendquestionbody")
+    assert body.index(r"\starhopeendquestionbody") < body.index(r"\starhopesolutionspace")
+    assert r"\starhopesolutionspace{26.0cm}" in body
+    assert r"\unvbox\starhopequestionbox" in tex
     assert r"\ifdim\dimen0>\textheight" in tex
     # Streaming capture retains native source line numbers and verbatim scanning.
-    assert r"\setbox\mathbankquestionbox=\vbox\bgroup" in tex
-    assert r"\newcommand{\mathbankbeginquestionbody}[" not in tex
+    assert r"\setbox\starhopequestionbox=\vbox\bgroup" in tex
+    assert r"\newcommand{\starhopebeginquestionbody}[" not in tex
 
 
 @pytest.mark.parametrize("page_aware", [
@@ -62,16 +62,16 @@ def test_graphic_body_is_typeset_once_and_answer_space_is_outside_its_box():
 ])
 def test_page_aware_content_keeps_its_existing_outer_page_flow(page_aware):
     tex = _tex([_item(2, page_aware + "\n\n![](/static/uploads/figure.png)")])
-    assert r"\mathbankbeginquestionbody" not in _body(tex, 2)
+    assert r"\starhopebeginquestionbody" not in _body(tex, 2)
 
 
 def test_inline_graphics_and_choices_are_part_of_the_measured_body():
     content = ("INLINESTART\n\n![](/static/uploads/figure.png)\n\nINLINEEND\n"
                r"\begin{choices}\item A\item B\item C\item D\end{choices}")
     body = _body(_tex([_item(3, content, qtype="single_choice")]), 3)
-    assert body.index(r"\mathbankbeginquestionbody") < body.index("INLINESTART")
-    assert body.index("INLINEEND") < body.index(r"\mathbankendquestionbody")
-    assert body.index(r"\end{choices}") < body.index(r"\mathbankendquestionbody")
+    assert body.index(r"\starhopebeginquestionbody") < body.index("INLINESTART")
+    assert body.index("INLINEEND") < body.index(r"\starhopeendquestionbody")
+    assert body.index(r"\end{choices}") < body.index(r"\starhopeendquestionbody")
 
 
 def test_question_and_field_markers_follow_actual_template_numbering():
@@ -84,20 +84,20 @@ def test_question_and_field_markers_follow_actual_template_numbering():
     ]
     items[-1]["question"]["answer_markdown"] = "ANSWERFIELD"
     tex = _tex(items, "exam_19", include_answers=True)
-    assert re.findall(r"% MathBank-Question-Number: (\d+)", tex) == ["1", "2", "9", "12", "15"]
-    assert "% MathBank-Field: figure" in _body(tex, 112)
+    assert re.findall(r"% StarHope-Question-Number: (\d+)", tex) == ["1", "2", "9", "12", "15"]
+    assert "% StarHope-Field: figure" in _body(tex, 112)
     answer_body = _body(tex, 115)
-    assert ("% MathBank-Field: answer_markdown\n"
-            r"\typeout{MathBank-Question-Start: 115 15 answer_markdown}" "\n"
+    assert ("% StarHope-Field: answer_markdown\n"
+            r"\typeout{StarHope-Question-Start: 115 15 answer_markdown}" "\n"
             r"\begin{solution}") in answer_body
     assert answer_body.index(r"\end{solution}") < answer_body.index(
-        r"\typeout{MathBank-Question-Finish: 115}")
+        r"\typeout{StarHope-Question-Finish: 115}")
     quiz = _tex(items)
-    assert re.findall(r"% MathBank-Question-Number: (\d+)", quiz) == ["1", "2", "3", "4", "5"]
+    assert re.findall(r"% StarHope-Question-Number: (\d+)", quiz) == ["1", "2", "3", "4", "5"]
 
 
 NATIVE = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_LAYOUT_NATIVE") != "1" or not shutil.which("xelatex"),
+    os.environ.get("STARHOPE_TEST_LAYOUT_NATIVE") != "1" or not shutil.which("xelatex"),
     reason="Opt-in native XeLaTeX graphic-question pagination validation",
 )
 
@@ -138,11 +138,11 @@ def test_native_short_stem_figure_and_options_move_to_the_same_next_page(tmp_pat
     if qtype == "single_choice":
         content += (r"\begin{choices}\item CHOICEONE\item CHOICETWO"
                     r"\item CHOICETHREE\item CHOICEFOUR\end{choices}")
-    content = r"\typeout{MATHBANKLAYOUTONCE}" + content + "\n\n![](/static/uploads/figure.png)"
+    content = r"\typeout{STARHOPELAYOUTONCE}" + content + "\n\n![](/static/uploads/figure.png)"
     items = [_item(1, "PRECEDING", qtype=qtype), _item(2, content, qtype=qtype)]
     tex = _tex(items)
-    tex = tex.replace("% MathBank-Question-ID: 2\n",
-                      "\\par\\vspace*{17cm}\\par\n% MathBank-Question-ID: 2\n", 1)
+    tex = tex.replace("% StarHope-Question-ID: 2\n",
+                      "\\par\\vspace*{17cm}\\par\n% StarHope-Question-ID: 2\n", 1)
     document, log = _native_compile(tex, tmp_path)
     pages = [page.get_text() for page in document]
     assert len(document) == 2
@@ -151,11 +151,11 @@ def test_native_short_stem_figure_and_options_move_to_the_same_next_page(tmp_pat
     assert "PRECEDING" in pages[0]
     if qtype == "single_choice":
         assert "CHOICEONE" in pages[1] and "CHOICEFOUR" in pages[1]
-    assert log.count("MATHBANKLAYOUTONCE") == 1
+    assert log.count("STARHOPELAYOUTONCE") == 1
     if qtype == "fill_in_blank":
         # The identical old flow demonstrates the original stem/figure split.
-        old_flow = tex.replace("\\mathbankbeginquestionbody\n", "").replace(
-            "\\mathbankendquestionbody\n", "")
+        old_flow = tex.replace("\\starhopebeginquestionbody\n", "").replace(
+            "\\starhopeendquestionbody\n", "")
         baseline, _ = _native_compile(old_flow, tmp_path / "baseline-unbound")
         assert "SHORTSTEM" in baseline[0].get_text()
         assert not baseline[0].get_images() and baseline[1].get_images()
@@ -197,8 +197,8 @@ def test_native_long_body_with_multiple_large_figures_keeps_live_page_flow(tmp_p
     target = _item(2, content)
     target["question"]["figure_size"] = figure_size
     tex = _tex([_item(1, "BEFOREMULTI"), target])
-    tex = tex.replace("% MathBank-Question-ID: 2\n",
-                      "\\par\\vspace*{17cm}\\par\n% MathBank-Question-ID: 2\n", 1)
+    tex = tex.replace("% StarHope-Question-ID: 2\n",
+                      "\\par\\vspace*{17cm}\\par\n% StarHope-Question-ID: 2\n", 1)
     document, _ = _native_compile(tex, tmp_path)
     text = "\n".join(page.get_text() for page in document)
     assert "MULTIROW000" in document[0].get_text(), "A long body must use the remaining first page"

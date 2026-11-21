@@ -8,12 +8,12 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
-from mathbank.database import Base, Question, QuestionFingerprint
-from mathbank.question_duplicate_service import (
+from starhope.database import Base, Question, QuestionFingerprint
+from starhope.question_duplicate_service import (
     upsert_question_fingerprint,
     upsert_question_fingerprints,
 )
-from mathbank.question_duplicates import build_question_fingerprint
+from starhope.question_duplicates import build_question_fingerprint
 
 
 @pytest.fixture

@@ -9,8 +9,8 @@
     const STATS_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
 
     function escapeText(value) {
-        if (window.MathBankSafe && typeof window.MathBankSafe.escapeText === 'function') {
-            return window.MathBankSafe.escapeText(value == null ? '' : String(value));
+        if (window.StarHopeSafe && typeof window.StarHopeSafe.escapeText === 'function') {
+            return window.StarHopeSafe.escapeText(value == null ? '' : String(value));
         }
         return String(value == null ? '' : value)
             .replace(/&/g, '&amp;')

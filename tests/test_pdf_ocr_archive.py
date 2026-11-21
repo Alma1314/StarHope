@@ -10,10 +10,10 @@ import pytest
 from pdf_feature_contract import experimental_pdf_only
 import requests
 
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.pdf_ocr_archive import retain_pdf_ocr_response
-from mathbank import pdf_vision_request as vision
-from mathbank.task_manager import TaskCancelled
+from starhope.document_projects import DocumentProjectStore
+from starhope.pdf_ocr_archive import retain_pdf_ocr_response
+from starhope import pdf_vision_request as vision
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(autouse=True)

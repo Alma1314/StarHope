@@ -9,10 +9,10 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank import pdf_legacy_parse as module
-from mathbank.content_locks import lock_visible_math
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.document_project_parse import run_project_legacy_parse
+from starhope import pdf_legacy_parse as module
+from starhope.content_locks import lock_visible_math
+from starhope.document_projects import DocumentProjectStore
+from starhope.document_project_parse import run_project_legacy_parse
 
 _spec=importlib.util.spec_from_file_location('legacy_parse_flow_helpers',Path(__file__).with_name('test_pdf_legacy_parse.py'))
 _helpers=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(_helpers)
@@ -21,7 +21,7 @@ _helpers=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(_helper
 @pytest.fixture
 def setup(tmp_path,monkeypatch):
     monkeypatch.setattr(requests.sessions.Session,'request',lambda *_a,**_kw:pytest.fail('No real model API'))
-    monkeypatch.setattr('mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS',0)
+    monkeypatch.setattr('starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS',0)
     monkeypatch.setattr(module,'prepare_pdf_task_plan',lambda *_a,**_kw:{'mode':'original','groups':[]})
     raw=b'%PDF-legacy-cache-flow';sha=hashlib.sha256(raw).hexdigest()
     source='1. 已知$x=1$，如图求$x+x$。\n![](/static/uploads/tmp/source.png)\n【答案】$2$。'
@@ -67,8 +67,8 @@ def test_same_model_packet_original_vs_cache_miss_vs_hit_question_semantics_and_
     old=_helpers.parser({})(locked,request_post=setup.post)
     # Source namespace is part of the original lock protocol. Reconcile with
     # those exact locks, then use the unchanged original answer/finalizer rules.
-    from mathbank.content_locks import reconcile_visible_math
-    from mathbank.paper_parse import finalize_source_answers
+    from starhope.content_locks import reconcile_visible_math
+    from starhope.paper_parse import finalize_source_answers
     reconcile_visible_math(old,locks,setup.source)
     finalize_source_answers(old,setup.source)
     expected=finalizer(old,frozenset())

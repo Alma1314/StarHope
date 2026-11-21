@@ -3,13 +3,13 @@ import json
 import time
 import pytest
 from unittest.mock import patch
-from mathbank.database import Question
-from mathbank.sync_helper import clean_latex_to_markdown_for_ai, export_database_to_files
+from starhope.database import Question
+from starhope.sync_helper import clean_latex_to_markdown_for_ai, export_database_to_files
 from main import clean_orphaned_images
 
 
 def test_sync_completed_file_flush_preserves_windows_write_access(tmp_path, monkeypatch):
-    from mathbank import sync_helper
+    from starhope import sync_helper
     target = tmp_path / "中文 同步文稿.md"
     target.write_bytes(b"unchanged markdown")
     real_fsync, synced = os.fsync, []
@@ -17,7 +17,7 @@ def test_sync_completed_file_flush_preserves_windows_write_access(tmp_path, monk
         os.write(descriptor, b"")
         synced.append(descriptor)
         real_fsync(descriptor)
-    monkeypatch.setattr("mathbank.asset_security.os.fsync", require_write_access)
+    monkeypatch.setattr("starhope.asset_security.os.fsync", require_write_access)
     sync_helper._fsync_file(target)
     assert target.read_bytes() == b"unchanged markdown" and len(synced) == 1
 
@@ -79,7 +79,7 @@ def test_export_database_to_files(db_session, tmp_path):
     db_session.commit()
 
     # Re-route backup paths in sync_helper module to tmp_path to avoid writing to real data_backup directory during tests
-    from mathbank import sync_helper
+    from starhope import sync_helper
     original_backup_dir = sync_helper.BACKUP_DIR
     original_json_path = sync_helper.JSON_BACKUP_PATH
     original_md_path = sync_helper.MD_BACKUP_PATH
@@ -119,7 +119,7 @@ def test_export_database_to_files(db_session, tmp_path):
 
 
 def test_export_failure_preserves_last_good_files(db_session, tmp_path):
-    from mathbank import sync_helper
+    from starhope import sync_helper
 
     q = Question(content="测试原子导出", question_type="single_choice")
     db_session.add(q)
@@ -135,7 +135,7 @@ def test_export_failure_preserves_last_good_files(db_session, tmp_path):
 
     try:
         with patch(
-            "mathbank.sync_helper.generate_markdown_library",
+            "starhope.sync_helper.generate_markdown_library",
             side_effect=OSError("disk full"),
         ):
             with pytest.raises(RuntimeError, match="导出题目文件失败"):

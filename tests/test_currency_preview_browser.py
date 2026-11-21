@@ -9,7 +9,7 @@ from PIL import Image
 from test_preview_browser import browser
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in real currency preview")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in real currency preview")
 @pytest.mark.parametrize("viewport", [(1600, 1100), (375, 812)])
 def test_currency_math_and_spaced_hard_breaks_render_without_rewriting_inputs(browser, tmp_path, viewport):
     browser.command("set", "viewport", *map(str, viewport))
@@ -98,7 +98,7 @@ def test_currency_math_and_spaced_hard_breaks_render_without_rewriting_inputs(br
         });
         result.importSourceUnchanged = parsedQuestionsData[0].content === literalSource
             && parsedQuestionsData[0].answer_markdown === literalSource;
-        MathBankBrowserChecks.seed(1, 1, true);
+        StarHopeBrowserChecks.seed(1, 1, true);
         PaperStore.questionsMap[1].content = literalSource;
         PaperStore.questionsMap[1].question_type = 'detailed_answer';
         renderPaperCanvas();
@@ -135,7 +135,7 @@ def test_currency_math_and_spaced_hard_breaks_render_without_rewriting_inputs(br
     browser.command("screenshot", str(tmp_path / f"currency-preview-{viewport[0]}.png"))
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in real blank boundary preview")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in real blank boundary preview")
 @pytest.mark.parametrize("viewport", [(1600, 1100), (375, 812)])
 def test_fillin_next_to_closed_math_keeps_comparisons_and_tables(browser, tmp_path, viewport):
     browser.command("set", "viewport", *map(str, viewport))

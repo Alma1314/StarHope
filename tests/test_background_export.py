@@ -2,7 +2,7 @@
 
 import threading
 
-from mathbank.background_export import DatabaseExportQueue
+from starhope.background_export import DatabaseExportQueue
 
 
 def test_burst_exports_latest_state_once_and_shutdown_flushes():
@@ -71,7 +71,7 @@ def test_failed_export_remains_retryable_on_next_commit():
 
 
 def test_failed_worker_start_does_not_lose_next_request(monkeypatch):
-    from mathbank import background_export
+    from starhope import background_export
 
     calls = []
     real_thread = threading.Thread

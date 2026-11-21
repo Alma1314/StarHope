@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.knowledge_annotation_targets import (
+from starhope.knowledge_annotation_targets import (
     diagnose_knowledge_target_coverage,
     extract_knowledge_annotation_targets,
     knowledge_annotation_targets_for_prompt,

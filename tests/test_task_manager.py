@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import mathbank.task_manager as task_manager
-from mathbank.task_manager import (
+import starhope.task_manager as task_manager
+from starhope.task_manager import (
     TaskCancelled,
     TaskManager,
     TaskQueueFull,

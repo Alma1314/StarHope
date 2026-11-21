@@ -9,13 +9,13 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 
-from mathbank import library_transfer as transfer
-from mathbank.database import (
+from starhope import library_transfer as transfer
+from starhope.database import (
     Base, KnowledgePoint, KnowledgePointCurriculum, Question, QuestionCurriculum,
     QuestionKnowledgePoint,
 )
-from mathbank.question_references import sync_question_references, sync_question_source_labels
-from mathbank.sync_helper import serialize_exchange_questions
+from starhope.question_references import sync_question_references, sync_question_source_labels
+from starhope.sync_helper import serialize_exchange_questions
 
 
 @pytest.fixture
@@ -148,7 +148,7 @@ def test_source_filtered_export_freezes_ascending_ids_before_streaming(export_li
 
 
 def test_import_remaps_both_directions_of_cross_batch_references(export_library, tmp_path):
-    from mathbank.question_references import reference_payloads
+    from starhope.question_references import reference_payloads
 
     engine, _, uploads = export_library
     output = tmp_path / "cross-batch.zip"
@@ -221,7 +221,7 @@ def test_late_batch_failure_keeps_the_previous_zip_and_cleans_temporary_files(ex
             transfer.export_library_zip(db, output, uploads_dir=uploads)
     assert calls == [128, 128]
     assert output.read_bytes() == b"previous valid output"
-    assert list(tmp_path.glob(".mathbank-share-*")) == []
+    assert list(tmp_path.glob(".starhope-share-*")) == []
     with Session(engine) as db:
         assert db.query(Question).count() == 257
 

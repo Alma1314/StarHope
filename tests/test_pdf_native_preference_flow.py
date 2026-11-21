@@ -6,7 +6,7 @@ import uuid
 import pymupdf as fitz
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
+from starhope import pdf_inspector_helper as helper
 
 
 @pytest.fixture(autouse=True)
@@ -27,7 +27,7 @@ def pdf_bytes():
 ])
 def test_complete_native_source_does_not_call_any_vision_stage(monkeypatch, strategy, source):
     import main
-    from mathbank import pdf_native_regions, pdf_page_vision, pdf_region_vision, pdf_source_verify
+    from starhope import pdf_native_regions, pdf_page_vision, pdf_region_vision, pdf_source_verify
 
     monkeypatch.setattr(helper, '_PDF_INSPECTOR_AVAILABLE', True)
     monkeypatch.setattr(helper, 'pdf_inspector', SimpleNamespace(extract_pages_markdown=lambda *a, **k:

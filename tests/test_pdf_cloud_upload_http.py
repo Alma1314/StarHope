@@ -9,7 +9,7 @@ import pytest
 
 
 SCENARIO = r'''
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 from copy import deepcopy
 import hashlib
 import json
@@ -23,19 +23,19 @@ import requests
 requests.sessions.Session.request = lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("No live network"))
 import pymupdf as fitz
 from fastapi.testclient import TestClient
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.document_task_store import DocumentTaskStore, DurableDocumentTasks
-from mathbank.ai_providers import resolve_text_provider
+from starhope.document_projects import DocumentProjectStore
+from starhope.document_task_store import DocumentTaskStore, DurableDocumentTasks
+from starhope.ai_providers import resolve_text_provider
 import main
-from mathbank.database import SessionLocal, Question, engine
+from starhope.database import SessionLocal, Question, engine
 
 ROOT = Path.cwd().resolve()
 assert Path(main.__file__).resolve().parent == ROOT
-assert Path(engine.url.database).resolve() == ROOT / "math_question_bank.db"
+assert Path(engine.url.database).resolve() == ROOT / "starhope.db"
 assert not (ROOT / ".env").exists()
 assert main.PDF_CLOUD_ONLY is True
-STRATEGY = os.environ["MATHBANK_ISOLATED_PDF_STRATEGY"]
-RETRY = os.environ.get("MATHBANK_ISOLATED_PDF_RETRY", "")
+STRATEGY = os.environ["STARHOPE_ISOLATED_PDF_STRATEGY"]
+RETRY = os.environ.get("STARHOPE_ISOLATED_PDF_RETRY", "")
 CURRICULUM = {"必修二": {"9. 统计": ["9.2 用样本估计总体"]}}
 main.METADATA_CACHE = {"curriculum_version": "A", "curriculum": CURRICULUM}
 main.schedule_database_export = lambda *_a, **_k: None
@@ -53,13 +53,13 @@ main.DOCUMENT_PROJECTS = projects
 def forbidden(*_a, **_k):
     raise AssertionError("Original cloud upload entered new local assembly/cache/persistence")
 
-import mathbank.document_project_draft as local_draft
-import mathbank.pdf_fragment_draft as fragments
-import mathbank.pdf_local_draft as local_rules
-import mathbank.pdf_hybrid_request as hybrid
-import mathbank.pdf_legacy_parse as legacy
-import mathbank.pdf_split_parallel as hybrid_parallel
-import mathbank.document_project_parse as parse_cache
+import starhope.document_project_draft as local_draft
+import starhope.pdf_fragment_draft as fragments
+import starhope.pdf_local_draft as local_rules
+import starhope.pdf_hybrid_request as hybrid
+import starhope.pdf_legacy_parse as legacy
+import starhope.pdf_split_parallel as hybrid_parallel
+import starhope.document_project_parse as parse_cache
 local_draft.execute_pdf_local_draft = forbidden
 fragments.prepare_pdf_fragment_draft = forbidden
 local_rules.prepare_pdf_local_draft = forbidden
@@ -81,7 +81,7 @@ def ocr(path, **kwargs):
     ocr_calls.append({"strategy": "force_ocr", "path": str(path)})
     return source
 main.ocr_pdf_page_image = ocr
-import mathbank.pdf_page_vision as page_vision
+import starhope.pdf_page_vision as page_vision
 def joint_ocr(path, info, **kwargs):
     assert kwargs.get("structured_fragments", False) is False
     assert "on_response" not in kwargs, "No persistent OCR archive without a project"
@@ -90,7 +90,7 @@ def joint_ocr(path, info, **kwargs):
         "page_complete": True, "warnings": []}, info)
 page_vision.request_pdf_page = joint_ocr
 # The fixture has no regional candidate; force the full-page v1 protocol.
-import mathbank.pdf_native_regions as regional
+import starhope.pdf_native_regions as regional
 regional.plan_pdf_regions = lambda *_a, **_k: None
 
 cloud_questions = [
@@ -112,7 +112,7 @@ class Reply:
 api_calls = []
 def post(config, payload, **kwargs):
     assert config is provider
-    expected_source = source if STRATEGY == "layout_aware" else "<!-- MATHBANK_PDF_PAGE:1 -->\n" + source
+    expected_source = source if STRATEGY == "layout_aware" else "<!-- STARHOPE_PDF_PAGE:1 -->\n" + source
     assert payload["messages"][1]["content"].strip() == expected_source
     assert "content" in payload["messages"][0]["content"]
     assert "answer_markdown" in payload["messages"][0]["content"]
@@ -144,7 +144,7 @@ old_draft = {"questions": [{"content": "旧工程人工题干，不应作为新A
 projects.save_baseline(old_id, old_draft)
 projects.save_draft(old_id, old_draft, 0)
 projects.sync_task(old_id, {"task_id": "old-local-task", "document_type": "pdf", "status": "completed",
-    "data": old_draft["questions"], "pdf_resume_state": {"transcription_protocol": "mathbank.pdf-page-fragments.v2"}})
+    "data": old_draft["questions"], "pdf_resume_state": {"transcription_protocol": "starhope.pdf-page-fragments.v2"}})
 assert projects.find_existing(hashlib.sha256(raw).hexdigest())[0]["options"] == options
 old_tree = {str(path.relative_to(projects.root)): path.read_bytes()
             for path in projects.root.rglob("*") if path.is_file()}
@@ -265,15 +265,15 @@ def run_cloud_upload(tmp_path, strategy, retry=""):
     workspace = tmp_path / "source-only-cloud-workspace"
     workspace.mkdir()
     shutil.copy2(root / "main.py", workspace / "main.py")
-    shutil.copytree(root / "mathbank", workspace / "mathbank",
+    shutil.copytree(root / "starhope", workspace / "starhope",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if (root / "templates").is_dir():
         shutil.copytree(root / "templates", workspace / "templates")
     (workspace / "static").mkdir()
     runner = workspace / "isolated_cloud_upload.py"
     runner.write_text(SCENARIO, encoding="utf-8")
-    environment = dict(os.environ, PYTHONPATH=str(workspace), MATHBANK_ISOLATED_PDF_STRATEGY=strategy,
-                       MATHBANK_ISOLATED_PDF_RETRY=retry)
+    environment = dict(os.environ, PYTHONPATH=str(workspace), STARHOPE_ISOLATED_PDF_STRATEGY=strategy,
+                       STARHOPE_ISOLATED_PDF_RETRY=retry)
     result = subprocess.run([sys.executable, str(runner)], cwd=workspace, env=environment,
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout[-7000:] + "\n" + result.stderr[-7000:]

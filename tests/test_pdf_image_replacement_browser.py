@@ -16,7 +16,7 @@ OLD = "/static/uploads/tmp/replacement-old.png"
 NEW = "/static/uploads/tmp/replacement-new.png"
 OTHER = "/static/uploads/tmp/replacement-other.png"
 pytestmark = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in isolated browser"
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in isolated browser"
 )
 
 
@@ -50,7 +50,7 @@ def _prepare(browser, content, answer, paths=None, extra=None):
       if(window.__replacementRealFetch)window.fetch=window.__replacementRealFetch;
       if(window.__replacementRealOpen)window.open=window.__replacementRealOpen;
       if(window.activePdfCropSession)closePdfCropModal();
-      MathBankDocumentImportSession.clear();selectWorkspace('import','导入中心');
+      StarHopeDocumentImportSession.clear();selectWorkspace('import','导入中心');
       window.pdfPageImages=['/static/uploads/tmp/replacement-source.png'];window.pdfPageNumbers=[7];
       window.currentPdfTaskId='00000000-0000-4000-8000-000000000007';
       window.__replacementRequests=[];window.__replacementFailures=[];window.__replacementOpened=[];

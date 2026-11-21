@@ -2,9 +2,9 @@
 
 import pytest
 
-from mathbank.content_locks import _comparable_answer, lock_visible_math, reconcile_visible_math
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.source_metadata import prepare_word_source_metadata
+from starhope.content_locks import _comparable_answer, lock_visible_math, reconcile_visible_math
+from starhope.docx_helper import _new_diagnostics
+from starhope.source_metadata import prepare_word_source_metadata
 
 
 @pytest.mark.parametrize("summary", ["21", "1", "-2", "+2", "9.1", "C", "AC"])

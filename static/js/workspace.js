@@ -64,9 +64,9 @@
         updateNavigation(workspaceId, workspaceName);
         document.body.dataset.workspace = workspaceId;
         try {
-            localStorage.setItem('mathbank_active_workspace', workspaceId);
+            localStorage.setItem('starhope_active_workspace', workspaceId);
             if (window.__serverInstanceId) {
-                localStorage.setItem('mathbank_server_instance_id', window.__serverInstanceId);
+                localStorage.setItem('starhope_server_instance_id', window.__serverInstanceId);
             }
         } catch (error) {
             // Navigation also works when the browser blocks local storage.

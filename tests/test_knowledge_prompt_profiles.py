@@ -5,8 +5,8 @@ import json
 
 import pytest
 
-from mathbank.ai_knowledge_points import build_ai_knowledge_prompt
-from mathbank.prompts import build_classification_system_prompt
+from starhope.ai_knowledge_points import build_ai_knowledge_prompt
+from starhope.prompts import build_classification_system_prompt
 
 
 CATALOG = [{"code": "1932", "name": "利用二项分布求分布列", "original_name": "二项分布", "aliases": ["二项分布"]},

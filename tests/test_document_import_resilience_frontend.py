@@ -118,7 +118,7 @@ def test_crop_close_and_open_other_question_rejects_late_result(pdf_script):
     start = source.index('function openPdfCropModalForQuestion(')
     modal_functions = source[start:source.index('function renderPdfPagesThumbnails()', start)]
     script = base_script(pdf_script) + modal_functions + r"""
-window.MathBankModal={open(){},close(){}};
+window.StarHopeModal={open(){},close(){}};
 const modal=create('pdfCropModal');modal.appendChild(new Element('div'));
 renderPdfPagesThumbnails=()=>{};setupPdfCropDrawListeners=()=>{};loadPdfCropPage=()=>{};
 let zoomFactor=1,baseWidth=0,baseHeight=0;
@@ -143,7 +143,7 @@ Element.prototype.replaceChildren=function(){this.children=[];};
 Element.prototype.closest=function(selectors){
  let target=this;while(target){if(selectors.split(',').some(selector=>selector.trim()==='#'+target.id))return target;target=target.parentElement;}return null;
 };
-const storage=new Map(INITIAL ? [['mathbank_document_import_session_v1',JSON.stringify(INITIAL)]] : []);
+const storage=new Map(INITIAL ? [['starhope_document_import_session_v1',JSON.stringify(INITIAL)]] : []);
 localStorage.getItem=key=>storage.get(key)||null;
 localStorage.setItem=(key,value)=>storage.set(key,value);
 localStorage.removeItem=key=>storage.delete(key);
@@ -158,11 +158,11 @@ def test_session_restores_corrections_selection_and_revoked_verification_without
     first = session_harness(pdf_script) + r"""
 listeners.DOMContentLoaded();
 const q=verifiedQuestion();show([q]);
-window.MathBankDocumentImportSession.begin({taskId:'task',clientRequestId:'request',documentType:'docx',phase:'completed'});
+window.StarHopeDocumentImportSession.begin({taskId:'task',clientRequestId:'request',documentType:'docx',phase:'completed'});
 edit(document.getElementById('parsed-card-0'),'.card-content-textarea','人工修改后的题干');
 document.getElementById('parsed-card-0').querySelector('.card-select-checkbox').checked=false;
-window.MathBankDocumentImportSession.flush();
-console.log(storage.get('mathbank_document_import_session_v1'));
+window.StarHopeDocumentImportSession.flush();
+console.log(storage.get('starhope_document_import_session_v1'));
 """
     saved = json.loads(run_node(first).splitlines()[-1])
     assert saved['questions'][0]['content'] == '人工修改后的题干'
@@ -177,7 +177,7 @@ requests[0].resolve({ok:true,json:async()=>({task_id:'task',status:'completed',d
 flush().then(()=>{
  assert.equal(parsedQuestionsData[0].content,'人工修改后的题干','server completion cannot overwrite restored corrections');
  assert.ok(requests.every(request=>request.url.endsWith('/status')),'refresh cannot invoke AI or resume');
- window.MathBankDocumentImportSession.clear();assert.equal(storage.size,0);
+ window.StarHopeDocumentImportSession.clear();assert.equal(storage.size,0);
 }).catch(error=>{console.error(error);process.exitCode=1});
 """
     run_node(second)
@@ -189,11 +189,11 @@ def test_session_completion_merges_stable_source_ids_and_preserves_unmatched_cor
         {'content': '无法定位的人工题', 'answer_markdown': ''}], 'baselineQuestions': []}
     script = session_harness(pdf_script, saved) + r"""
 listeners.DOMContentLoaded();
-const result=window.MathBankDocumentImportSession.mergeCompletion([
+const result=window.StarHopeDocumentImportSession.mergeCompletion([
  {content:'模型原题A',import_item_id:'A'}, {content:'新恢复题B',import_item_id:'B'}]);
 assert.deepEqual(result.map(item=>item.content),['人工修改题A','新恢复题B','无法定位的人工题']);
 assert.ok(toasts.some(text=>text.includes('无法唯一对应')));
-window.MathBankDocumentImportSession.clear();
+window.StarHopeDocumentImportSession.clear();
 """
     run_node(script)
 
@@ -212,17 +212,17 @@ assert.equal(card.querySelector('.card-chapter').value,'集合');
 assert.equal(card.querySelector('.card-knowledge').value,'集合的概念');
 assert.equal(card.querySelector('.card-difficulty').value,'challenge');
 assert.equal(card.querySelector('.card-qtype').value,'detailed_answer');
-window.MathBankDocumentImportSession.flush();
-let saved=JSON.parse(storage.get('mathbank_document_import_session_v1')).questions[0];
+window.StarHopeDocumentImportSession.flush();
+let saved=JSON.parse(storage.get('starhope_document_import_session_v1')).questions[0];
 assert.equal(saved.category_chapter,'集合');assert.equal(saved.category_knowledge,'集合的概念');
 card.querySelector('.card-source').value='目录等待期间的新来源';
 window.categoryTree={'必修一':{'集合':['集合的概念','集合的运算']}};
 window.systemMetadata={question_types:[{value:'single_choice',label:'单选'}],difficulties:[{value:'normal',label:'常规'}]};
-window.MathBankDocumentImportSession.refreshCatalogs();window.MathBankDocumentImportSession.flush();
-saved=JSON.parse(storage.get('mathbank_document_import_session_v1')).questions[0];
+window.StarHopeDocumentImportSession.refreshCatalogs();window.StarHopeDocumentImportSession.flush();
+saved=JSON.parse(storage.get('starhope_document_import_session_v1')).questions[0];
 assert.equal(saved.category_compulsory,'必修一');assert.equal(saved.category_chapter,'集合');
 assert.equal(saved.category_knowledge,'集合的概念');assert.equal(saved.difficulty,'challenge');
 assert.equal(saved.question_type,'detailed_answer');assert.equal(saved.source,'目录等待期间的新来源');
-window.MathBankDocumentImportSession.clear();
+window.StarHopeDocumentImportSession.clear();
 """
     run_node(script)

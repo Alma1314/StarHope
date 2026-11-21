@@ -1,5 +1,5 @@
 /* Synthetic questions only. Loaded into the actual app by test_preview_browser.py. */
-window.MathBankBrowserChecks = {
+window.StarHopeBrowserChecks = {
     async settle() {
         await document.fonts.ready;
         for (let i = 0; i < 8; i++) await new Promise(requestAnimationFrame);

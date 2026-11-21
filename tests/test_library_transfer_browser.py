@@ -1,6 +1,6 @@
 """Opt-in ZIP sharing checks in a source-only, disposable app and browser.
 
-MATHBANK_TEST_BROWSER=1 python3 -m pytest --noconftest
+STARHOPE_TEST_BROWSER=1 python3 -m pytest --noconftest
 tests/test_library_transfer_browser.py
 """
 
@@ -20,7 +20,7 @@ from test_preview_browser import browser
 
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1",
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1",
     reason="opt-in actual library-transfer browser regression",
 )
 
@@ -199,7 +199,7 @@ def sharing_package(browser, tmp_path_factory):
     browser.command("wait", "--fn", "document.getElementById('libraryExportSelectedViewBtn').textContent==='已选 (1)'")
     payload = _download_export_from_ui(browser)
     assert payload["body"] == {"question_ids": [question["id"]]}
-    package_path = folder / "MathBank-分享包.zip"
+    package_path = folder / "StarHope-分享包.zip"
     package_path.write_bytes(base64.b64decode(payload["base64"]))
     assert zipfile.is_zipfile(package_path)
     with zipfile.ZipFile(package_path) as archive:
@@ -275,7 +275,7 @@ def test_real_export_import_appends_twice_and_preserves_editor(browser, sharing_
         input.dispatchEvent(new Event('input',{bubbles:true}));
         PaperStore.cart=[{id:%d,score:7,solution_space:3}];
         window.__sharingPreserved={editor:EditorState.snapshot(),
-            draft:localStorage.getItem('mathbank_local_drafts'),cart:JSON.stringify(PaperStore.cart)};
+            draft:localStorage.getItem('starhope_local_drafts'),cart:JSON.stringify(PaperStore.cart)};
         return true;
     })()""" % original_id)
     assert browser.evaluate("EditorState.draftId==='sharing-local-draft' && isEditorModified()")
@@ -312,7 +312,7 @@ def test_real_export_import_appends_twice_and_preserves_editor(browser, sharing_
                 browser.evaluate("window.fetch=__confirmImportRequests.original;true")
         browser.command("wait", "--fn", "document.getElementById('libraryTransferStatus').dataset.state==='success' && !document.getElementById('libraryImportFile').disabled")
         assert browser.evaluate("document.getElementById('libraryImportFile').files.length") == 1
-        task_id = browser.evaluate("JSON.parse(localStorage.getItem('mathbank.libraryTransferTask.v1')).task_id")
+        task_id = browser.evaluate("JSON.parse(localStorage.getItem('starhope.libraryTransferTask.v1')).task_id")
         assert task_id not in task_ids
         task_ids.add(task_id)
         questions = _source_questions(browser, sharing_package["source"])
@@ -339,7 +339,7 @@ def test_real_export_import_appends_twice_and_preserves_editor(browser, sharing_
         assert browser.evaluate("""document.getElementById('editContent').value==='分享导入期间未保存的题干'
             && isEditorModified() && EditorState.draftId==='sharing-local-draft'
             && JSON.stringify(EditorState.snapshot())===JSON.stringify(__sharingPreserved.editor)
-            && localStorage.getItem('mathbank_local_drafts')===__sharingPreserved.draft
+            && localStorage.getItem('starhope_local_drafts')===__sharingPreserved.draft
             && JSON.stringify(PaperStore.cart)===__sharingPreserved.cart""")
     assert sharing_package["image_sha256"] == hashlib.sha256(
         (browser.root / sharing_package["image_url"].lstrip("/")).read_bytes()
@@ -351,7 +351,7 @@ def test_real_export_import_appends_twice_and_preserves_editor(browser, sharing_
 def test_arbitrary_zip_is_rejected_without_appending(browser, tmp_path):
     invalid = tmp_path / "ordinary.zip"
     with zipfile.ZipFile(invalid, "w") as archive:
-        archive.writestr("notes.txt", "This is not a MathBank sharing package")
+        archive.writestr("notes.txt", "This is not a StarHope sharing package")
     count_before = browser.evaluate("fetch('/api/questions?page=1&page_size=1').then(r=>r.json()).then(p=>p.total)")
     _open_sharing(browser)
     _open_import(browser)
@@ -383,14 +383,14 @@ def test_missing_old_image_warning_survives_success_and_page_reload(browser, sha
         assert browser.evaluate("!document.getElementById('libraryTransferWarnings').classList.contains('hidden')")
         warning = browser.evaluate("document.getElementById('libraryTransferWarnings').textContent")
         assert "1" in warning and "缺失" in warning and "保留" in warning
-        task_id = browser.evaluate("JSON.parse(localStorage.getItem('mathbank.libraryTransferTask.v1')).task_id")
+        task_id = browser.evaluate("JSON.parse(localStorage.getItem('starhope.libraryTransferTask.v1')).task_id")
         browser.command("open", browser.evaluate("location.href"))
         browser.command("wait", "--fn", "typeof openSettingsModal==='function'")
         _open_sharing(browser)
         _open_import(browser)
         browser.command("wait", "--fn", "document.getElementById('libraryTransferStatus').dataset.state==='success'")
         assert browser.evaluate("document.getElementById('libraryTransferWarnings').textContent") == warning
-        assert browser.evaluate("JSON.parse(localStorage.getItem('mathbank.libraryTransferTask.v1')).task_id") == task_id
+        assert browser.evaluate("JSON.parse(localStorage.getItem('starhope.libraryTransferTask.v1')).task_id") == task_id
         assert browser.evaluate(f"fetch('/api/questions/{original_id}').then(r=>r.json()).then(q=>q.content)") == old_content
         browser.command("scrollintoview", "#libraryTransferWarnings")
         browser.command("screenshot", str(tmp_path / "sharing-missing-image-warning.png"))
@@ -642,7 +642,7 @@ def test_export_summaries_render_shared_math_and_preserve_complete_package(brows
         r"计算 $\dfrac{x_1^2+1}{\sqrt{a_2}}$，已知 $0<x_1<2$。",
         r"复数 $z=1+\iu$，常数 $\eu^x$，弧长 $\wideparen{ABC}$。",
         r"选择正确结果。\begin{choices}\item $\frac{1}{2}$\item $x_1^2$\item $\sqrt{3}$\item $\iu$\end{choices}",
-        "<!-- MathBank source attribution:\n隐藏来源不应进入摘要\n-->\n\n"
+        "<!-- StarHope source attribution:\n隐藏来源不应进入摘要\n-->\n\n"
         + r"完整长题：$\dfrac{1}{x_1^2+1}$。"
         + "保留完整题干与后续说明。" * 45
         + r"末尾公式 $\wideparen{AB}+\eu^{x_2}$。"
@@ -798,7 +798,7 @@ def test_task_disconnect_reconnect_only_queries_original_task(browser, sharing_p
     try:
         _click_import(browser)
         browser.command("wait", "--fn", "__transferDisconnect.gets>=3 && !libraryTransferPollPending")
-        receipt = browser.evaluate("JSON.parse(localStorage.getItem('mathbank.libraryTransferTask.v1'))")
+        receipt = browser.evaluate("JSON.parse(localStorage.getItem('starhope.libraryTransferTask.v1'))")
         assert receipt["task_id"] == browser.evaluate("__transferDisconnect.taskId")
         assert set(receipt) == {"task_id", "operation", "status", "filename", "size", "last_modified"}
         assert browser.evaluate("document.getElementById('libraryImportBtn').disabled")
@@ -815,7 +815,7 @@ def test_task_disconnect_reconnect_only_queries_original_task(browser, sharing_p
         browser.command("wait", "--fn", "document.getElementById('libraryTransferStatus').dataset.state==='success'")
         assert browser.evaluate("__transferDisconnect.posts") == 1
         assert len(_source_questions(browser, sharing_package["source"])) == before + 1
-        assert browser.evaluate("JSON.parse(localStorage.getItem('mathbank.libraryTransferTask.v1')).task_id") == receipt["task_id"]
+        assert browser.evaluate("JSON.parse(localStorage.getItem('starhope.libraryTransferTask.v1')).task_id") == receipt["task_id"]
         assert not browser.evaluate("document.getElementById('libraryImportBtn').disabled")
     finally:
         browser.evaluate("window.fetch=__transferDisconnect.fetch;true")
@@ -845,14 +845,14 @@ def test_refresh_recovers_pending_task_without_post(browser, sharing_package, tm
     })()""")
     _click_import(browser)
     browser.command("wait", "--fn", "__transferRefresh.gets>=1")
-    task_id = browser.evaluate("JSON.parse(localStorage.getItem('mathbank.libraryTransferTask.v1')).task_id")
+    task_id = browser.evaluate("JSON.parse(localStorage.getItem('starhope.libraryTransferTask.v1')).task_id")
     assert browser.evaluate("__transferRefresh.posts") == 1
     assert len(_source_questions(browser, sharing_package["source"])) == before + 1
     browser.command("open", browser.evaluate("location.origin"))
     browser.command("wait", "--fn", "typeof window.renderPaperCanvas==='function' && document.getElementById('libraryTransferStatus').dataset.state==='success'")
     _open_sharing(browser)
     _open_import(browser)
-    assert browser.evaluate("JSON.parse(localStorage.getItem('mathbank.libraryTransferTask.v1')).task_id") == task_id
+    assert browser.evaluate("JSON.parse(localStorage.getItem('starhope.libraryTransferTask.v1')).task_id") == task_id
     assert len(_source_questions(browser, sharing_package["source"])) == before + 1
     assert "新增 1 道题目" in browser.evaluate("document.getElementById('libraryTransferMessage').textContent")
     _close_settings(browser)
@@ -986,7 +986,7 @@ def test_task_progress_timeout_and_late_receipt_keep_current_task(browser):
             stopLibraryTransferPolling();libraryTransferGeneration++;
             window.fetch=originalFetch;window.setTimeout=originalTimeout;
             libraryTransferTask=null;libraryTransferBusy='';
-            localStorage.removeItem('mathbank.libraryTransferTask.v1');
+            localStorage.removeItem('starhope.libraryTransferTask.v1');
             updateLibraryTransferControls();
         }
     })()""")
@@ -1010,7 +1010,7 @@ def test_task_id_must_persist_before_any_upload(browser):
             return originalFetch.call(this,url,init);
         };
         Storage.prototype.setItem=function(key,value){
-            if(key==='mathbank.libraryTransferTask.v1')throw new DOMException('full','QuotaExceededError');
+            if(key==='starhope.libraryTransferTask.v1')throw new DOMException('full','QuotaExceededError');
             return originalSet.call(this,key,value);
         };
         try {
@@ -1045,7 +1045,7 @@ def test_resolved_unknown_task_stays_ended_after_storage_event_and_reload(browse
         window.confirm=()=>true;
         try {
             const task={task_id:taskId,operation:'import',status:'unknown',filename:'verified.zip'};
-            localStorage.setItem('mathbank.libraryTransferTask.v1',JSON.stringify(task));
+            localStorage.setItem('starhope.libraryTransferTask.v1',JSON.stringify(task));
             restoreLibraryTransferTask(task);
             while(libraryTransferPollPending)await new Promise(resolve=>setTimeout(resolve,0));
             resolveLibraryTransferTask();
@@ -1053,8 +1053,8 @@ def test_resolved_unknown_task_stays_ended_after_storage_event_and_reload(browse
             reconnectLibraryTransfer();
             // A different tab can still hold the old unknown descriptor. Its
             // storage event must not overwrite the monotonic resolution marker.
-            localStorage.setItem('mathbank.libraryTransferTask.v1',JSON.stringify(task));
-            window.dispatchEvent(new StorageEvent('storage',{key:'mathbank.libraryTransferTask.v1'}));
+            localStorage.setItem('starhope.libraryTransferTask.v1',JSON.stringify(task));
+            window.dispatchEvent(new StorageEvent('storage',{key:'starhope.libraryTransferTask.v1'}));
             applyLibraryTransferSnapshot({task_id:taskId,operation:'import',status:'unknown'},taskId,libraryTransferGeneration);
             await new Promise(resolve=>setTimeout(resolve,20));
             return {taskId,resolvedAt:receipt.resolved_at,gets,before,status:libraryTransferTask.status,
@@ -1100,7 +1100,7 @@ def test_export_preview_timeout_releases_busy_state_and_web_lock(browser, suspen
         try {
             await exportLibraryTransfer();
             let lockAvailable=true;
-            if(navigator.locks)lockAvailable=await navigator.locks.request('mathbank-library-transfer-start',
+            if(navigator.locks)lockAvailable=await navigator.locks.request('starhope-library-transfer-start',
                 {ifAvailable:true},lock=>Boolean(lock));
             return {timeout,aborts,taskPosts,lockAvailable,busy:libraryTransferBusy,
                 fileDisabled:document.getElementById('libraryImportFile').disabled,
@@ -1145,14 +1145,14 @@ def test_browser_without_web_locks_adopts_active_import_conflict_with_get(browse
             while(libraryTransferPollPending)await new Promise(resolve=>setTimeout(resolve,0));
             const adopted={id:libraryTransferTask.task_id,filename:libraryTransferTask.filename,busy:libraryTransferBusy};
             clearTimeout(libraryTransferPollTimer);await pollLibraryTransferTask();
-            const receipts=JSON.parse(localStorage.getItem('mathbank.libraryTransferReceipts.v1'));
+            const receipts=JSON.parse(localStorage.getItem('starhope.libraryTransferReceipts.v1'));
             return {posts,gets,rejected,active,adopted,done:libraryTransferTask.status,
                 archived:receipts.some(item=>item.task_id===rejected&&item.status==='failed'),
                 persisted:readLibraryTransferTask().task_id};
         } finally {
             stopLibraryTransferPolling();libraryTransferGeneration++;window.fetch=originalFetch;
             if(locksDescriptor)Object.defineProperty(navigator,'locks',locksDescriptor);else delete navigator.locks;
-            libraryTransferTask=null;libraryTransferBusy='';localStorage.removeItem('mathbank.libraryTransferTask.v1');
+            libraryTransferTask=null;libraryTransferBusy='';localStorage.removeItem('starhope.libraryTransferTask.v1');
             document.getElementById('libraryImportFile').value='';updateLibraryTransferControls();
         }
     })()""")

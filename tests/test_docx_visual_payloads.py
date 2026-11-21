@@ -7,12 +7,12 @@ import zipfile
 from PIL import Image
 import pytest
 
-from mathbank.content_locks import _source_parts
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.docx_source_scopes import verify_source_review_evidence
-from mathbank.import_review import prepare_word_extraction_reviews, WORD_DRAWING_EXTRACTION_REASON
-from mathbank.source_metadata import prepare_word_source_metadata
-from mathbank.word_hybrid_plan import build_word_hybrid_plan
+from starhope.content_locks import _source_parts
+from starhope.docx_helper import extract_docx_markdown
+from starhope.docx_source_scopes import verify_source_review_evidence
+from starhope.import_review import prepare_word_extraction_reviews, WORD_DRAWING_EXTRACTION_REASON
+from starhope.source_metadata import prepare_word_source_metadata
+from starhope.word_hybrid_plan import build_word_hybrid_plan
 
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 A = 'http://schemas.openxmlformats.org/drawingml/2006/main'

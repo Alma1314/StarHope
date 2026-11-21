@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 
-from mathbank.paper_helper import build_latex_document, compile_tex_to_pdf
+from starhope.paper_helper import build_latex_document, compile_tex_to_pdf
 
 
 COLORS = {
@@ -64,7 +64,7 @@ def test_four_tikz_options_keep_source_order_and_individual_layout(paper_type, c
     assert tex.index(r"\begin{choices}") < positions[0] < positions[-1] < tex.index(r"\end{choices}")
     assert all(tex.count(asset["tikz_code"]) == 1 for asset in ASSETS)
     assert "tikz_option_" not in tex and "reference_" not in tex
-    assert "MATHBANKTIKZ" not in tex
+    assert "STARHOPETIKZ" not in tex
     if custom:
         assert r"\begin{choices}[columns=4" not in tex
         for width, height in [(5.0, 4.2), (8.0, 6.0), (10.5, 7.5), (9.0, 6.0)]:
@@ -87,7 +87,7 @@ def test_mixed_image_options_use_inline_bounded_tikz_boxes():
 
 
 @pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_TIKZ_NATIVE") != "1" or not shutil.which("xelatex"),
+    os.environ.get("STARHOPE_TEST_TIKZ_NATIVE") != "1" or not shutil.which("xelatex"),
     reason="opt-in native XeLaTeX regression",
 )
 @pytest.mark.parametrize("paper_type", ["exam", "quiz", "exam_19"])
@@ -130,7 +130,7 @@ def test_native_four_tikz_options_are_vector_bounded_and_aligned(paper_type, cus
 
 
 @pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_TIKZ_NATIVE") != "1" or not shutil.which("xelatex"),
+    os.environ.get("STARHOPE_TEST_TIKZ_NATIVE") != "1" or not shutil.which("xelatex"),
     reason="opt-in native XeLaTeX regression",
 )
 def test_native_mixed_image_options_compile_from_source_without_block_environments():

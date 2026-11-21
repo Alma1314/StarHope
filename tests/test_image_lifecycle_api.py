@@ -18,8 +18,8 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-from mathbank.database import Question, QuestionCurriculum, get_db
-from mathbank.task_manager import TaskManager
+from starhope.database import Question, QuestionCurriculum, get_db
+from starhope.task_manager import TaskManager
 
 
 def _payload(**overrides):
@@ -84,7 +84,7 @@ def concurrent_file_db(client, tmp_path, monkeypatch):
     Keep this storage change local to the actual concurrent lifecycle test.
     """
     import main
-    from mathbank import database, sync_helper
+    from starhope import database, sync_helper
 
     file_engine = create_engine(
         f"sqlite:///{tmp_path / 'concurrent-lifecycle.sqlite'}",
@@ -257,7 +257,7 @@ def test_review_image_visibility_preserves_shared_and_legacy_figures(
     assert legacy_image in created["question"]["image_paths"]
     assert (review_image in created["question"]["image_paths"]) == bool(shared_field)
 
-    from mathbank import sync_helper
+    from starhope import sync_helper
     sync_helper.export_database_to_files(db_session)
     exported = Path(sync_helper.MD_BACKUP_PATH).read_text()
     assert Path(legacy_image).name in exported
@@ -277,7 +277,7 @@ def test_review_missing_image_rejected_but_literal_example_untouched(client, hea
 
 
 def test_review_only_image_does_not_change_duplicate_snapshot_or_block_save(client, headers, assets):
-    from mathbank.question_duplicate_service import select_visible_question_images
+    from starhope.question_duplicate_service import select_visible_question_images
 
     _, url = assets("duplicate-review", color="red")
     content, answer = "已知 $x=2$，求 $x+1$。", "答案：3"

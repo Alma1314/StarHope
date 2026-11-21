@@ -8,7 +8,7 @@ import json
 from PIL import Image
 import pytest
 
-from mathbank import source_review_images as evidence
+from starhope import source_review_images as evidence
 
 
 @pytest.fixture

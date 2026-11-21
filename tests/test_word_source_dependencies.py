@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.word_source_dependencies import (
+from starhope.word_source_dependencies import (
     MAX_IMAGE_MARKERS, MAX_LITERAL_MARKERS, MAX_QUESTIONS, MAX_REFERENCES, MAX_SOURCE_CHARACTERS,
     analyze_word_source_dependencies,
 )

@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
-from mathbank.pdf_native_math_quality import (
+from starhope import pdf_inspector_helper as helper
+from starhope.pdf_native_math_quality import (
     native_math_layout_reasons, native_script_geometry_reasons, script_markup_probe,
 )
 

@@ -28,7 +28,7 @@ globalThis.window={};
 const elements=new Map();
 globalThis.document={getElementById:id=>elements.get(id)||null};
 globalThis.fetch=()=>{throw Error('unexpected network')};
-globalThis.MathBankSafe={escapeAttribute:value=>String(value),escapeText:value=>String(value)};
+globalThis.StarHopeSafe={escapeAttribute:value=>String(value),escapeText:value=>String(value)};
 """ + source[start:end] + r"""
 const current='deepseek-ai/DeepSeek-V4.1-Flash';
 const old='deepseek-ai/DeepSeek-V4-Flash';

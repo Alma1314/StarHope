@@ -10,9 +10,9 @@ migrate_fillin.py - 历史题库填空题下划线批量升级为 \\fillin 宏�
 
 import sys
 
-from mathbank.database import SessionLocal, Question, QuestionFingerprint
+from starhope.database import SessionLocal, Question, QuestionFingerprint
 from main import normalize_fillin_macro
-from mathbank.sync_helper import export_database_to_files
+from starhope.sync_helper import export_database_to_files
 
 def migrate_database_fillin():
     print("=" * 65)

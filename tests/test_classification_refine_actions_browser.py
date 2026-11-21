@@ -6,11 +6,11 @@ import sqlite3
 
 import pytest
 
-from mathbank.paths import DATABASE_PATH
+from starhope.paths import DATABASE_PATH
 from test_preview_browser import browser  # noqa: F401
 
 
-pytestmark = pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1',
+pytestmark = pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1',
                                 reason='opt-in isolated browser regression')
 
 

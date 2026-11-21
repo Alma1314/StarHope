@@ -3,8 +3,8 @@ import struct
 
 import pytest
 
-from mathbank.mtef_helper import decode_mtef_formula
-from mathbank.omml_helper import normalize_word_formula_latex
+from starhope.mtef_helper import decode_mtef_formula
+from starhope.omml_helper import normalize_word_formula_latex
 
 
 def char(code,style=3,font_position=None):

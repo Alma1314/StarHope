@@ -8,8 +8,8 @@ import struct
 
 import pytest
 
-from mathbank.mtef_helper import MAX_DEPTH, MAX_RECORDS, decode_mtef_formula
-from mathbank.omml_helper import normalize_word_formula_latex
+from starhope.mtef_helper import MAX_DEPTH, MAX_RECORDS, decode_mtef_formula
+from starhope.omml_helper import normalize_word_formula_latex
 
 HEADER = b"\x05\x01\x00\x07\x00DSMT7\x00\x00"
 BEIJING_COLOR_ARROW_PERP = bytes.fromhex(

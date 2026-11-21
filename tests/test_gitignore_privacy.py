@@ -93,9 +93,9 @@ def test_actual_runtime_and_export_locations_stay_private(ignored_paths):
         "static_副本/question.png",
         "restored_content_sources/backup/content_sources.json",
         ".build_cache/release-build.log",
-        "Release_Output/MathBank_3.0.1/manifest.json",
-        "dist/MathBank/main.py",
-        "build/MathBank/main.py",
+        "Release_Output/StarHope_3.0.1/manifest.json",
+        "dist/StarHope/main.py",
+        "build/StarHope/main.py",
         "venv/pyvenv.cfg",
         "docs/local-audit/report.json",
         "export.zip",
@@ -109,12 +109,12 @@ def test_actual_runtime_and_export_locations_stay_private(ignored_paths):
 def test_product_code_resources_and_fixture_exceptions_remain_publishable(ignored_paths):
     public = [
         "main.py",
-        "mathbank/library_transfer.py",
-        "mathbank/library_transfer_tasks.py",
-        "mathbank/library_transfer_upload.py",
-        "mathbank/storage_access.py",
-        "mathbank/resources/curriculums/A.json",
-        "mathbank/resources/content_sources.json",
+        "starhope/library_transfer.py",
+        "starhope/library_transfer_tasks.py",
+        "starhope/library_transfer_upload.py",
+        "starhope/storage_access.py",
+        "starhope/resources/curriculums/A.json",
+        "starhope/resources/content_sources.json",
         "scripts/build_release.py",
         "scripts/windows_launcher.py",
         "static/js/api.js",
@@ -158,14 +158,14 @@ def test_internal_tools_are_limited_to_the_declared_paths(ignored_paths):
     )
     private = [
         f"{package}/{name}.py"
-        for package in ("mathbank", "scripts")
+        for package in ("starhope", "scripts")
         for name in names
     ] + [
         "scripts/backfill_question_references.py",
         "scripts/audit_subquestion_numbering.py",
         "scripts/difficulty_classify.py",
         "scripts/migrate_word_math_private_chars.py",
-        "mathbank/zhixue_archive_conversion.py",
+        "starhope/zhixue_archive_conversion.py",
         "scripts/zhixue_archive_preview.py",
         "scripts/zhixue_formula_check.js",
         "tests/test_zhixue_archive_preview.py",
@@ -178,10 +178,10 @@ def test_internal_tools_are_limited_to_the_declared_paths(ignored_paths):
         *(f"tests/test_{name}.py" for name in names),
     ]
     public = [
-        "mathbank/resources/question_exchange.json",
-        "mathbank/runtime/question_exchange.py",
+        "starhope/resources/question_exchange.json",
+        "starhope/runtime/question_exchange.py",
         "tests/fixtures/question_exchange/example.json",
-        "mathbank/vendor/zhixue_archive_conversion.py",
+        "starhope/vendor/zhixue_archive_conversion.py",
         "scripts/vendor/zhixue_formula_check.js",
     ]
     result = ignored_paths([*private, *public])

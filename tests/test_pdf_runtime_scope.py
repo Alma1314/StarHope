@@ -6,8 +6,8 @@ import shutil
 
 import pytest
 
-from mathbank.latex_diagnostics import build_local_latex_diagnostic
-from mathbank.paper_helper import build_latex_document, compile_tex_to_pdf
+from starhope.latex_diagnostics import build_local_latex_diagnostic
+from starhope.paper_helper import build_latex_document, compile_tex_to_pdf
 
 
 def _source(*, answer=False, long=False):
@@ -23,12 +23,12 @@ def _source(*, answer=False, long=False):
 
 
 def _log(*, field="content", environment="question", close=False):
-    events = ("MathBank-Question-Start: 82 1 content\nMathBank-Question-Finish: 82\n"
-              "MathBank-Question-Start: 83 2 content\n")
+    events = ("StarHope-Question-Start: 82 1 content\nStarHope-Question-Finish: 82\n"
+              "StarHope-Question-Start: 83 2 content\n")
     if field == "answer_markdown":
-        events += "MathBank-Question-Start: 83 2 answer_markdown\n"
+        events += "StarHope-Question-Start: 83 2 answer_markdown\n"
     if close:
-        events += "MathBank-Question-Finish: 83\n"
+        events += "StarHope-Question-Finish: 83\n"
     return events + (
         "Runaway argument?\n"
         r"\begin 求值 $\frac {1}{2$。 \end {question}\ETC." + "\n"
@@ -64,10 +64,10 @@ def test_unclosed_solution_can_use_the_answer_runtime_scope():
 
 
 @pytest.mark.parametrize("change", [
-    lambda source: source.replace("% MathBank-Question-Number: 2", "% MathBank-Question-Number: 99"),
-    lambda source: source.replace(r"\typeout{MathBank-Question-Start: 83 2 content}", ""),
-    lambda source: source.replace(r"\typeout{MathBank-Question-Finish: 83}", ""),
-    lambda source: source.replace("% MathBank-Field: content\n\\typeout{MathBank-Question-Start: 83", "% MathBank-Field: figure\n\\typeout{MathBank-Question-Start: 83"),
+    lambda source: source.replace("% StarHope-Question-Number: 2", "% StarHope-Question-Number: 99"),
+    lambda source: source.replace(r"\typeout{StarHope-Question-Start: 83 2 content}", ""),
+    lambda source: source.replace(r"\typeout{StarHope-Question-Finish: 83}", ""),
+    lambda source: source.replace("% StarHope-Field: content\n\\typeout{StarHope-Question-Start: 83", "% StarHope-Field: figure\n\\typeout{StarHope-Question-Start: 83"),
 ])
 def test_runtime_events_cannot_locate_a_question_without_matching_source_scopes(change):
     result = build_local_latex_diagnostic(_log(), change(_source()))
@@ -78,12 +78,12 @@ def test_runtime_events_cannot_locate_a_question_without_matching_source_scopes(
 @pytest.mark.parametrize("log", [
     _log(close=True),
     _log(environment="solution"),
-    _log().replace("MathBank-Question-Start: 83 2 content", "MathBank-Question-Start: 999 2 content"),
-    "MathBank-Question-Start: 83 2 content\n! Undefined control sequence.\n",
-    "MathBank-Question-Start: 83 2 content\nRunaway argument?\n! File ended while scanning use of \\foo.\n",
-    "MathBank-Question-Start: 83 2 content\nMissing character: There is no 🦄 in font nullfont!\n",
-    "MathBank-Question-Start: 83 2 content\n! Template error.\n",
-    "MathBank-Question-Start: 83 2 content\nRunaway argument?\n! File ended while scanning use of \\environment question .\nMissing character: There is no 🦄 in font nullfont!\n",
+    _log().replace("StarHope-Question-Start: 83 2 content", "StarHope-Question-Start: 999 2 content"),
+    "StarHope-Question-Start: 83 2 content\n! Undefined control sequence.\n",
+    "StarHope-Question-Start: 83 2 content\nRunaway argument?\n! File ended while scanning use of \\foo.\n",
+    "StarHope-Question-Start: 83 2 content\nMissing character: There is no 🦄 in font nullfont!\n",
+    "StarHope-Question-Start: 83 2 content\n! Template error.\n",
+    "StarHope-Question-Start: 83 2 content\nRunaway argument?\n! File ended while scanning use of \\environment question .\nMissing character: There is no 🦄 in font nullfont!\n",
 ])
 def test_runtime_fallback_is_not_used_for_closed_mismatched_glyph_or_template_errors(log):
     result = build_local_latex_diagnostic(log, _source())
@@ -92,11 +92,11 @@ def test_runtime_fallback_is_not_used_for_closed_mismatched_glyph_or_template_er
 
 
 def test_preserved_runtime_events_survive_truncation_and_context_is_bounded():
-    log = "MathBank-Question-Start: 999 9 content\n" + _log().split("Runaway argument?", 1)[1]
+    log = "StarHope-Question-Start: 999 9 content\n" + _log().split("Runaway argument?", 1)[1]
     log = "Runaway argument?\n" + log
-    log += ("\nMathBank compilation scope events:\n"
-            "MathBank-Question-Start: 82 1 content\nMathBank-Question-Finish: 82\n"
-            "MathBank-Question-Start: 83 2 content\n")
+    log += ("\nStarHope compilation scope events:\n"
+            "StarHope-Question-Start: 82 1 content\nStarHope-Question-Finish: 82\n"
+            "StarHope-Question-Start: 83 2 content\n")
     result = build_local_latex_diagnostic(log, _source(long=True))
     assert result["question_id"] == "83"
     assert len(result["source_context"]) <= 3000
@@ -104,7 +104,7 @@ def test_preserved_runtime_events_survive_truncation_and_context_is_bounded():
     assert result["line_number"] is None
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_LAYOUT_NATIVE") != "1" or not shutil.which("xelatex"),
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_LAYOUT_NATIVE") != "1" or not shutil.which("xelatex"),
                     reason="Opt-in native XeLaTeX unclosed-environment diagnostic validation")
 def test_native_missing_fraction_brace_identifies_question_range_at_eof(tmp_path):
     source = _source()
@@ -113,7 +113,7 @@ def test_native_missing_fraction_brace_identifies_question_range_at_eof(tmp_path
     (tmp_path / "brace.log").write_text(log, encoding="utf-8")
     assert pdf is None
     assert "File ended while scanning use of \\environment question" in log
-    assert "MathBank-Question-Start: 83 2 content" in log
+    assert "StarHope-Question-Start: 83 2 content" in log
     result = build_local_latex_diagnostic(log, source)
     (tmp_path / "brace-diagnostic.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     assert result["question_id"] == "83" and result["question_number"] == "2"

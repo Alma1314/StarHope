@@ -25,7 +25,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 import secrets
-from mathbank.storage_access import (
+from starhope.storage_access import (
     check_startup_storage, check_directory_access, check_database_write_access,
 )
 
@@ -45,16 +45,16 @@ from starlette.background import BackgroundTask
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_
 from dotenv import load_dotenv
-from mathbank.paths import ENV_FILE
+from starhope.paths import ENV_FILE
 
 # Freeze shared request policies only after the saved local environment is read.
 load_dotenv(ENV_FILE)
-from mathbank.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS
-from mathbank.processing_timeouts import TIKZ_COMPILE_TIMEOUT_SECONDS
-from mathbank.processing_limits import LIMITS, public_processing_limits
-from mathbank.classification_policy import resolve_classification_policy, public_classification_policy
+from starhope.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS
+from starhope.processing_timeouts import TIKZ_COMPILE_TIMEOUT_SECONDS
+from starhope.processing_limits import LIMITS, public_processing_limits
+from starhope.classification_policy import resolve_classification_policy, public_classification_policy
 
-from mathbank.database import (
+from starhope.database import (
     FIGURE_ALIGN_VALUES,
     FIGURE_SIZE_VALUES,
     Question,
@@ -71,38 +71,38 @@ from mathbank.database import (
     init_db,
     normalize_figure_size,
 )
-from mathbank.sub_knowledge import detect_curriculum_version, normalize_sub_knowledge
-from mathbank.question_reads import find_association_candidates, question_summary_load_options
-from mathbank.question_queries import QuestionReadSnapshot, page_questions
-from mathbank.agent_api import create_agent_router
-from mathbank.knowledge_points import (
+from starhope.sub_knowledge import detect_curriculum_version, normalize_sub_knowledge
+from starhope.question_reads import find_association_candidates, question_summary_load_options
+from starhope.question_queries import QuestionReadSnapshot, page_questions
+from starhope.agent_api import create_agent_router
+from starhope.knowledge_points import (
     apply_knowledge_point_filters,
     create_local_point,
     list_catalog,
     normalize_question_points,
     replace_question_points,
 )
-from mathbank.ai_knowledge_points import (
+from starhope.ai_knowledge_points import (
     annotate_ai_knowledge_points, load_ai_knowledge_catalog, bind_ai_knowledge_catalog,
 )
-from mathbank.ai_classification import (
+from starhope.ai_classification import (
     CLASSIFICATION_TIMEOUT_SECONDS, build_classification_user_message, parse_classification_response,
 )
-from mathbank.question_references import (
+from starhope.question_references import (
     export_reference_text,
     reference_payloads,
     refresh_reference_targets_for_labels,
     sync_question_references,
     sync_question_source_labels,
 )
-from mathbank.question_duplicates import (
+from starhope.question_duplicates import (
     QuestionDuplicateInput,
     build_question_fingerprint,
 )
-from mathbank.import_review import (
+from starhope.import_review import (
     make_source_review_advisory, prepare_word_extraction_reviews, finalize_word_extraction_reviews,
 )
-from mathbank.question_duplicate_service import (
+from starhope.question_duplicate_service import (
     batch_local_matches,
     exact_duplicate_ids,
     find_indexed_candidates,
@@ -115,19 +115,19 @@ from mathbank.question_duplicate_service import (
     upsert_question_fingerprint,
     visible_image_signatures as build_visible_image_signatures,
 )
-from mathbank.export_preflight import ExportPreflightError, preflight_paper_export, read_export_preflight
-from mathbank.paper_helper import build_latex_document, build_answer_sheet_latex, compile_tex_to_pdf, create_tex_zip_package, create_full_bundle_zip_package, collect_referenced_images, build_restricted_tex_environment
-from mathbank.word_export_helper import build_word_document, create_word_bundle_zip
-from mathbank.runtime_components import (
+from starhope.export_preflight import ExportPreflightError, preflight_paper_export, read_export_preflight
+from starhope.paper_helper import build_latex_document, build_answer_sheet_latex, compile_tex_to_pdf, create_tex_zip_package, create_full_bundle_zip_package, collect_referenced_images, build_restricted_tex_environment
+from starhope.word_export_helper import build_word_document, create_word_bundle_zip
+from starhope.runtime_components import (
     PANDOC_INSTALL_MANAGER,
     pandoc_status,
 )
-from mathbank.sync_helper import export_database_to_files
-from mathbank.background_export import DatabaseExportQueue
-from mathbank.backup import (
+from starhope.sync_helper import export_database_to_files
+from starhope.background_export import DatabaseExportQueue
+from starhope.backup import (
     acquire_runtime_lock, backup_asset_warnings, create_full_backup, create_full_backup_if_due,
 )
-from mathbank.library_transfer import (
+from starhope.library_transfer import (
     MAX_ARCHIVE_BYTES as MAX_LIBRARY_ARCHIVE_BYTES,
     MAX_QUESTIONS as MAX_LIBRARY_QUESTIONS,
     export_library_zip,
@@ -136,38 +136,38 @@ from mathbank.library_transfer import (
     preview_library_questions,
     select_library_question_ids,
 )
-from mathbank.library_transfer_tasks import (
+from starhope.library_transfer_tasks import (
     LibraryTransferTasks, RepeatLibraryImport, SynchronousImportInProgress, TransferTaskConflict, TransferTaskError,
     TransferTaskQueueFull, log_transfer_error, normalize_transfer_task_id,
     transfer_error,
 )
-from mathbank.library_transfer_upload import create_library_transfer_upload_router
-from mathbank.health import readiness_report
-from mathbank.task_manager import (
+from starhope.library_transfer_upload import create_library_transfer_upload_router
+from starhope.health import readiness_report
+from starhope.task_manager import (
     TaskCancelled,
     TaskManager,
     TaskQueueFull,
 )
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.content_locks import lock_visible_math, reconcile_visible_math
-from mathbank.source_metadata import prepare_word_source_metadata, source_metadata_diagnostics, normalize_source_fillin
-from mathbank.source_metadata_request import request_word_source_metadata, SourceMetadataNoFallbackError
-from mathbank.document_task_store import DocumentTaskStore, DurableDocumentTasks
-from mathbank.formula_notices import separate_formula_notices
-from mathbank.paper_parse import (
+from starhope.docx_helper import extract_docx_markdown
+from starhope.content_locks import lock_visible_math, reconcile_visible_math
+from starhope.source_metadata import prepare_word_source_metadata, source_metadata_diagnostics, normalize_source_fillin
+from starhope.source_metadata_request import request_word_source_metadata, SourceMetadataNoFallbackError
+from starhope.document_task_store import DocumentTaskStore, DurableDocumentTasks
+from starhope.formula_notices import separate_formula_notices
+from starhope.paper_parse import (
     PAPER_SPLIT_TIMEOUT_SECONDS, PAPER_SPLIT_CACHE_MAX_CHARACTERS,
     parse_paper_completion, finalize_source_answers, request_pdf_paper_completion,
 )
-from mathbank.math_markdown import normalize_question_math_markdown, normalize_table_math_wrappers
-from mathbank.fraction_style import normalize_fraction_style
-from mathbank.tex_helper import (
+from starhope.math_markdown import normalize_question_math_markdown, normalize_table_math_wrappers
+from starhope.fraction_style import normalize_fraction_style
+from starhope.tex_helper import (
     MAX_TEX_BYTES,
     decode_and_prepare_tex,
     prepare_tex_source,
     tex_asset_basename,
     tex_asset_references_match,
 )
-from mathbank.markdown_helper import (
+from starhope.markdown_helper import (
     MAX_MARKDOWN_BYTES,
     decode_and_prepare_markdown,
     prepare_markdown_source,
@@ -175,27 +175,27 @@ from mathbank.markdown_helper import (
     map_markdown_question_images,
     prepare_markdown_question_for_storage,
 )
-from mathbank.latex_diagnostics import (
+from starhope.latex_diagnostics import (
     build_local_latex_diagnostic,
     merge_ai_latex_diagnostic,
 )
-from mathbank.ai_json import parse_ai_json
-from mathbank.import_classification import (
+from starhope.ai_json import parse_ai_json
+from starhope.import_classification import (
     normalize_import_classifications,
     summarize_import_classifications,
 )
-from mathbank.document_projects import DocumentProjectStore, DocumentProjectError, ProjectConflict
-from mathbank.document_project_service import (
+from starhope.document_projects import DocumentProjectStore, DocumentProjectError, ProjectConflict
+from starhope.document_project_service import (
     DocumentProjectService, project_question_ids, project_task_guard, project_dispatch_guard,
 )
-from mathbank.document_project_pipeline import parse_project_pdf
-from mathbank.document_project_import import (
+from starhope.document_project_pipeline import parse_project_pdf
+from starhope.document_project_import import (
     project_import_guard, prepare_project_import, record_project_import,
 )
-from mathbank.ai_http import (
+from starhope.ai_http import (
     post_chat_completion,
 )
-from mathbank.ai_providers import (
+from starhope.ai_providers import (
     MultimodalProviderConfig,
     apply_model_thinking_policy,
     apply_structured_output_policy,
@@ -204,14 +204,14 @@ from mathbank.ai_providers import (
     resolve_ocr_provider,
     resolve_text_provider,
 )
-from mathbank.curriculums import (
+from starhope.curriculums import (
     build_default_metadata,
     build_curriculum_routing_index,
     get_curriculum_preset,
     load_curriculum,
     route_curriculum_location,
 )
-from mathbank.prompts import (
+from starhope.prompts import (
     COMMON_OCR_PROMPT,
     PDF_ORIGINAL_COMMON_OCR_PROMPT,
     PDF_VISUAL_FIDELITY_RULE,
@@ -227,40 +227,40 @@ from mathbank.prompts import (
     build_tikz_correction_prompt,
     build_tikz_draw_prompt,
 )
-from mathbank.ocr_illustrations import (
+from starhope.ocr_illustrations import (
     MAX_OCR_RESPONSE_CHARS,
     materialize_ocr_illustrations,
     parse_single_ocr_response,
 )
-from mathbank.ocr_figure_review import review_single_ocr_figures, review_tikz_previews
-from mathbank.question_types import (
+from starhope.ocr_figure_review import review_single_ocr_figures, review_tikz_previews
+from starhope.question_types import (
     detect_structured_question_form,
     normalize_ai_question_form,
     normalize_section_order,
 )
 import shutil
-from mathbank.pdf_inspector_helper import (
+from starhope.pdf_inspector_helper import (
     is_pdf_inspector_available,
     get_pdf_inspector_version,
     inspect_and_extract_pdf,
     merge_pdf_page_texts,
 )
-from mathbank.pdf_figures import (
+from starhope.pdf_figures import (
     PDF_STRATEGIES,
     apply_pdf_layout_reviews,
     refresh_pdf_review_items,
     enrich_pdf_with_figures,
     isolate_shared_pdf_figures,
 )
-from mathbank.pdf_layout import inspect_pdf_page
-from mathbank.document_requests import DOCUMENT_AI_TIMEOUT_SECONDS
-from mathbank.pdf_vision_request import PDFVisionResponseError, completion_content, request_pdf_vision, collected_usage
-from mathbank.tikz_geometry import TikzGeometryError, render_geometry_reply
-from mathbank.tikz_circle_review import (
+from starhope.pdf_layout import inspect_pdf_page
+from starhope.document_requests import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.pdf_vision_request import PDFVisionResponseError, completion_content, request_pdf_vision, collected_usage
+from starhope.tikz_geometry import TikzGeometryError, render_geometry_reply
+from starhope.tikz_circle_review import (
     add_anchor_probes, circumcircles, review_compiled_circles, wants_circle_review,
 )
-from mathbank.tikz_label_layout import LabelReview, TikzPreview, review_compiled_labels
-from mathbank.paths import (
+from starhope.tikz_label_layout import LabelReview, TikzPreview, review_compiled_labels
+from starhope.paths import (
     DATABASE_PATH,
     DATA_BACKUP_DIR,
     DOCUMENT_TASKS_DIR,
@@ -274,7 +274,7 @@ from mathbank.paths import (
     TEST_UPLOADS_DIR,
     UPLOADS_DIR,
 )
-from mathbank.asset_security import (
+from starhope.asset_security import (
     AssetSecurityError,
     InvalidImageError,
     MAX_OCR_IMAGE_BYTES,
@@ -292,7 +292,7 @@ from mathbank.asset_security import (
     resolve_upload_asset,
     write_private_text_atomic,
 )
-from mathbank.asset_lifecycle import (
+from starhope.asset_lifecycle import (
     ASSET_LIFECYCLE_LOCK,
     AssetLifecycleError,
     RetainedUploadStaticFiles,
@@ -300,8 +300,8 @@ from mathbank.asset_lifecycle import (
     register_asset_store,
     serialize_asset_lifecycle,
 )
-from mathbank.paths import RETAINED_UPLOADS_DIR
-from mathbank.question_assets import (
+from starhope.paths import RETAINED_UPLOADS_DIR
+from starhope.question_assets import (
     embedded_question_assets,
     markdown_literal_ranges,
     rewrite_image_layout_paths,
@@ -316,7 +316,7 @@ harden_private_path(ENV_FILE)
 # The Windows launcher injects an unguessable UUID hex value and binds its
 # health/shutdown checks to the exact child it created.  Reject arbitrary
 # environment text because this value is also embedded into the local HTML.
-_ENV_LAUNCH_ID = os.environ.get("MATHBANK_LAUNCH_ID", "").strip().lower()
+_ENV_LAUNCH_ID = os.environ.get("STARHOPE_LAUNCH_ID", "").strip().lower()
 SERVER_INSTANCE_ID = (
     _ENV_LAUNCH_ID
     if re.fullmatch(r"[0-9a-f]{32}", _ENV_LAUNCH_ID)
@@ -385,7 +385,7 @@ def schedule_question_fingerprint_retry(
     operation: str,
 ) -> None:
     def retry_safely() -> None:
-        from mathbank.database import SessionLocal
+        from starhope.database import SessionLocal
 
         retry_db = SessionLocal()
         try:
@@ -426,7 +426,7 @@ def print_startup_diagnostics():
     pdf_insp_ok = is_pdf_inspector_available()
 
     print("=" * 64, flush=True)
-    print("      本地数学题库教研系统 (MathBank) 启动自检与诊断面板", flush=True)
+    print("      本地数学题库教研系统 (StarHope) 启动自检与诊断面板", flush=True)
     print("=" * 64, flush=True)
     print(f"  • Python 运行环境   : {sys.version.split()[0]} [{env_type}]", flush=True)
     print(f"  • Python 可执行路径 : {sys.executable}", flush=True)
@@ -446,7 +446,7 @@ def print_optional_tool_diagnostics():
     """服务就绪后再扫描可选工具，避免慢 PATH 阻断启动。"""
 
     latex_engine = shutil.which("xelatex") or shutil.which("pdflatex")
-    pandoc_path = os.getenv("MATHBANK_PANDOC_PATH", "").strip() or shutil.which("pandoc")
+    pandoc_path = os.getenv("STARHOPE_PANDOC_PATH", "").strip() or shutil.which("pandoc")
     try:
         import pymupdf  # noqa: F401
 
@@ -469,7 +469,7 @@ def heal_database_curriculum_names():
     evidence that a stored label is invalid.  Startup must preserve those values;
     classification changes belong to an explicit user edit or reviewed migration.
     """
-    from mathbank.database import SessionLocal
+    from starhope.database import SessionLocal
     db = SessionLocal()
     try:
         mappings = {
@@ -542,13 +542,13 @@ async def app_lifespan(_app: FastAPI):
         yield
         return
 
-    from mathbank.tiered_storage import get_storage
+    from starhope.tiered_storage import get_storage
     tiered_storage = get_storage()
     if tiered_storage:
         def storage_busy():
             # Snapshot references without acquiring the task/lifecycle locks in
             # reverse order. Historical interrupted records have no live future.
-            from mathbank.tiered_storage import document_workers_busy
+            from starhope.tiered_storage import document_workers_busy
             return document_workers_busy(DOCUMENT_TASKS._records)
         tiered_storage.start(busy=storage_busy)
 
@@ -561,10 +561,10 @@ async def app_lifespan(_app: FastAPI):
     if project_service:
         project_service.migrate_tasks(copy.deepcopy(get_current_curriculum()))
         _DOCUMENT_PROJECT_STOP.clear()
-        threading.Thread(target=_maintain_document_projects, name="mathbank-project-cleanup", daemon=True).start()
+        threading.Thread(target=_maintain_document_projects, name="starhope-project-cleanup", daemon=True).start()
     threading.Thread(
         target=start_startup_cleanup,
-        name="mathbank-post-startup-maintenance",
+        name="starhope-post-startup-maintenance",
         daemon=True,
     ).start()
     try:
@@ -587,14 +587,14 @@ async def app_lifespan(_app: FastAPI):
         DOCUMENT_TASKS.shutdown(wait=False)
 
 
-app = FastAPI(title="本地化数学题库管理系统 API", lifespan=app_lifespan)
-from mathbank.tiered_storage import StorageActivityMiddleware
+app = FastAPI(title="StarHope 本地化数学题库管理系统 API", lifespan=app_lifespan)
+from starhope.tiered_storage import StorageActivityMiddleware
 app.add_middleware(StorageActivityMiddleware)
 
 
 @app.get("/api/storage/status")
 def external_storage_status():
-    from mathbank.tiered_storage import storage_status
+    from starhope.tiered_storage import storage_status
     return storage_status()
 
 # Enable CORS for local development (restrict allowed origins)
@@ -660,7 +660,7 @@ def watchdog_loop():
 def clean_orphaned_images():
     """Retain unregistered images recoverably; old browser drafts remain usable."""
     try:
-        from mathbank.database import SessionLocal, Question
+        from starhope.database import SessionLocal, Question
         db = SessionLocal()
         try:
             referenced_images = _referenced_question_assets(db)
@@ -722,7 +722,7 @@ def clean_orphaned_images():
 def recalibrate_usage_counts():
     """自动校准全库题目的引用频次 usage_count，修正由于历史删除试卷遗留的计数差异"""
     try:
-        from mathbank.database import SessionLocal, Question, PaperQuestion
+        from starhope.database import SessionLocal, Question, PaperQuestion
         from sqlalchemy import func
         db = SessionLocal()
         try:
@@ -756,7 +756,7 @@ def start_startup_cleanup():
     clean_orphaned_images()
     recalibrate_usage_counts()
     try:
-        from mathbank.database import SessionLocal
+        from starhope.database import SessionLocal
 
         fingerprint_result = rebuild_all_missing_fingerprints(
             SessionLocal,
@@ -832,7 +832,7 @@ def _document_curriculum_sha256():
 
 
 def _register_document_input(task_id, content, document_type, filename, **options):
-    from mathbank.tiered_storage import get_storage
+    from starhope.tiered_storage import get_storage
     storage = get_storage()
     if storage:
         storage.save_received(content, filename, document_type)
@@ -886,7 +886,7 @@ def _document_status(task_id, task):
     if result["can_resume"]:
         result["recovery_message"] = "已保留文档及成功阶段，可继续处理；不会重新识别已完成页面。"
     return result
-from mathbank.pdf_ocr_capacity import PdfOcrCapacity, configured_pdf_ocr_concurrency
+from starhope.pdf_ocr_capacity import PdfOcrCapacity, configured_pdf_ocr_concurrency
 PDF_OCR_CAPACITY = PdfOcrCapacity(configured_pdf_ocr_concurrency())
 # Auxiliary OCR/verification retains its four-request lane, sharing the same
 # process total with the wider first-pass PDF page lane.
@@ -895,7 +895,7 @@ MAX_PDF_TASK_PAGES = LIMITS.pdf_pages
 PDF_SPLIT_RETRY_MAX_BYTES = 4 * 1024 * 1024
 
 def get_seq_mapping(db: Session, question_ids=None):
-    from mathbank.question_ordering import sequence_mapping
+    from starhope.question_ordering import sequence_mapping
     return sequence_mapping(db, question_ids)
 
 # ----------------- Static Files & Index -----------------
@@ -903,7 +903,7 @@ def get_seq_mapping(db: Session, question_ids=None):
 
 @app.get("/healthz", include_in_schema=False)
 def healthz():
-    from mathbank.paths import project_instance_id
+    from starhope.paths import project_instance_id
 
     report = readiness_report(engine)
     report["server_instance_id"] = SERVER_INSTANCE_ID
@@ -913,7 +913,7 @@ def healthz():
 
 @app.get("/")
 def read_index():
-    from mathbank.ui_settings import community_qa_enabled, render_qa_visibility
+    from starhope.ui_settings import community_qa_enabled, render_qa_visibility
 
     index_path = str(STATIC_DIR / "index.html")
     if os.path.exists(index_path):
@@ -1691,7 +1691,7 @@ def ai_solve(
 
 @app.get("/api/settings")
 def get_settings():
-    from mathbank.mineru_api import MINERU_API_DOCS, MINERU_HOMEPAGE, mineru_api_token, mineru_pdf_figures_enabled
+    from starhope.mineru_api import MINERU_API_DOCS, MINERU_HOMEPAGE, mineru_api_token, mineru_pdf_figures_enabled
 
     ds_key = os.getenv("DEEPSEEK_API_KEY", "")
     sf_key = os.getenv("SILICONFLOW_API_KEY", "")
@@ -1788,7 +1788,7 @@ def save_settings(
     mineru_api_token_value: Optional[str] = Form(None, alias="mineru_api_token"),
     mineru_pdf_figures: Optional[bool] = Form(None),
 ):
-    from mathbank.mineru_api import MineruAPIError, mineru_api_token, mineru_pdf_figures_enabled, validate_mineru_api_token
+    from starhope.mineru_api import MineruAPIError, mineru_api_token, mineru_pdf_figures_enabled, validate_mineru_api_token
 
     mineru_updates = {}
     try:
@@ -1868,7 +1868,7 @@ def save_settings(
             "PREFER_SOLVE_MODEL": False,
             "PREFER_PARSE_MODEL": False,
             "PREFER_CLASSIFY_MODEL": False,
-            "MATHBANK_CLASSIFY_MODE": False,
+            "STARHOPE_CLASSIFY_MODE": False,
             "PREFER_DRAW_MODEL": False
         }
         new_lines = []
@@ -1929,9 +1929,9 @@ def save_settings(
             elif line_strip.startswith("PREFER_CLASSIFY_MODEL=") or line_strip.startswith("DEEPSEEK_CLASSIFY_MODEL="):
                 new_lines.append(f"PREFER_CLASSIFY_MODEL={prefer_classify_model}\n")
                 keys_replaced["PREFER_CLASSIFY_MODEL"] = True
-            elif line_strip.startswith("MATHBANK_CLASSIFY_MODE="):
-                new_lines.append(f"MATHBANK_CLASSIFY_MODE={selected_quality}\n")
-                keys_replaced["MATHBANK_CLASSIFY_MODE"] = True
+            elif line_strip.startswith("STARHOPE_CLASSIFY_MODE="):
+                new_lines.append(f"STARHOPE_CLASSIFY_MODE={selected_quality}\n")
+                keys_replaced["STARHOPE_CLASSIFY_MODE"] = True
             elif line_strip.startswith("PREFER_DRAW_MODEL="):
                 new_lines.append(f"PREFER_DRAW_MODEL={prefer_draw_model}\n")
                 keys_replaced["PREFER_DRAW_MODEL"] = True
@@ -1971,8 +1971,8 @@ def save_settings(
             new_lines.append(f"PREFER_PARSE_MODEL={prefer_parse_model}\n")
         if not keys_replaced["PREFER_CLASSIFY_MODEL"]:
             new_lines.append(f"PREFER_CLASSIFY_MODEL={prefer_classify_model}\n")
-        if not keys_replaced["MATHBANK_CLASSIFY_MODE"]:
-            new_lines.append(f"MATHBANK_CLASSIFY_MODE={selected_quality}\n")
+        if not keys_replaced["STARHOPE_CLASSIFY_MODE"]:
+            new_lines.append(f"STARHOPE_CLASSIFY_MODE={selected_quality}\n")
         if not keys_replaced["PREFER_DRAW_MODEL"]:
             new_lines.append(f"PREFER_DRAW_MODEL={prefer_draw_model}\n")
             
@@ -2004,7 +2004,7 @@ def save_settings(
         os.environ["PREFER_SOLVE_MODEL"] = prefer_solve_model
         os.environ["PREFER_PARSE_MODEL"] = prefer_parse_model
         os.environ["PREFER_CLASSIFY_MODEL"] = prefer_classify_model
-        os.environ["MATHBANK_CLASSIFY_MODE"] = selected_quality
+        os.environ["STARHOPE_CLASSIFY_MODE"] = selected_quality
         os.environ["PREFER_DRAW_MODEL"] = prefer_draw_model
         
         return {"status": "success", "message": "API 与首选大模型配置已成功保存并即时生效！"}
@@ -2034,8 +2034,8 @@ def parse_version_tuple(v_str: str):
 @app.get("/api/version")
 def get_version_info():
     """Return local version info."""
-    from mathbank import __version__, GITHUB_REPO
-    from mathbank.paths import project_instance_id
+    from starhope import __version__, GITHUB_REPO
+    from starhope.paths import project_instance_id
     is_git_repo = (PROJECT_ROOT / ".git").exists()
     return {
         "current_version": __version__,
@@ -2048,8 +2048,8 @@ def get_version_info():
 @app.get("/api/version/check-update")
 def check_version_update():
     """Check for latest release on GitHub."""
-    from mathbank import __version__, GITHUB_REPO
-    from mathbank.ai_http import robust_request_get
+    from starhope import __version__, GITHUB_REPO
+    from starhope.ai_http import robust_request_get
     
     is_git_repo = (PROJECT_ROOT / ".git").exists()
     current_ver = __version__
@@ -2071,7 +2071,7 @@ def check_version_update():
         url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
         headers = {
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "MathBank-Question-Bank-App"
+            "User-Agent": "StarHope-Question-Bank-App"
         }
         resp = robust_request_get(url, headers=headers, timeout=5)
         if resp.status_code == 200:
@@ -2711,7 +2711,7 @@ def export_library_transfer(payload: dict, db: Session = Depends(get_db)):
         timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         return FileResponse(
             archive, media_type="application/zip",
-            filename=f"MathBank-{summary['question_count']}questions-{timestamp}.zip",
+            filename=f"StarHope-{summary['question_count']}questions-{timestamp}.zip",
             headers={"Cache-Control": "no-store"},
             background=BackgroundTask(shutil.rmtree, workspace, ignore_errors=True),
         )
@@ -2761,7 +2761,7 @@ def _check_library_import_storage(prepared):
 
 
 def _run_library_import_task(directory, progress, *, confirm_repeat_sha256=None):
-    from mathbank.database import SessionLocal
+    from starhope.database import SessionLocal
 
     archive = directory / "input.zip"
     with prepare_library_import(archive, workspace_dir=directory / "prepared", progress=progress) as prepared:
@@ -2793,7 +2793,7 @@ def _run_library_import_task(directory, progress, *, confirm_repeat_sha256=None)
 
 
 def _run_library_export_task(directory, payload, progress):
-    from mathbank.database import SessionLocal
+    from starhope.database import SessionLocal
 
     progress("waiting")
     with ASSET_LIFECYCLE_LOCK, _METADATA_SAVE_LOCK, SessionLocal() as db:
@@ -2807,7 +2807,7 @@ def _run_library_export_task(directory, payload, progress):
 
 
 def _lookup_library_import(archive_sha256):
-    from mathbank.database import LibraryImportReceipt, SessionLocal
+    from starhope.database import LibraryImportReceipt, SessionLocal
 
     with SessionLocal() as db:
         return db.get(LibraryImportReceipt, archive_sha256) is not None
@@ -2966,7 +2966,7 @@ def download_library_transfer_task(task_id: str):
         raise _transfer_task_http_error(exc) from exc
     return FileResponse(
         archive, media_type="application/zip",
-        filename=f"MathBank-{summary.get('question_count', 0)}questions-{task_id}.zip",
+        filename=f"StarHope-{summary.get('question_count', 0)}questions-{task_id}.zip",
         headers={"Cache-Control": "no-store"},
     )
 
@@ -3089,8 +3089,8 @@ def list_questions(
                 selectinload(Question.knowledge_points),
             )
 
-        from mathbank.question_ordering import library_list_order
-        from mathbank.question_search import (
+        from starhope.question_ordering import library_list_order
+        from starhope.question_search import (
             apply_question_search, apply_question_search_rules, decode_question_search_rule,
             MAX_SEARCH_RULES,
         )
@@ -3468,7 +3468,7 @@ def normalize_fillin_macro(text: str) -> str:
 
     # Code/HTML literals, links, URLs and asset paths cannot supply blank lines.
     literal = re.compile(
-        r"<(?P<literal_tag>code|pre|mathbank-math)\b[^>]*>[\s\S]*?</(?P=literal_tag)\s*>|<!--[\s\S]*?(?:-->|\Z)|"
+        r"<(?P<literal_tag>code|pre|starhope-math)\b[^>]*>[\s\S]*?</(?P=literal_tag)\s*>|<!--[\s\S]*?(?:-->|\Z)|"
         r"!?\[[^\]\n]*\]\([^\n)]*\)|(?:https?|ftp)://[^\s<>\"']+|"
         r"</?[A-Za-z][A-Za-z0-9:_-]*(?:\s+[^<>]*|/?)>", re.IGNORECASE)
     spans.extend((m.start(), m.end(), None) for m in literal.finditer(text))
@@ -3606,8 +3606,8 @@ def normalize_fillin_macro(text: str) -> str:
         result.append(text[start:end] if replacement is None else replacement)
         cursor = end
     result.append(normalize_segment(text[cursor:], cursor))
-    from mathbank.fillin import normalize_fillin_math_wrappers
-    from mathbank.fillin_placeholders import normalize_fillin_placeholder_clusters
+    from starhope.fillin import normalize_fillin_math_wrappers
+    from starhope.fillin_placeholders import normalize_fillin_placeholder_clusters
     return normalize_fillin_placeholder_clusters(normalize_fillin_math_wrappers("".join(result)))
 
 
@@ -4478,7 +4478,7 @@ def delete_question(
     image_paths_to_check = list(db_question.image_paths)
     try:
         from sqlalchemy import func
-        from mathbank.database import QuestionSourceLabel
+        from starhope.database import QuestionSourceLabel
 
         affected_reference_labels = {
             (row.book_key, row.label_key)
@@ -4748,7 +4748,7 @@ def _save_metadata_config(payload: dict, background_tasks: BackgroundTasks, db: 
                 catalog_paths = [{"point_code": row.point_code, **row.to_dict()}
                                  for row in db.query(KnowledgePointCurriculum).filter(
                                      KnowledgePointCurriculum.version_code.in_((source_version, target_version))).all()]
-                from mathbank.knowledge_points import get_curriculum_ancestors
+                from starhope.knowledge_points import get_curriculum_ancestors
                 routing_index = build_curriculum_routing_index(
                     catalog_paths, source_version, target_version, payload["curriculum"],
                     target_ancestors=get_curriculum_ancestors(target_version),
@@ -4973,7 +4973,7 @@ def ai_classify(content: str = Form(...), answer_markdown: str = Form(""),
         user_message, input_context, input_warnings = build_classification_user_message(
             question_input, provider, uploads_dir=UPLOAD_DIR, url_prefix=UPLOAD_DIR_REL)
         if input_context.get("image_manifest"):
-            from mathbank.prompts import build_classification_image_evidence_rule
+            from starhope.prompts import build_classification_image_evidence_rule
             system_instructions += build_classification_image_evidence_rule()
         started = time.monotonic()
         data = {
@@ -5515,12 +5515,12 @@ def get_sources(db: Session = Depends(get_db)):
 
 @app.post("/api/shutdown")
 def shutdown_server(
-    x_mathbank_launch_id: str | None = Header(
-        None, alias="X-MathBank-Launch-ID"
+    x_starhope_launch_id: str | None = Header(
+        None, alias="X-StarHope-Launch-ID"
     ),
 ):
-    if not x_mathbank_launch_id or not secrets.compare_digest(
-        x_mathbank_launch_id, SERVER_INSTANCE_ID
+    if not x_starhope_launch_id or not secrets.compare_digest(
+        x_starhope_launch_id, SERVER_INSTANCE_ID
     ):
         raise HTTPException(status_code=409, detail="Server instance changed")
 
@@ -5702,7 +5702,7 @@ def promote_question_temp_assets(
             )
             # A previous card may already have copied this same shared image.
             # Reuse only byte-identical content and never overwrite a collision.
-            from mathbank.asset_lifecycle import restore_asset
+            from starhope.asset_lifecycle import restore_asset
             restore_asset(destination, uploads_dir=upload_root)
             if destination.exists():
                 with source.open("rb") as original, destination.open("rb") as existing:
@@ -5996,25 +5996,25 @@ def find_source_page_by_overlap(q_text: str, ocr_results: list) -> int:
 @app.get("/api/paper/reference-exams")
 def paper_reference_exams(db: Session = Depends(get_db)):
     """Read bounded metadata for the local reference selector; never call AI."""
-    from mathbank.paper_selection import list_reference_exams
+    from starhope.paper_selection import list_reference_exams
     return {"status": "success", "data": list_reference_exams(db)}
 
 
 @app.post("/api/paper/ai-select")
 def ai_select_paper(payload: dict, db: Session = Depends(get_db)):
     """Plan a filtered paper with one screen and at most one full-reading call."""
-    from mathbank.paper_selection import (
+    from starhope.paper_selection import (
         parse_selection_request, build_reference_context, collect_candidates,
         select_local_candidates,
     )
-    from mathbank.paper_selection_ai import (
+    from starhope.paper_selection_ai import (
         candidate_prompt_items, parse_selection_response, checked_selection, selection_summary,
         candidate_revision, review_shortlist, prepare_full_review, changed_review_image_ids,
         MAX_REVIEW_CANDIDATES,
     )
-    from mathbank.question_search import apply_question_search, apply_question_search_rules
-    from mathbank.paper_standards import build_paper_standard_context
-    from mathbank.paper_standard_alignment import validate_standard_alignment, standard_analysis_text
+    from starhope.question_search import apply_question_search, apply_question_search_rules
+    from starhope.paper_standards import build_paper_standard_context
+    from starhope.paper_standard_alignment import validate_standard_alignment, standard_analysis_text
 
     require_expected_curriculum_version(payload.get("expected_version_code"))
     try:
@@ -6426,7 +6426,7 @@ def post_process_pdf_parsed_questions(parsed_questions: list, paper_title: str, 
 
 
 def _can_resume_cloud_pdf_partial(task_id, task):
-    from mathbank.pdf_partial import resumable_checkpoint
+    from starhope.pdf_partial import resumable_checkpoint
     return (PDF_CLOUD_ONLY and task.get("status") in {"completed", "error", "interrupted"}
             and resumable_checkpoint({**task, "task_id": task_id}))
 
@@ -6446,7 +6446,7 @@ def _restart_cloud_pdf_partial(task_id):
 
 
 def _can_retry_pdf_split(task_id, task):
-    from mathbank.pdf_partial import source_binding
+    from starhope.pdf_partial import source_binding
 
     state = task.get("pdf_split_resume_state")
     return bool(PDF_CLOUD_ONLY and task.get("document_type") == "pdf"
@@ -6490,11 +6490,11 @@ def run_pdf_parsing_task(
 
     from contextlib import closing
 
-    from mathbank.pdf_fidelity import clean_empty_fraction_wrappers, enforce_source_fields, protect_choice_grids
-    from mathbank.mineru_api import mineru_api_token, mineru_pdf_figures_enabled
-    from mathbank.pdf_request_pipeline import iter_pdf_page_requests
-    from mathbank.pdf_vision_request import PDFVisionRequestError
-    from mathbank.pdf_partial import (SCHEMA as PDF_PARTIAL_SCHEMA, source_binding,
+    from starhope.pdf_fidelity import clean_empty_fraction_wrappers, enforce_source_fields, protect_choice_grids
+    from starhope.mineru_api import mineru_api_token, mineru_pdf_figures_enabled
+    from starhope.pdf_request_pipeline import iter_pdf_page_requests
+    from starhope.pdf_vision_request import PDFVisionRequestError
+    from starhope.pdf_partial import (SCHEMA as PDF_PARTIAL_SCHEMA, source_binding,
         checkpoint_summary, complete_boundary_drafts, merge_partial_drafts,
         merge_recovered_questions)
 
@@ -6523,7 +6523,7 @@ def run_pdf_parsing_task(
         DOCUMENT_TASKS.fail(task_id, "整页识图分辨率无效。", document_type="pdf")
         return
     if mineru_source is not None or mineru_figures_only:
-        from mathbank.pdf_mineru_source import MineruPDFSource
+        from starhope.pdf_mineru_source import MineruPDFSource
 
         if (not isinstance(mineru_source, MineruPDFSource)
                 or mineru_source.source_sha256 != hashlib.sha256(file_bytes).hexdigest()
@@ -6537,7 +6537,7 @@ def run_pdf_parsing_task(
             raise TaskCancelled("PDF 任务已移除。")
 
     def fetch_mineru_source(message):
-        from mathbank.mineru_api import request_mineru_pdf_figures
+        from starhope.mineru_api import request_mineru_pdf_figures
 
         if not mineru_token:
             diagnostics["pdf_mineru_api"] = {
@@ -6711,7 +6711,7 @@ def run_pdf_parsing_task(
             native_text = str((page_info or {}).get("markdown") or "").strip()
             if page_info and not page_info.get("needs_ocr") and native_text:
                 ocr_results[local_idx] = (
-                    f"<!-- MATHBANK_PDF_PAGE:{page_num + 1} -->\n{native_text}"
+                    f"<!-- STARHOPE_PDF_PAGE:{page_num + 1} -->\n{native_text}"
                 )
                 native_page_count += 1
             else:
@@ -6719,7 +6719,7 @@ def run_pdf_parsing_task(
 
         furniture_pages = set()
         if pdf_strategy == "layout_aware":
-            from mathbank.pdf_blank_pages import is_confirmed_number_only_page
+            from starhope.pdf_blank_pages import is_confirmed_number_only_page
 
             # Exact printed number is a prefilter; pixel proof is required.
             possible = [index for index in pages_requiring_ocr
@@ -6732,7 +6732,7 @@ def run_pdf_parsing_task(
                         number = target_page_indices[index]
                         if is_confirmed_number_only_page(document[number]):
                             furniture_pages.add(index)
-                            ocr_results[index] = f"<!-- MATHBANK_PDF_PAGE:{number + 1} -->\n"
+                            ocr_results[index] = f"<!-- STARHOPE_PDF_PAGE:{number + 1} -->\n"
             pages_requiring_ocr = [index for index in pages_requiring_ocr if index not in furniture_pages]
         all_ocr_indices = set(pages_requiring_ocr)
         if recovery is not None:
@@ -6766,7 +6766,7 @@ def run_pdf_parsing_task(
         }
         regional_plans: dict[int, dict] = copy.deepcopy((recovery or {}).get("regional_plans") or {})
         if pdf_strategy != "force_ocr" and pages_requiring_ocr:
-            from mathbank.pdf_native_regions import plan_pdf_regions
+            from starhope.pdf_native_regions import plan_pdf_regions
             with fitz.open(stream=file_bytes, filetype="pdf") as document:
                 for local_idx in pages_requiring_ocr:
                     DOCUMENT_TASKS.check_cancelled(task_id)
@@ -6821,7 +6821,7 @@ def run_pdf_parsing_task(
                 return None
 
         def prepared_pages():
-            from mathbank.pdf_vision_details import render_pdf_detail_views
+            from starhope.pdf_vision_details import render_pdf_detail_views
 
             detail_bytes_remaining = 80 * 1024 * 1024
             with fitz.open(tmp_pdf_path) as document:
@@ -6985,7 +6985,7 @@ def run_pdf_parsing_task(
                 permit = None
                 try:
                     if local_idx in mineru_pending:
-                        from mathbank.pdf_page_vision import _prompt_page_info, _validated_page
+                        from starhope.pdf_page_vision import _prompt_page_info, _validated_page
 
                         try:
                             check_request_cancelled()
@@ -7008,7 +7008,7 @@ def run_pdf_parsing_task(
                     real_page_num = target_page_indices[local_idx] + 1
                     joint = None
                     if local_idx in regional_plans:
-                        from mathbank.pdf_region_vision import request_pdf_regions
+                        from starhope.pdf_region_vision import request_pdf_regions
                         joint = request_pdf_regions(
                             image_path, page_info, regional_plans[local_idx],
                             include_figures=pdf_strategy == "layout_aware",
@@ -7017,7 +7017,7 @@ def run_pdf_parsing_task(
                         )
                         raw_text = joint["markdown"]
                     elif pdf_strategy == "layout_aware":
-                        from mathbank.pdf_page_vision import request_pdf_page
+                        from starhope.pdf_page_vision import request_pdf_page
                         detail_kwargs = ({"detail_views": details["views"]}
                                          if details.get("views") else {})
                         joint = request_pdf_page(
@@ -7072,7 +7072,7 @@ def run_pdf_parsing_task(
                         if joint is not None:
                             joint_page_results[real_page_num - 1] = joint
                         ocr_results[local_idx] = (
-                            f"<!-- MATHBANK_PDF_PAGE:{real_page_num} -->\n"
+                            f"<!-- STARHOPE_PDF_PAGE:{real_page_num} -->\n"
                             f"{processed_text.strip()}"
                         )
                     completed += 1
@@ -7164,7 +7164,7 @@ def run_pdf_parsing_task(
         DOCUMENT_TASKS.check_cancelled(task_id)
         if pdf_strategy == "layout_aware":
             if mineru_api_enabled and not use_mineru_ocr:
-                from mathbank.pdf_figures import describe_figure_slots
+                from starhope.pdf_figures import describe_figure_slots
 
                 can_locate = any(
                     len(describe_figure_slots(ocr_results[index] or "", page_num)) == 1
@@ -7206,7 +7206,7 @@ def run_pdf_parsing_task(
                 message = diagnostics["pdf_mineru_api"].get("message")
                 if message:
                     layout_result["diagnostics"]["notes"].append(message)
-            from mathbank.pdf_layout import crop_pdf_figure
+            from starhope.pdf_layout import crop_pdf_figure
 
             def crop_choice_grid(page, box, figure_id):
                 path = crop_pdf_figure(page, box, Path(TMP_UPLOAD_DIR), f"/{UPLOAD_DIR_REL}/tmp",
@@ -7305,7 +7305,7 @@ def run_pdf_parsing_task(
         paper_title = str(options.get("paper_title") or "").strip()
         if not paper_title:
             paper_title = extract_title_from_latex(full_latex_content) or os.path.splitext(filename)[0]
-        source_content = (re.sub(r"<!-- MATHBANK_PDF_PAGE:\d+ -->", "", full_latex_content)
+        source_content = (re.sub(r"<!-- STARHOPE_PDF_PAGE:\d+ -->", "", full_latex_content)
                           if layout_result is not None else full_latex_content)
         locked_source, math_locks = (
             lock_visible_math(source_content, task_id.replace("-", "")[:16])
@@ -7361,8 +7361,8 @@ def run_pdf_parsing_task(
         pdf_preserved_indices = frozenset()
         if layout_result is not None:
             if split_retry is None:
-                from mathbank.pdf_hybrid_request import prepare_pdf_task_plan, request_pdf_hybrid
-                from mathbank.pdf_hybrid_plan import pdf_hybrid_plan_diagnostics
+                from starhope.pdf_hybrid_request import prepare_pdf_task_plan, request_pdf_hybrid
+                from starhope.pdf_hybrid_plan import pdf_hybrid_plan_diagnostics
 
                 pdf_plan = prepare_pdf_task_plan(source_content, diagnostics, source_pages=source_pages,
                     layout_result=layout_result, task_id=task_id, generation=0,
@@ -7424,7 +7424,7 @@ def run_pdf_parsing_task(
                     if hint not in review.setdefault("reasons", []):
                         review["reasons"].append(hint)
         if layout_result is not None:
-            from mathbank.pdf_symbol_risks import annotate_pdf_symbol_risks
+            from starhope.pdf_symbol_risks import annotate_pdf_symbol_risks
             annotate_pdf_symbol_risks(final_questions, diagnostics)
             # Refresh explanations only: reapplying layout attachment here
             # would undo the independently cloned image identity above.
@@ -7444,7 +7444,7 @@ def run_pdf_parsing_task(
                 review_preview_published = bool(preview and review_updated)
                 acquired = False
                 try:
-                    from mathbank.pdf_source_verify import verify_pdf_source_suspicions
+                    from starhope.pdf_source_verify import verify_pdf_source_suspicions
                     while not acquired:
                         DOCUMENT_TASKS.check_cancelled(task_id)
                         acquired = PDF_OCR_SEMAPHORE.acquire(timeout=0.25)
@@ -7670,7 +7670,7 @@ def upload_pdf_task(
     pdf_parse_model: str = Form(""),
 ):
     try:
-        from mathbank.mineru_api import mineru_api_token
+        from starhope.mineru_api import mineru_api_token
 
         client_request_id = _document_request_id(client_request_id)
         if pdf_strategy not in PDF_STRATEGIES:
@@ -7741,7 +7741,7 @@ def _delete_task_temp_assets(paths: list) -> int:
     tmp_root = Path(TMP_UPLOAD_DIR).resolve()
     # Old clients/databases may still contain durable references into tmp.
     # Keep them in place for exports and full backups as well as HTTP reads.
-    from mathbank.database import SessionLocal
+    from starhope.database import SessionLocal
     try:
         with SessionLocal() as db:
             referenced = _referenced_question_assets(db)
@@ -7854,8 +7854,8 @@ def run_docx_parsing_task(
         )
         diagnostics["math_locks_created"] = len(math_locks)
         DOCUMENT_TASKS.check_cancelled(task_id)
-        from mathbank.word_hybrid_plan import build_word_hybrid_plan, word_hybrid_plan_diagnostics
-        from mathbank.word_hybrid_request import request_word_hybrid
+        from starhope.word_hybrid_plan import build_word_hybrid_plan, word_hybrid_plan_diagnostics
+        from starhope.word_hybrid_request import request_word_hybrid
         hybrid_plan = None
         preserved_indices = frozenset()
         if docx_res.get("_source_review_evidence") is not None:
@@ -8000,8 +8000,8 @@ def run_docx_parsing_task(
             )
             acquired = False
             try:
-                from mathbank.docx_source_evidence import prepare_docx_source_evidence
-                from mathbank.docx_source_verify import verify_docx_source_suspicions
+                from starhope.docx_source_evidence import prepare_docx_source_evidence
+                from starhope.docx_source_verify import verify_docx_source_suspicions
 
                 evidence = prepare_docx_source_evidence(
                     file_bytes, output_dir=Path(TMP_UPLOAD_DIR), url_prefix=f"/{UPLOAD_DIR_REL}/tmp",
@@ -8213,7 +8213,7 @@ def _restore_document_project_asset(url):
     path = resolve_upload_asset(url, uploads_dir=UPLOAD_DIR,
                                url_prefix=UPLOAD_DIR_REL, require_file=False)
     if not path.exists():
-        from mathbank.asset_lifecycle import restore_asset
+        from starhope.asset_lifecycle import restore_asset
         restore_asset(path, uploads_dir=UPLOAD_DIR)
     return path
 
@@ -8235,7 +8235,7 @@ def _dispatch_document_project(project_id, analyze=False):
     options = dict(metadata["options"])
     task_id = str(uuid.uuid4())
     if state:
-        from mathbank.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
+        from starhope.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
         state = prepare_pdf_checkpoint(state,task_id=state["task_id"],
             document_sha256=metadata["source_sha256"],page_indices=state["page_indices"],
             strategy=state["strategy"],verify_suspicions=state["verify_suspicions"],
@@ -8269,7 +8269,7 @@ def _dispatch_document_project(project_id, analyze=False):
     if state:
         base["pdf_resume_state"] = state
     pending_fragment_source = bool(state
-        and state.get("transcription_protocol") == "mathbank.pdf-page-fragments.v2"
+        and state.get("transcription_protocol") == "starhope.pdf-page-fragments.v2"
         and any(str(index) not in state.get("pages", {})
             for index in state["page_indices"]
             if index not in state.get("blank_page_indices", [])))
@@ -8310,7 +8310,7 @@ def _release_document_project_assets(urls):
     """Purge only owned page/detail caches; question figures remain recoverable."""
     if not urls:
         return {"deleted":0,"retained_figures":0}
-    from mathbank.database import SessionLocal
+    from starhope.database import SessionLocal
     try:
         protected = DOCUMENT_PROJECTS.referenced_assets() if DOCUMENT_PROJECTS else set()
         with SessionLocal() as db:
@@ -8354,7 +8354,7 @@ def _maintain_document_projects():
         _DOCUMENT_PROJECT_STOP.wait(60)
 
 
-from mathbank.document_project_api import register_document_project_routes
+from starhope.document_project_api import register_document_project_routes
 register_document_project_routes(app,get_service=_document_project_service,
     dispatch_project=_dispatch_document_project,release_assets=_release_document_project_assets)
 

@@ -6,9 +6,9 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank import docx_source_verify as verify
-from mathbank.content_locks import _source_parts
-from mathbank.task_manager import TaskCancelled
+from starhope import docx_source_verify as verify
+from starhope.content_locks import _source_parts
+from starhope.task_manager import TaskCancelled
 from test_docx_source_verify import state, run, _two_question_batch
 
 

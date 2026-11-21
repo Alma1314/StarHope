@@ -1,6 +1,6 @@
 import pytest
 
-from mathbank.question_types import (
+from starhope.question_types import (
     detect_structured_question_form,
     normalize_ai_question_form,
 )

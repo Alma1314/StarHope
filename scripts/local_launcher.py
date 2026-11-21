@@ -17,15 +17,15 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-from mathbank.paths import PROJECT_ROOT, project_instance_id
-from mathbank.storage_access import StorageAccessError, check_startup_storage
+from starhope.paths import PROJECT_ROOT, project_instance_id
+from starhope.storage_access import StorageAccessError, check_startup_storage
 
 PORT = 8000
 BASE_URL = f"http://127.0.0.1:{PORT}"
 ACTIVE_ROOT = PROJECT_ROOT
 MAX_PORT_ATTEMPTS = 20
 UNVERIFIED_PORTS: set[int] = set()
-REPOSITORY = "JudgePeach/math-question-bank"
+REPOSITORY = "Alma1314/StarHope"
 IMPORT_CHECK = (
     "import fastapi,uvicorn,sqlalchemy,greenlet,colorama,multipart,dotenv,"
     "requests,PIL,docx,lxml,defusedxml,olefile,exceptiongroup,sniffio;"
@@ -53,11 +53,11 @@ def _valid_port(value) -> bool:
 
 def configured_port(root: Path) -> tuple[int, bool]:
     """A remembered port is a preference; an explicit environment port is fixed."""
-    override = os.environ.get("MATHBANK_PORT")
+    override = os.environ.get("STARHOPE_PORT")
     if override is not None:
         if (not 1 <= len(override) <= 5 or not override.isascii()
                 or not override.isdecimal() or not _valid_port(int(override))):
-            raise LauncherError("MATHBANK_PORT 必须是 1 至 65535 的整数。")
+            raise LauncherError("STARHOPE_PORT 必须是 1 至 65535 的整数。")
         return int(override), True
     try:
         with (root / ".system_generated" / "launcher-settings.json").open(
@@ -136,7 +136,7 @@ def _legacy_service_matches(version: dict) -> bool:
     """Reuse an older server only with this directory's held lock and token.
 
     No token is sent to the probed service, logged, or changed. An unverified
-    old MathBank remains a conflict; it must not cause a second server start.
+    old StarHope remains a conflict; it must not cause a second server start.
     """
     if not runtime_is_busy(ACTIVE_ROOT):
         return False
@@ -200,7 +200,7 @@ def confirm_port_change(previous: int, proposed: int) -> None:
     print(f"草稿、选题篮和未保存的卷面信息仍保留在原地址 http://127.0.0.1:{previous}；换端口不会自动搬迁。")
     if not sys.stdin or not sys.stdin.isatty():
         raise LauncherError(
-            "请在终端中运行启动器并确认换端口；也可通过 MATHBANK_PORT 指定端口。当前未更换地址。"
+            "请在终端中运行启动器并确认换端口；也可通过 STARHOPE_PORT 指定端口。当前未更换地址。"
         )
     try:
         answer = input("确认切换并记住这个端口？输入 y 确认，其他输入取消：").strip().lower()
@@ -226,7 +226,7 @@ def port_in_use() -> bool:
 
 
 def open_browser() -> None:
-    if os.environ.get("MATHBANK_NO_BROWSER") == "1":
+    if os.environ.get("STARHOPE_NO_BROWSER") == "1":
         return
     try:
         if os.name == "nt":
@@ -317,7 +317,7 @@ def prepare_python(root: Path) -> tuple[Path, Path | None]:
 
 def ensure_dependencies(root: Path, python: Path) -> None:
     print("正在检查 Python 依赖包...")
-    portable = os.environ.get("MATHBANK_PORTABLE_RUNTIME") == "1"
+    portable = os.environ.get("STARHOPE_PORTABLE_RUNTIME") == "1"
     if portable:
         if not environment_works(python, IMPORT_CHECK, root):
             run_checked([str(python), "-c", IMPORT_CHECK], root,
@@ -370,7 +370,7 @@ def start_server(root: Path, python: Path) -> None:
     log = state_dir / "server.log"
     launch_id = uuid.uuid4().hex
     environment = os.environ.copy()
-    environment["MATHBANK_LAUNCH_ID"] = launch_id
+    environment["STARHOPE_LAUNCH_ID"] = launch_id
     command = [str(python), "-u", "-m", "uvicorn", "main:app",
                "--host", "127.0.0.1", "--port", str(PORT)]
     options = {}
@@ -479,7 +479,7 @@ def _choose_another_port(ports: list[int], unavailable: set[int], previous: int)
             return
         unavailable.add(port)
     raise LauncherError(
-        f"端口 {previous} 不可用，候选端口已用尽。请先关闭占用应用，或通过 MATHBANK_PORT 指定其他端口。"
+        f"端口 {previous} 不可用，候选端口已用尽。请先关闭占用应用，或通过 STARHOPE_PORT 指定其他端口。"
     )
 
 
@@ -494,7 +494,7 @@ def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         if callable(getattr(stream, "reconfigure", None)):
             stream.reconfigure(encoding="utf-8", errors="replace")
-    print("本地数学题库（MathBank）启动器")
+    print("本地数学题库（StarHope）启动器")
     try:
         arguments = sys.argv[1:] if argv is None else argv
         if arguments == ["--check-write-access"]:

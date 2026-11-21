@@ -8,9 +8,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import mathbank.document_projects as project_module
-from mathbank.document_projects import DocumentProjectStore, ProjectConflict
-from mathbank.document_project_service import DocumentProjectService
+import starhope.document_projects as project_module
+from starhope.document_projects import DocumentProjectStore, ProjectConflict
+from starhope.document_project_service import DocumentProjectService
 
 
 def _project(tmp_path):

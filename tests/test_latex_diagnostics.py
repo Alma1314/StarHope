@@ -5,10 +5,10 @@ from io import BytesIO
 import os
 import zipfile
 
-from mathbank.latex_diagnostics import build_local_latex_diagnostic
-from mathbank.database import Question
-from mathbank.processing_timeouts import LATEX_EXPORT_TIMEOUT_SECONDS
-from mathbank.paper_helper import (
+from starhope.latex_diagnostics import build_local_latex_diagnostic
+from starhope.database import Question
+from starhope.processing_timeouts import LATEX_EXPORT_TIMEOUT_SECONDS
+from starhope.paper_helper import (
     build_answer_sheet_latex,
     build_latex_document,
     clean_content_for_latex,
@@ -21,7 +21,7 @@ def test_local_diagnostic_maps_cancel_command_to_package():
     tex = "\n".join([
         r"\documentclass{article}",
         r"\begin{document}",
-        "% MathBank-Question-ID: 42",
+        "% StarHope-Question-ID: 42",
         r"\begin{problem}",
         r"已知 $\cancel{x}=1$。",
         r"\end{problem}",
@@ -40,7 +40,7 @@ def test_local_diagnostic_supports_file_line_error_format():
     tex = "\n".join([
         r"\documentclass{article}",
         r"\begin{document}",
-        "% MathBank-Question-ID: 51",
+        "% StarHope-Question-ID: 51",
         r"公式 $\cancel{x}$。",
         r"\end{document}",
     ])
@@ -66,7 +66,7 @@ def test_paper_tex_uses_portable_fontset_and_question_marker():
         }],
     )
     assert r"\documentclass[fontset=fandol]{exam-zh}" in tex
-    assert "% MathBank-Question-ID: 73" in tex
+    assert "% StarHope-Question-ID: 73" in tex
 
 
 def test_paper_tex_preloads_common_math_and_table_packages():
@@ -180,7 +180,7 @@ def test_compile_rejects_error_even_if_xelatex_leaves_a_pdf():
             stderr="",
         )
 
-    with patch("mathbank.paper_helper.subprocess.run", side_effect=fake_run):
+    with patch("starhope.paper_helper.subprocess.run", side_effect=fake_run):
         pdf_bytes, error = compile_tex_to_pdf("unique invalid tex for return-code test")
 
     assert pdf_bytes is None
@@ -206,8 +206,8 @@ def test_compile_auto_loads_known_missing_package():
         return SimpleNamespace(returncode=0, stdout="ok", stderr="")
 
     tex = "\n".join([r"\documentclass{article}", r"\begin{document}", r"$\cancel{x}$", r"\end{document}"])
-    with patch("mathbank.paper_helper.subprocess.run", side_effect=fake_run), patch(
-        "mathbank.paper_helper._with_content_source_pdf_metadata", side_effect=lambda data, notice: data
+    with patch("starhope.paper_helper.subprocess.run", side_effect=fake_run), patch(
+        "starhope.paper_helper._with_content_source_pdf_metadata", side_effect=lambda data, notice: data
     ):
         pdf_bytes, output = compile_tex_to_pdf(tex)
 
@@ -222,7 +222,7 @@ def test_ai_explanation_uses_parse_model_and_minimal_context():
 
     lines = ["% 不应发送的整份试卷机密"] + [f"普通行 {index}" for index in range(2, 15)]
     lines.extend([
-        "% MathBank-Question-ID: 88",
+        "% StarHope-Question-ID: 88",
         r"题目公式 $\cancel{x}$。",
         r"\end{problem}",
     ])

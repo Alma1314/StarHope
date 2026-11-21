@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from mathbank import runtime_components
-from mathbank.processing_timeouts import (
+from starhope import runtime_components
+from starhope.processing_timeouts import (
     RUNTIME_DOWNLOAD_TIMEOUT_SECONDS, RUNTIME_PROBE_TIMEOUT_SECONDS, WORD_CONVERSION_TIMEOUT_SECONDS,
 )
 
@@ -60,7 +60,7 @@ def test_safe_members_omits_optional_official_macos_symlinks():
 def test_find_usable_pandoc_honors_explicit_path(monkeypatch, tmp_path):
     binary = tmp_path / "pandoc"
     binary.write_bytes(b"pandoc")
-    monkeypatch.setenv("MATHBANK_PANDOC_PATH", str(binary))
+    monkeypatch.setenv("STARHOPE_PANDOC_PATH", str(binary))
     monkeypatch.setattr(runtime_components, "_probe_pandoc", lambda path: "pandoc 3.test" if path == binary else None)
 
     resolved = runtime_components.find_usable_pandoc()
@@ -405,7 +405,7 @@ def test_word_smoke_reports_conversion_errors_and_tolerates_cleanup(monkeypatch,
         assert not temp.exists()
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_PANDOC_NATIVE") != "1", reason="Opt-in real platform download and OMML smoke")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_PANDOC_NATIVE") != "1", reason="Opt-in real platform download and OMML smoke")
 def test_native_pandoc_install_in_unicode_path(monkeypatch, tmp_path):
     assert runtime_components._platform_key() is not None, "Native test needs Windows x64 or macOS"
     root = tmp_path / "中文 空格" / "pandoc"

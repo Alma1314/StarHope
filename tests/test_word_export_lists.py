@@ -8,8 +8,8 @@ import pytest
 from lxml import etree
 from PIL import Image
 
-from mathbank import word_export_helper
-from mathbank.word_export_helper import build_word_document
+from starhope import word_export_helper
+from starhope.word_export_helper import build_word_document
 
 
 NS = {

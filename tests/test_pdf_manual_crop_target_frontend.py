@@ -19,12 +19,12 @@ def crop_script(pdf_script):
     begin = source.index("function openPdfCropModalForQuestion(")
     opening = source[begin:source.index("function renderPdfPagesThumbnails(", begin)]
     api = (ROOT / "static/js/api.js").read_text(encoding="utf-8")
-    assets = api[api.index("window.MathBankImageAssets ="):api.index("// Image references remain")]
+    assets = api[api.index("window.StarHopeImageAssets ="):api.index("// Image references remain")]
     return pdf_script.split("const pdfScenarios =", 1)[0] + assets + opening + r"""
 window.ImageLayoutTools={key:path=>path.replace(/^\//,''),normalize:layouts=>JSON.parse(JSON.stringify(layouts))};
 Element.prototype.setSelectionRange=function(start,end){this.selectionStart=start;this.selectionEnd=end;};
-window.MathBankModal={open(){},close(){}};
-window.MathBankDocumentImportSession={getProjectId:()=>window.__projectId,saveSoon:()=>{window.__saves+=1;}};
+window.StarHopeModal={open(){},close(){}};
+window.StarHopeDocumentImportSession={getProjectId:()=>window.__projectId,saveSoon:()=>{window.__saves+=1;}};
 window.__projectId='project-one';window.__saves=0;window.currentPdfTaskId='task-one';
 window.tempCroppedPathsThisSession=[];
 for(const id of ['pdfCropTargetField','pdfCropTargetText','pdfCropTargetHint','pdfCropModal','pdfCropClearBtn'])create(id);
@@ -74,7 +74,7 @@ const cropScenarios={
   const old='/static/uploads/tmp/old.png',next='/static/uploads/tmp/new.png';
   const literal='`![字面图片]('+old+')`';const body=literal+'\n![原图]('+old+')';
   const {q,content}=ready(body,'原答案');q.image_paths=[old];
-  const span=window.MathBankImageAssets.spans(body)[0];
+  const span=window.StarHopeImageAssets.spans(body)[0];
   openPdfCropModalForQuestion(0,{replacement:{field:'content',...span}});
   submitPdfCropCoordinates();await resolveCrop(next);
   assert.equal(content.value,literal+'\n![原图]('+next+')');assert.deepEqual(q.image_paths,[next]);
@@ -84,7 +84,7 @@ const cropScenarios={
   const literal='`![代码]('+old+')`';
   const body='😀前文'+literal+'\n![图一]('+old+' "原说明")\n![图二](<'+old+'>)\n后文';
   const {q,content,answer}=ready(body,'原答案');q.image_paths=[old];
-  const spans=window.MathBankImageAssets.spans(body);assert.equal(spans.length,2);
+  const spans=window.StarHopeImageAssets.spans(body);assert.equal(spans.length,2);
   openPdfCropModalForQuestion(0,{replacement:{field:'content',...spans[1]}});
   submitPdfCropCoordinates();await resolveCrop(next);
   assert.equal(content.value,body.slice(0,spans[1].start)+next+body.slice(spans[1].end));
@@ -95,7 +95,7 @@ const cropScenarios={
   const body='第一步。\n![原说明]('+old+')\n第二步。';
   const {q,answer}=ready('题干',body);q.image_paths=[old];
   q.image_layouts={[window.ImageLayoutTools.key(old)]:{align:'left',size:'large'}};
-  const span=window.MathBankImageAssets.spans(body)[0];
+  const span=window.StarHopeImageAssets.spans(body)[0];
   openPdfCropModalForQuestion(0,{replacement:{field:'answer_markdown',...span}});
   configurePdfCropTarget(window.activePdfCropSession,'content');
   document.getElementById('pdfCropTargetText').setSelectionRange(0,0);
@@ -109,14 +109,14 @@ const cropScenarios={
  },
  async stale_replacement_span_is_rejected_before_open(){
   const old='/static/uploads/tmp/old.png';const {q}=ready('![原图]('+old+')','答案');q.image_paths=[old];
-  const span=window.MathBankImageAssets.spans(q.content)[0];span.start+=1;
+  const span=window.StarHopeImageAssets.spans(q.content)[0];span.start+=1;
   openPdfCropModalForQuestion(0,{replacement:{field:'content',...span}});
   assert.equal(window.activePdfCropSession,null);assert.ok(toasts.at(-1).includes('插图位置已变化'));
  },
  async replaced_private_reference_is_not_a_visible_attachment(){
   const old='/static/uploads/tmp/old.png',next='/static/uploads/tmp/new.png';
   const {q,content}=ready('![原图]('+old+')','答案');q.image_paths=[old];q.tikz_reference_image_path=old;
-  const span=window.MathBankImageAssets.spans(content.value)[0];
+  const span=window.StarHopeImageAssets.spans(content.value)[0];
   openPdfCropModalForQuestion(0,{replacement:{field:'content',...span}});
   submitPdfCropCoordinates();await resolveCrop(next);
   assert.deepEqual(q.image_paths,[next]);assert.equal(q.tikz_reference_image_path,old);
@@ -126,7 +126,7 @@ const cropScenarios={
   for(const repeated of [false,true]){
    const mark='![原图]('+old+')';const {q,content}=ready(mark+(repeated?'\n'+mark:''),'答案');q.image_paths=[old];
    q.content_tikz_assets=[{image_path:old,tikz_code:'原绘图源码',reference_image_path:old}];q.tikz_code='原绘图源码';
-   const span=window.MathBankImageAssets.spans(content.value)[0];
+   const span=window.StarHopeImageAssets.spans(content.value)[0];
    openPdfCropModalForQuestion(0,{replacement:{field:'content',...span}});
    submitPdfCropCoordinates();await resolveCrop(next);
    assert.equal(q.content_tikz_assets.length,repeated?1:0);assert.equal(q.tikz_code,repeated?'原绘图源码':'');

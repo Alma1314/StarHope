@@ -1,6 +1,6 @@
 """Fake-only tests for the shared PDF request budget and reference transport."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 from copy import deepcopy
 import json
 from types import SimpleNamespace
@@ -8,12 +8,12 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.pdf_local_structure import prepare_pdf_local_structure
-from mathbank.pdf_local_structure import adopt_pdf_local_structure_response, build_pdf_local_structure_messages
-from mathbank.pdf_local_request import request_pdf_local_structure, validate_cached_pdf_local_result
-from mathbank.pdf_vision_request import PDFVisionRequestError
-from mathbank.task_manager import TaskCancelled
+from starhope.ai_providers import resolve_text_provider
+from starhope.pdf_local_structure import prepare_pdf_local_structure
+from starhope.pdf_local_structure import adopt_pdf_local_structure_response, build_pdf_local_structure_messages
+from starhope.pdf_local_request import request_pdf_local_structure, validate_cached_pdf_local_result
+from starhope.pdf_vision_request import PDFVisionRequestError
+from starhope.task_manager import TaskCancelled
 
 TREE = {"必修一": {"3. 函数": []}}
 NORMAL = resolve_text_provider('deepseek-flash', {'DEEPSEEK_API_KEY':'fake-no-network'})
@@ -23,7 +23,7 @@ STREAM = resolve_text_provider('SILICONFLOW/Qwen/Qwen3.8-27B', {'SILICONFLOW_API
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(requests.sessions.Session, 'request', lambda *_a, **_kw: pytest.fail('No real API permitted'))
-    monkeypatch.setattr('mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS', 0)
+    monkeypatch.setattr('starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS', 0)
 
 
 class Response:

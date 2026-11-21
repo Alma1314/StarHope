@@ -5,10 +5,10 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from mathbank.database import Base, Question
-from mathbank.question_ordering import sequence_order, sequence_mapping, library_list_order
-from mathbank.question_reads import find_association_candidates
-from mathbank.question_references import sync_question_source_labels, sync_question_references, reference_payloads
+from starhope.database import Base, Question
+from starhope.question_ordering import sequence_order, sequence_mapping, library_list_order
+from starhope.question_reads import find_association_candidates
+from starhope.question_references import sync_question_source_labels, sync_question_references, reference_payloads
 
 
 @pytest.fixture
@@ -81,14 +81,14 @@ def test_api_lists_detail_and_sequence_lookup_use_same_custom_order(client, db_s
     assert client.get('/api/questions/16').json()['seq_num']==2
     found=client.get('/api/questions',params={'q':'#2','page':1}).json()['items']
     assert [x['id']for x in found]==[16]
-    from mathbank.library_transfer import preview_library_questions
+    from starhope.library_transfer import preview_library_questions
     preview=preview_library_questions(db_session,question_ids=[9,16],active_version='A')
     assert [(x['id'],x['seq_num'])for x in preview['items']]==[(9,3),(16,2)]
 
 
 def test_sync_export_keeps_display_order_within_batches(ordered_db, tmp_path, monkeypatch):
     import json
-    from mathbank import sync_helper
+    from starhope import sync_helper
     db=ordered_db;reorder(db)
     monkeypatch.setattr(sync_helper,'BACKUP_DIR',str(tmp_path))
     monkeypatch.setattr(sync_helper,'JSON_BACKUP_PATH',str(tmp_path/'questions.json'))
@@ -102,7 +102,7 @@ def test_sync_export_keeps_display_order_within_batches(ordered_db, tmp_path, mo
 
 
 def test_schema14_upgrade_preserves_rows_and_is_idempotent(tmp_path, monkeypatch):
-    from mathbank import db_migrations as migrations
+    from starhope import db_migrations as migrations
     path=tmp_path/'old.db';engine=create_engine(f"sqlite:///{path}")
     from sqlalchemy.schema import CreateTable
     sql = str(CreateTable(Question.__table__).compile(engine))

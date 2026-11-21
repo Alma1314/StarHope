@@ -35,7 +35,7 @@ def test_untrusted_html_uses_dompurify_and_local_image_allowlist():
     import_source = _read(STATIC_JS_DIR / "import.js")
     paper_source = _read(STATIC_JS_DIR / "paper.js")
 
-    assert "window.MathBankSafe = MathBankSafe" in api_source
+    assert "window.StarHopeSafe = StarHopeSafe" in api_source
     assert "window.DOMPurify.sanitize" in api_source
     assert "ALLOWED_TAGS" in api_source
     assert "ALLOWED_ATTR" in api_source
@@ -43,11 +43,11 @@ def test_untrusted_html_uses_dompurify_and_local_image_allowlist():
     assert "url.origin !== window.location.origin" in api_source
 
     assert "sanitizeRichHtml(preprocessFormulaForKaTeX(text, imageLayouts))" in editor_source
-    assert "MathBankSafe.safeImageUrl(src)" in editor_source
-    assert "MathBankSafe.safeImageUrl(m[1])" in paper_source
+    assert "StarHopeSafe.safeImageUrl(src)" in editor_source
+    assert "StarHopeSafe.safeImageUrl(m[1])" in paper_source
     assert "window.parseMarkdownWithMath(html, imageLayouts, paperContentReferenceContext(html, qid))" in paper_source
-    assert "MathBankSafe.sanitizeRichHtml(html)" in import_source
-    assert "MathBankSafe.escapeAttribute(rawModel)" in api_source
+    assert "StarHopeSafe.sanitizeRichHtml(html)" in import_source
+    assert "StarHopeSafe.escapeAttribute(rawModel)" in api_source
     assert r"\.(?:png|jpe?g|gif|webp)$" in api_source
     assert "return url.pathname;" in api_source
     assert "return url.pathname + url.search;" not in api_source
@@ -58,17 +58,17 @@ def test_plain_text_helpers_preserve_math_comparison_signs_in_real_js():
     assert node, "Node.js is required for the frontend executable regression"
 
     api_source = _read(STATIC_JS_DIR / "api.js")
-    helper_start = api_source.index("const MathBankSafe = (() =>")
-    helper_end = api_source.index("window.MathBankSafe = MathBankSafe;", helper_start)
+    helper_start = api_source.index("const StarHopeSafe = (() =>")
+    helper_end = api_source.index("window.StarHopeSafe = StarHopeSafe;", helper_start)
     helper_source = api_source[helper_start:helper_end]
     script = f"""
 const window = {{}};
 {helper_source}
 const raw = '$x<y$ and $y>z$ <not-a-tag>';
-if (MathBankSafe.sanitizePlainText(raw) !== raw) {{
+if (StarHopeSafe.sanitizePlainText(raw) !== raw) {{
   throw new Error('plain-text sink changed mathematical comparison signs');
 }}
-const escaped = MathBankSafe.escapeText(raw);
+const escaped = StarHopeSafe.escapeText(raw);
 if (escaped !== '$x&lt;y$ and $y&gt;z$ &lt;not-a-tag&gt;') {{
   throw new Error(`unexpected escaped text: ${{escaped}}`);
 }}
@@ -985,7 +985,7 @@ def test_shutdown_request_is_bound_to_the_rendered_server_instance():
     shutdown_source = api_source[shutdown_start:shutdown_end]
 
     assert "'/api/shutdown'" in shutdown_source
-    assert "'X-MathBank-Launch-ID'" in shutdown_source
+    assert "'X-StarHope-Launch-ID'" in shutdown_source
     assert "window.__serverInstanceId || ''" in shutdown_source
     assert "if (!response.ok)" in shutdown_source
     assert "overlay.remove()" in shutdown_source
@@ -1191,7 +1191,7 @@ def test_parsed_save_generation_prevents_index_reuse_and_stale_callback_in_real_
         assert function_source.index("blockImportResetWhileSaving()") < function_source.index(mutation_marker)
 
     script = f"""
-const window = {{ MathBankSafe: {{ safeImageUrl(value) {{ return value; }} }} }};
+const window = {{ StarHopeSafe: {{ safeImageUrl(value) {{ return value; }} }} }};
 {points_source}
 let parsedQuestionsData = [];
 let parsedQuestionsGeneration = 0;

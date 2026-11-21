@@ -4,9 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank.database import Question
-from mathbank.paper_selection_ai import candidate_prompt_items, parse_selection_response, checked_selection
-from mathbank.prompts import build_paper_selection_prompts
+from starhope.database import Question
+from starhope.paper_selection_ai import candidate_prompt_items, parse_selection_response, checked_selection
+from starhope.prompts import build_paper_selection_prompts
 
 
 @pytest.fixture(autouse=True)

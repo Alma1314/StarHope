@@ -1,5 +1,5 @@
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 from copy import deepcopy
 import hashlib
 import json
@@ -8,10 +8,10 @@ from types import SimpleNamespace
 from PIL import Image, ImageDraw
 import pytest
 
-from mathbank import docx_source_verify as verify
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.content_locks import _source_parts, lock_visible_math, reconcile_visible_math
-from mathbank.task_manager import TaskCancelled
+from starhope import docx_source_verify as verify
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.content_locks import _source_parts, lock_visible_math, reconcile_visible_math
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ def test_visual_confirmation_preserves_content_evidence_and_unrelated_unmatched(
 
 
 def _signed_footer_evidence(state, tmp_path, monkeypatch):
-    from mathbank import docx_source_evidence as renderer
+    from starhope import docx_source_evidence as renderer
     from test_docx_footer_cache_render_evidence import package
     import pymupdf as fitz
     monkeypatch.setattr(renderer, 'SYSTEM_GENERATED_DIR', tmp_path / 'isolated-system')
@@ -747,7 +747,7 @@ def _image_question_batch(state, monkeypatch, count=6, pictures_per_item=4):
 
 
 def test_candidate_image_batch_budget_splits_before_any_paid_call(state, monkeypatch):
-    from mathbank import source_review_images
+    from starhope import source_review_images
     allowed = _image_question_batch(state, monkeypatch)
     monkeypatch.setattr(source_review_images, 'MAX_BATCH_PIXELS', 16 * 20 * 20)
     report = run(state, candidate_image_paths=allowed)
@@ -762,7 +762,7 @@ def test_candidate_image_batch_budget_splits_before_any_paid_call(state, monkeyp
 
 
 def test_image_based_batch_split_still_honors_total_call_cap(state, monkeypatch):
-    from mathbank import source_review_images
+    from starhope import source_review_images
     allowed = _image_question_batch(state, monkeypatch)
     monkeypatch.setattr(source_review_images, 'MAX_BATCH_PIXELS', 16 * 20 * 20)
     monkeypatch.setattr(verify, 'MAX_CALLS', 1)
@@ -792,7 +792,7 @@ def test_single_question_with_seven_small_images_uses_available_resource_budget(
 
 
 def test_single_question_candidate_pixel_limit_skips_only_affected_question(state, monkeypatch):
-    from mathbank import source_review_images
+    from starhope import source_review_images
     allowed = _image_question_batch(state, monkeypatch, count=1, pictures_per_item=7)
     monkeypatch.setattr(source_review_images, 'MAX_ITEM_PIXELS', 6 * 20 * 20)
     report = run(state, candidate_image_paths=allowed)

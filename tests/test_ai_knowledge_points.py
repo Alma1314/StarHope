@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank.ai_knowledge_points import (
+from starhope.ai_knowledge_points import (
     annotate_ai_knowledge_points, build_ai_knowledge_prompt, load_ai_knowledge_catalog,
 )
-from mathbank.database import KnowledgePoint
+from starhope.database import KnowledgePoint
 
 
 CATALOG = [{"code": "local:teacher-function", "name": "函数概念", "original_name": "函数的概念",
@@ -105,8 +105,8 @@ def test_same_single_question_post_returns_points_and_coarse_form(monkeypatch, d
 
 
 def test_word_metadata_keeps_source_and_bad_points_without_full_source_fallback(monkeypatch):
-    from mathbank.docx_helper import _new_diagnostics
-    from mathbank.source_metadata import prepare_word_source_metadata, apply_source_metadata_response, build_source_metadata_messages
+    from starhope.docx_helper import _new_diagnostics
+    from starhope.source_metadata import prepare_word_source_metadata, apply_source_metadata_response, build_source_metadata_messages
     plan = prepare_word_source_metadata("1. 研究函数$f(x)$的概念。", _new_diagnostics())
     assert plan["eligible"]
     messages = build_source_metadata_messages(plan, {"必修一": {"函数": []}}, CATALOG)
@@ -196,7 +196,7 @@ def test_source_import_restores_formula_lock_evidence_before_point_validation(mo
     def post(_provider, payload, **_kwargs):
         calls.append(payload)
         model_source = payload["messages"][1]["content"]
-        tag = re.search(r'<mathbank-math id="(MBM_[^"]+)">(.*?)</mathbank-math>', model_source, re.DOTALL)
+        tag = re.search(r'<starhope-math id="(MBM_[^"]+)">(.*?)</starhope-math>', model_source, re.DOTALL)
         assert tag
         token = "[[" + tag[1] + "]]"
         evidence = token if evidence_kind == "token" else tag[0]

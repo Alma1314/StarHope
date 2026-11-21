@@ -5,13 +5,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.import_classification import normalize_import_classifications
-from mathbank.source_metadata import (
+from starhope.docx_helper import _new_diagnostics
+from starhope.import_classification import normalize_import_classifications
+from starhope.source_metadata import (
     SourceMetadataIdentityError, SourceMetadataNoFallbackError,
     apply_source_metadata_response, prepare_word_source_metadata,
 )
-from mathbank.source_metadata_request import request_word_source_metadata
+from starhope.source_metadata_request import request_word_source_metadata
 
 
 CURRICULUM = {"必修一": {"函数": ["函数概念"]}}
@@ -97,7 +97,7 @@ def test_choice_structure_without_explicit_single_multi_type_never_guesses():
 
 @pytest.mark.parametrize("mutation", ["unknown", "duplicate", "missing", "body", "bad_type", "bad_difficulty", "extra"])
 def test_one_metadata_post_never_rewrites_frozen_body_for_local_metadata_errors(monkeypatch, mutation):
-    import mathbank.source_metadata_request as module
+    import starhope.source_metadata_request as module
     plan, reply = prepared()
     if mutation == "unknown": reply["items"][0]["id"] = "unknown"
     elif mutation == "duplicate": reply["items"][1] = deepcopy(reply["items"][0])

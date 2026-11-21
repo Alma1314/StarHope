@@ -12,8 +12,8 @@ from PIL import Image
 import pymupdf as fitz
 import pytest
 
-from mathbank.pdf_inspector_helper import inspect_and_extract_pdf, merge_pdf_page_texts
-from mathbank.pdf_source_scopes import (
+from starhope.pdf_inspector_helper import inspect_and_extract_pdf, merge_pdf_page_texts
+from starhope.pdf_source_scopes import (
     finalize_pdf_source_review_evidence, verify_pdf_source_review_evidence,
     _capture_native_source_evidence, _open, _NativePdfEvidence,
 )
@@ -50,10 +50,10 @@ def extract(blob):
 
 def source_state(result,*,origins=None):
     pages=[{'page_number':p['page_index']+1,'origin':(origins or {}).get(p['page_index'],'native'),
-            'markdown':f"<!-- MATHBANK_PDF_PAGE:{p['page_index']+1} -->\n"+p['markdown'],'figures':[]} for p in result['pages']]
+            'markdown':f"<!-- STARHOPE_PDF_PAGE:{p['page_index']+1} -->\n"+p['markdown'],'figures':[]} for p in result['pages']]
     # This is the exact current production operation, retaining the newline
     # left by a stripped page comment, including three newlines between pages.
-    source=re.sub(r'<!-- MATHBANK_PDF_PAGE:\d+ -->','',merge_pdf_page_texts([p['markdown'] for p in pages]))
+    source=re.sub(r'<!-- STARHOPE_PDF_PAGE:\d+ -->','',merge_pdf_page_texts([p['markdown'] for p in pages]))
     return source,pages
 
 
@@ -123,7 +123,7 @@ def test_physical_order_visibility_and_figure_uncertainty_are_not_erased(kwargs,
 
 
 def test_independent_font_glyph_identity_failure_keeps_native_untrusted(positive_pdf,monkeypatch):
-    import mathbank.pdf_source_scopes as scopes
+    import starhope.pdf_source_scopes as scopes
     result=inspect_and_extract_pdf(positive_pdf)
     class WrongFont:
         def has_glyph(self,*a,**kw):return 0
@@ -156,7 +156,7 @@ def test_late_source_page_layout_and_native_diagnostic_mutation_rejects_private_
 
 
 def test_task_usage_fields_do_not_change_native_snapshot_and_verify_does_not_reopen_pdf(positive_pdf,monkeypatch):
-    import mathbank.pdf_source_scopes as scopes
+    import starhope.pdf_source_scopes as scopes
     result=extract(positive_pdf);source,pages,evidence,_=bind(positive_pdf,result)
     monkeypatch.setattr(scopes.fitz,'open',lambda *a,**kw:pytest.fail('Late verifier must not reanalyze original PDF'))
     proof=verify_pdf_source_review_evidence(source,{'pdf_hybrid_usage':{'tokens':100}},evidence,
@@ -169,7 +169,7 @@ def test_bound_visual_crop_asset_is_rechecked_even_though_visual_page_is_not_nat
     result=extract(positive_pdf);source,pages=source_state(result,origins={0:'joint_vision'})
     image=tmp_path/'crop.png';png=BytesIO();Image.new('RGB',(8,8),'red').save(png,format='PNG');image.write_bytes(png.getvalue())
     url='/static/test_uploads/research/crop.png';pages[0]['markdown']+='\n![插图]('+url+')';pages[0]['figures']=[{'id':'f1','image_path':url,'bbox':[1,2,3,4]}]
-    source=re.sub(r'<!-- MATHBANK_PDF_PAGE:\d+ -->','',pages[0]['markdown'].strip())
+    source=re.sub(r'<!-- STARHOPE_PDF_PAGE:\d+ -->','',pages[0]['markdown'].strip())
     source,pages,evidence,proof=bind(positive_pdf,result,source=source,pages=pages,asset_paths={url:image})
     assert proof['status']=='ready' and proof['asset_count']==1 and not proof['pages'][0]['reliable']
     if mutation=='replace':image.write_bytes(b'changed')
@@ -190,15 +190,15 @@ def test_public_json_or_changed_private_signature_does_not_authorize_native_trus
 def test_missing_selected_page_and_foreign_page_marker_are_global_uncertainty():
     blob=make_pdf(pages=2);result=extract(blob);source,pages=source_state(result)
     bad=deepcopy(pages);bad[0]['markdown']=bad[0]['markdown'].replace('PAGE:1','PAGE:2')
-    wrong_source=re.sub(r'<!-- MATHBANK_PDF_PAGE:\d+ -->','',merge_pdf_page_texts([r['markdown'] for r in bad]))
+    wrong_source=re.sub(r'<!-- STARHOPE_PDF_PAGE:\d+ -->','',merge_pdf_page_texts([r['markdown'] for r in bad]))
     proof=bind(blob,result,source=wrong_source,pages=bad)[3]
     assert proof['status']=='uncertain' and 'source_page_marker_identity_unproved' in proof['global_reasons']
-    short_source=re.sub(r'<!-- MATHBANK_PDF_PAGE:\d+ -->','',pages[0]['markdown'].strip())
+    short_source=re.sub(r'<!-- STARHOPE_PDF_PAGE:\d+ -->','',pages[0]['markdown'].strip())
     assert bind(blob,result,source=short_source,pages=pages[:1])[3]['status']=='uncertain'
 
 
 def test_optional_native_producer_failure_preserves_original_extraction(positive_pdf,monkeypatch):
-    import mathbank.pdf_source_scopes as scopes
+    import starhope.pdf_source_scopes as scopes
     baseline=inspect_and_extract_pdf(positive_pdf)
     monkeypatch.setattr(scopes,'_capture_native_source_evidence',lambda *a,**kw:(_ for _ in ()).throw(ValueError('fixture')))
     result=extract(positive_pdf)
@@ -207,7 +207,7 @@ def test_optional_native_producer_failure_preserves_original_extraction(positive
 
 
 def test_real_cm_script_repair_requires_reproduced_glyph_consumption_not_reported_complete(monkeypatch):
-    import mathbank.pdf_inspector_helper as helper
+    import starhope.pdf_inspector_helper as helper
     blob=(Path(__file__).parent/'fixtures/pdf_source_scopes/supported_cm_script.pdf').read_bytes()
     # A backend rejection only triggers the existing repair. The proof itself
     # must read the real embedded CM glyph geometry and reproduce all output.
@@ -225,7 +225,7 @@ def test_real_cm_script_repair_requires_reproduced_glyph_consumption_not_reporte
 
 
 def test_false_native_repair_status_on_plain_page_cannot_mint_supported_math(positive_pdf,monkeypatch):
-    import mathbank.pdf_inspector_helper as helper
+    import starhope.pdf_inspector_helper as helper
     result=inspect_and_extract_pdf(positive_pdf)
     row=deepcopy(result['pages'][0]);row.update(source='native-math-repaired',native_repair={'status':'repaired','glyphs_consumed':100})
     packet=_open(_NativePdfEvidence,_capture_native_source_evidence(positive_pdf,[row]))
@@ -233,7 +233,7 @@ def test_false_native_repair_status_on_plain_page_cannot_mint_supported_math(pos
 
 
 def test_same_font_name_on_another_page_cannot_reuse_the_previous_resource_mapping(monkeypatch):
-    import mathbank.pdf_source_scopes as scopes
+    import starhope.pdf_source_scopes as scopes
     class Font:
         def __init__(self,data):self.data=data
         def has_glyph(self,*a,**kw):return 7 if self.data==b'first-font' else 8

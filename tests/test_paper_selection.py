@@ -6,8 +6,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from mathbank.database import Base, KnowledgePoint, Question, QuestionKnowledgePoint
-from mathbank.paper_selection import (
+from starhope.database import Base, KnowledgePoint, Question, QuestionKnowledgePoint
+from starhope.paper_selection import (
     MAX_CANDIDATES, build_reference_context, collect_candidates, list_reference_exams,
     parse_gaokao_source, parse_selection_request, select_local_candidates,
 )

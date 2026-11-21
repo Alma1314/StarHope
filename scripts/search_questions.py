@@ -7,8 +7,8 @@ import math
 import sqlite3
 import sys
 
-from mathbank.agent_reads import AgentReader
-from mathbank.paths import DATABASE_FILE
+from starhope.agent_reads import AgentReader
+from starhope.paths import DATABASE_FILE
 
 
 DB_PATH = str(DATABASE_FILE)

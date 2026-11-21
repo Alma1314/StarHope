@@ -13,10 +13,10 @@ import pymupdf as fitz
 import pytest
 import requests
 
-from mathbank.task_manager import TaskCancelled
+from starhope.task_manager import TaskCancelled
 
 
-from mathbank import pdf_vision_details as details
+from starhope import pdf_vision_details as details
 
 
 @pytest.fixture(autouse=True)

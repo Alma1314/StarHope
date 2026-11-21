@@ -17,7 +17,7 @@ from test_preview_browser import Browser
 
 
 ROOT = Path(__file__).resolve().parents[1]
-pytestmark = pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1",
+pytestmark = pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1",
                                reason="opt-in actual browser regression")
 
 
@@ -32,18 +32,18 @@ def search_browser(tmp_path_factory):
     assert executable, "Install optional agent-browser and Chromium for this regression"
     root = tmp_path_factory.mktemp("sidebar-search-browser")
     shutil.copy2(ROOT / "main.py", root / "main.py")
-    for directory in ("mathbank", "templates", "static"):
+    for directory in ("starhope", "templates", "static"):
         shutil.copytree(ROOT / directory, root / directory, ignore=shutil.ignore_patterns(
             "__pycache__", "*.pyc", "uploads", "test_uploads", ".env*", "*.db*", "*.sqlite*"))
     assert not (root / ".env").exists()
-    assert not (root / "math_question_bank.db").exists()
+    assert not (root / "starhope.db").exists()
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     url = f"http://127.0.0.1:{port}"
-    env = dict(os.environ, MATHBANK_LAUNCH_ID=uuid.uuid4().hex)
+    env = dict(os.environ, STARHOPE_LAUNCH_ID=uuid.uuid4().hex)
     env.pop("PYTHONPATH", None)
-    browser = Browser(executable, "mathbank-search-" + uuid.uuid4().hex[:12])
+    browser = Browser(executable, "starhope-search-" + uuid.uuid4().hex[:12])
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     owned_pids = set()
     with (root / "server.log").open("w") as log:

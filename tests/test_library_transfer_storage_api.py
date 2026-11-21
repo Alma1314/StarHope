@@ -13,8 +13,8 @@ import uuid
 
 import pytest
 
-from mathbank import backup, sync_helper
-from mathbank.storage_access import StorageAccessError
+from starhope import backup, sync_helper
+from starhope.storage_access import StorageAccessError
 from test_library_transfer_api import transfer_api, _export, _seed, _question_count  # noqa: F401
 from test_library_transfer_tasks_api import tasks_api, _start_import, _wait  # noqa: F401
 

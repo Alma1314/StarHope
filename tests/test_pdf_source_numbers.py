@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from mathbank.content_locks import lock_visible_math
-from mathbank.pdf_source_numbers import resolve_pdf_scope_source_numbers
+from starhope.content_locks import lock_visible_math
+from starhope.pdf_source_numbers import resolve_pdf_scope_source_numbers
 
 
 def fixture():
@@ -112,7 +112,7 @@ def test_original_matcher_formula_or_review_changes_never_leak_to_returned_text(
 
 
 def test_an_answer_outside_the_stem_cannot_prove_a_missing_question_number(monkeypatch):
-    import mathbank.pdf_source_numbers as module
+    import starhope.pdf_source_numbers as module
     source,rows=fixture()
     answer=source.index("# 参考答案与解析")
     monkeypatch.setattr(module,"reconcile_visible_math",lambda *a,**kw:{"source_matches":[

@@ -2,7 +2,7 @@
 // Restoring this record only reads task status; a paid continuation needs a click.
 (() => {
     'use strict';
-    const STORAGE_KEY = 'mathbank_document_import_session_v1';
+    const STORAGE_KEY = 'starhope_document_import_session_v1';
     const fields = {
         content: 'content-textarea', answer_markdown: 'answer-textarea',
         question_type: 'qtype', difficulty: 'difficulty', source: 'source',
@@ -170,7 +170,7 @@
         // A task status can report a revision saved by a different window.
         // Only the server's still-current first machine draft has authority to
         // acknowledge the upload's 0-to-1 transition without replacing edits.
-        if (!receipt || receipt.schema !== 'mathbank.document-project-initial-revision.v1'
+        if (!receipt || receipt.schema !== 'starhope.document-project-initial-revision.v1'
                 || receipt.origin !== 'first_machine_draft'
                 || receipt.project_id !== state?.projectId || metadata.projectId !== state.projectId
                 || !validId(receipt.task_id) || receipt.task_id !== state.taskId || receipt.task_id !== metadata.taskId
@@ -1349,7 +1349,7 @@
         if (state && (state.taskId || state.clientRequestId)) reconnect();
     }
 
-    window.MathBankDocumentImportSession = { begin, update, completed, mergeCompletion, previewLocalDraft, previewPdfReview, pdfReviewInProgress,
+    window.StarHopeDocumentImportSession = { begin, update, completed, mergeCompletion, previewLocalDraft, previewPdfReview, pdfReviewInProgress,
         saveSoon, flush, clear, prepareNewImport: clear, reconnect, resume, refreshCatalogs, isRestored: () => restored, isProject: () => validId(state?.projectId), getProjectId: () => state?.projectId || null,
         refreshProjects, openProject, deleteProject, saveServerNow, forkProject, analyzeProject, prepareQuestionImport, renderCandidate };
     document.addEventListener('input', event => {

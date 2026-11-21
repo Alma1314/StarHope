@@ -10,8 +10,8 @@ import zipfile
 import pytest
 from PIL import Image
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.mtef_helper import decode_mtef_formula, extract_mtef_from_ole
+from starhope.docx_helper import extract_docx_markdown
+from starhope.mtef_helper import decode_mtef_formula, extract_mtef_from_ole
 
 
 def native(payload):
@@ -51,7 +51,7 @@ def test_legacy_equation_native_inside_ole_retains_version_dispatch(monkeypatch,
         def listdir(self, **_kwargs): return [["Equation Native"]]
         def openstream(self, _path): return BytesIO(native(payload))
 
-    monkeypatch.setattr("mathbank.mtef_helper.olefile.OleFileIO", Compound)
+    monkeypatch.setattr("starhope.mtef_helper.olefile.OleFileIO", Compound)
     result = decode_mtef_formula(b"simulated compound container")
     assert not result.success and f"MTEF {version}" in result.warning
 

@@ -10,7 +10,7 @@ import sys
 import pytest
 from PIL import Image
 
-from mathbank.agent_reads import AgentReader
+from starhope.agent_reads import AgentReader
 
 
 SCHEMA = """
@@ -73,7 +73,7 @@ def reader(library, **kwargs):
 
 def test_module_import_does_not_load_database_or_create_persistent_files(tmp_path):
     root = Path(__file__).resolve().parents[1]
-    code = "import sys;sys.path.insert(0,sys.argv[1]);import mathbank.agent_reads;assert 'mathbank.database' not in sys.modules"
+    code = "import sys;sys.path.insert(0,sys.argv[1]);import starhope.agent_reads;assert 'starhope.database' not in sys.modules"
     result = subprocess.run([sys.executable, "-B", "-c", code, str(root)], cwd=tmp_path, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert list(tmp_path.iterdir()) == []
@@ -257,7 +257,7 @@ def test_observed_enums_and_display_identity(library):
 
 
 def test_assets_roles_missing_reference_and_no_restoration(library, monkeypatch):
-    from mathbank import asset_lifecycle
+    from starhope import asset_lifecycle
     monkeypatch.setattr(asset_lifecycle, "restore_asset", lambda *a, **k: pytest.fail("read must never restore images"))
     for name in ("stem.png", "answer.png", "review.png", "reference.png", "legacy.png"):
         Image.new("RGB", (37, 19), "white").save(library[1] / name)

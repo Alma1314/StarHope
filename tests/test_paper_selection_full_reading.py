@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from mathbank.paper_selection_ai import candidate_prompt_items, prepare_full_review
+from starhope.paper_selection_ai import candidate_prompt_items, prepare_full_review
 from test_paper_selection_api import add, select, no_real_selection_requests  # noqa: F401
 
 
@@ -96,7 +96,7 @@ def test_text_budget_never_truncates_a_full_review(client, db_session, monkeypat
 
 
 def test_unknown_model_does_not_read_or_fetch_missing_pixels(client, db_session, monkeypatch, tmp_path):
-    import mathbank.paper_selection_ai as module
+    import starhope.paper_selection_ai as module
     q = add(db_session, '函数图像如图。![](https://example.invalid/never-download.png)')
     monkeypatch.setattr(module, 'resolve_upload_asset', lambda *_a, **_k: pytest.fail('unknown model must not open images'))
     calls = mock_stages(monkeypatch, lambda _n, _p: body([q.id]))
@@ -110,7 +110,7 @@ def test_unknown_model_does_not_read_or_fetch_missing_pixels(client, db_session,
 
 @pytest.mark.parametrize('change', [False, True])
 def test_confirmed_model_gets_safe_pixels_and_changed_assets_are_excluded(client, db_session, monkeypatch, tmp_path, change):
-    import mathbank.paper_selection_ai as module
+    import starhope.paper_selection_ai as module
     monkeypatch.setattr(module, 'UPLOADS_DIR', tmp_path)
     image = tmp_path / 'diagram.png'
     Image.new('RGB', (80, 60), 'white').save(image)
@@ -171,7 +171,7 @@ def test_screening_and_followup_are_bounded_to_existing_pool(client, db_session,
 
 
 def test_image_budget_shortfall_does_not_inherit_ai_selection(client, db_session, monkeypatch, tmp_path):
-    import mathbank.paper_selection_ai as module
+    import starhope.paper_selection_ai as module
     monkeypatch.setattr(module, 'UPLOADS_DIR', tmp_path)
     monkeypatch.setattr(module, 'MAX_REVIEW_IMAGES', 1)
     for name in ['first.png', 'second.png']:
@@ -210,7 +210,7 @@ def test_large_pool_and_followup_preserve_original_capacity_limits(client, db_se
 
 
 def test_partial_figure_set_does_not_consume_later_complete_question_budget(monkeypatch, tmp_path):
-    import mathbank.paper_selection_ai as module
+    import starhope.paper_selection_ai as module
     monkeypatch.setattr(module, 'MAX_REVIEW_IMAGES', 2)
     Image.new('RGB', (10, 10), 'white').save(tmp_path / 'valid.png')
     def question(qid, text):
@@ -229,7 +229,7 @@ def test_partial_figure_set_does_not_consume_later_complete_question_budget(monk
 @pytest.mark.parametrize('limit,reason', [('MAX_REVIEW_IMAGE_BYTES', 'image_single_byte_budget'),
                                        ('MAX_REVIEW_IMAGE_PIXELS', 'image_pixels_format_or_encoding')])
 def test_single_image_resource_limits_are_explicit_without_followup(client, db_session, monkeypatch, tmp_path, limit, reason):
-    import mathbank.paper_selection_ai as module
+    import starhope.paper_selection_ai as module
     monkeypatch.setattr(module, 'UPLOADS_DIR', tmp_path)
     monkeypatch.setattr(module, limit, 1)
     Image.new('RGB', (10, 10), 'white').save(tmp_path / 'budget.png')

@@ -7,9 +7,9 @@ import json
 import pytest
 import requests
 
-from mathbank.document_projects import DocumentProjectStore, ProjectConflict, ProjectCorrupt
-from mathbank.document_project_parse import run_project_legacy_parse
-from mathbank.task_manager import TaskCancelled
+from starhope.document_projects import DocumentProjectStore, ProjectConflict, ProjectCorrupt
+from starhope.document_project_parse import run_project_legacy_parse
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(autouse=True)

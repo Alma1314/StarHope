@@ -404,8 +404,8 @@ function renderSubKnowledgeBadges(value, compact = false) {
     const paths = normalizeSubKnowledge(value);
     if (!paths.length) return '';
     const shown = compact ? paths.slice(0, 2) : paths;
-    const badges = shown.map(path => `<span class="sub-knowledge-badge" title="${window.MathBankSafe.escapeAttribute(subKnowledgePathLabel(path))}">细分：${window.MathBankSafe.escapeText(subKnowledgePathLabel(path))}</span>`).join('');
-    const more = compact && paths.length > shown.length ? `<span class="sub-knowledge-badge" title="${window.MathBankSafe.escapeAttribute(paths.map(subKnowledgePathLabel).join('；'))}">+${paths.length - shown.length}</span>` : '';
+    const badges = shown.map(path => `<span class="sub-knowledge-badge" title="${window.StarHopeSafe.escapeAttribute(subKnowledgePathLabel(path))}">细分：${window.StarHopeSafe.escapeText(subKnowledgePathLabel(path))}</span>`).join('');
+    const more = compact && paths.length > shown.length ? `<span class="sub-knowledge-badge" title="${window.StarHopeSafe.escapeAttribute(paths.map(subKnowledgePathLabel).join('；'))}">+${paths.length - shown.length}</span>` : '';
     return `<div class="sub-knowledge-badges">${badges}${more}</div>`;
 }
 async function loadSubKnowledgeCatalog() {
@@ -1414,11 +1414,11 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 document.body.appendChild(modalDiv);
 
                 const finish = (result) => {
-                    window.MathBankModal.close(modalDiv);
+                    window.StarHopeModal.close(modalDiv);
                     if (modalDiv.isConnected) modalDiv.remove();
                     resolve(result);
                 };
-                window.MathBankModal.open(modalDiv, { onEscape: () => finish('cancel') });
+                window.StarHopeModal.open(modalDiv, { onEscape: () => finish('cancel') });
 
                 document.getElementById('saveToBankBtn').onclick = () => {
                     finish('bank');
@@ -1454,7 +1454,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                             </div>
                             <div>
                                 <h3 id="missingClassificationModalTitle" class="font-bold text-sm text-slate-800">题目分类信息不完整</h3>
-                                <p class="text-[10px] text-slate-400">MATHBANK 教研分类指引</p>
+                                <p class="text-[10px] text-slate-400">STARHOPE 教研分类指引</p>
                             </div>
                         </div>
                         <p class="text-xs text-slate-500 leading-relaxed">
@@ -1487,7 +1487,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 }, 50);
 
                 const closeModal = (result) => {
-                    window.MathBankModal.close(modalDiv);
+                    window.StarHopeModal.close(modalDiv);
                     modalDiv.classList.add('opacity-0');
                     modalDiv.querySelector('div').classList.remove('scale-100');
                     modalDiv.querySelector('div').classList.add('scale-95');
@@ -1496,7 +1496,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                         resolve(result);
                     }, 300);
                 };
-                window.MathBankModal.open(modalDiv, { onEscape: () => closeModal('cancel') });
+                window.StarHopeModal.open(modalDiv, { onEscape: () => closeModal('cancel') });
 
                 document.getElementById('manualCompulsoryBtn').onclick = () => closeModal('manual');
                 document.getElementById('autoSaveClassifyBtn').onclick = () => closeModal('ai');
@@ -1985,14 +1985,14 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
         function getLocalStorageDrafts() {
             try {
-                return JSON.parse(localStorage.getItem('mathbank_local_drafts')) || [];
+                return JSON.parse(localStorage.getItem('starhope_local_drafts')) || [];
             } catch(e) {
                 return [];
             }
         }
 
         function setLocalStorageDrafts(drafts) {
-            localStorage.setItem('mathbank_local_drafts', JSON.stringify(drafts));
+            localStorage.setItem('starhope_local_drafts', JSON.stringify(drafts));
         }
 
         function updateDraftCountBadge() {
@@ -2136,12 +2136,12 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             
             // Load images
             const allDraftImages = Array.isArray(draft.image_paths)
-                ? draft.image_paths.map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean)
+                ? draft.image_paths.map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean)
                 : [];
             uploadedAnswerImages = typeof window.collectAnswerImagePaths === 'function'
                 ? window.collectAnswerImagePaths(draft.answer_markdown || '')
                 : [];
-            uploadedImages = window.MathBankImageAssets.withoutReviewOnly(
+            uploadedImages = window.StarHopeImageAssets.withoutReviewOnly(
                 allDraftImages, draft.content, draft.answer_markdown, draft.review
             ).filter(path => !uploadedAnswerImages.includes(path));
             window.hydrateTikzState(draft);
@@ -2267,7 +2267,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                         const value = String(item[key] || '');
                         if (!value.toLowerCase().includes(needle)) return false;
                         if (key === 'source' || key === 'tags') return true;
-                        const visible = window.MathBankImageAssets.spans(value).reverse().reduce((text, {start, end}) =>
+                        const visible = window.StarHopeImageAssets.spans(value).reverse().reduce((text, {start, end}) =>
                             text.slice(0, start) + ' '.repeat(end - start) + text.slice(end), value);
                         return visible.toLowerCase().includes(needle);
                     });
@@ -2344,11 +2344,11 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                         const hiddenCount = tagList.length - 2;
                         
                         displayTags.forEach(tag => {
-                            tagsHtml += `<span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-300/60 px-1.5 py-0.5 rounded-full flex items-center space-x-0.5"><i class="fa-solid fa-tag text-[7px] text-amber-500 mr-0.5"></i><span class="max-w-[80px] truncate">${window.MathBankSafe.escapeText(tag)}</span></span>`;
+                            tagsHtml += `<span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-300/60 px-1.5 py-0.5 rounded-full flex items-center space-x-0.5"><i class="fa-solid fa-tag text-[7px] text-amber-500 mr-0.5"></i><span class="max-w-[80px] truncate">${window.StarHopeSafe.escapeText(tag)}</span></span>`;
                         });
                         
                         if (hiddenCount > 0) {
-                            const fullTagsHtml = tagList.map(tag => `<span class="inline-flex items-center whitespace-nowrap"><i class="fa-solid fa-tag text-[7px] text-amber-500/80 mr-1"></i>${window.MathBankSafe.escapeText(tag)}</span>`).join('<span class="mx-1.5 text-amber-300/50">|</span>');
+                            const fullTagsHtml = tagList.map(tag => `<span class="inline-flex items-center whitespace-nowrap"><i class="fa-solid fa-tag text-[7px] text-amber-500/80 mr-1"></i>${window.StarHopeSafe.escapeText(tag)}</span>`).join('<span class="mx-1.5 text-amber-300/50">|</span>');
                             tagsHtml += `
                             <div class="relative flex items-center" onclick="event.stopPropagation()">
                                 <span class="peer text-[9px] font-bold text-amber-600 bg-amber-100 border border-amber-300/60 px-1.5 py-0.5 rounded-full cursor-default flex items-center shadow-sm hover:bg-amber-200 transition-colors">+${hiddenCount}</span>
@@ -2364,7 +2364,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
                 itemCard.innerHTML = `
                     <div class="flex items-start justify-between">
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 shrink-0 mt-0.5">草稿 • ${window.MathBankSafe.escapeText(typeText)}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 shrink-0 mt-0.5">草稿 • ${window.StarHopeSafe.escapeText(typeText)}</span>
                         <div class="flex items-center gap-1.5 justify-end flex-wrap flex-1 ml-2">
                             ${tagsHtml}
                             ${difficultyBadge}
@@ -2376,8 +2376,8 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                     </div>
                     <div class="text-xs text-slate-700 leading-relaxed font-medium ${cleanContent.includes('choices-grid') ? 'question-choice-preview' : 'line-clamp-2'} card-formula-render">${cleanContent || '[未填题干]'}</div>
                     <div class="flex justify-between items-center text-[9px] text-slate-400 border-t pt-1.5">
-                        <span class="truncate max-w-[120px] font-semibold text-emerald-600"><i class="fa-solid fa-box mr-0.5"></i>${window.MathBankSafe.escapeText(item.category_knowledge || item.category_chapter || '未分类')}</span>
-                        <span class="font-mono text-slate-400">${window.MathBankSafe.escapeText(item.source ? item.source.substring(0, 12) : '草稿暂存')}</span>
+                        <span class="truncate max-w-[120px] font-semibold text-emerald-600"><i class="fa-solid fa-box mr-0.5"></i>${window.StarHopeSafe.escapeText(item.category_knowledge || item.category_chapter || '未分类')}</span>
+                        <span class="font-mono text-slate-400">${window.StarHopeSafe.escapeText(item.source ? item.source.substring(0, 12) : '草稿暂存')}</span>
                     </div>
                 `;
 
@@ -2486,7 +2486,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                         // 数据和图表完全就绪，再顺滑滑入弹窗并淡化背景
                         document.body.classList.add('modal-active');
                         modal.classList.remove('hidden');
-                        window.MathBankModal.open(modal, {
+                        window.StarHopeModal.open(modal, {
                             onEscape: closeStatsModal,
                             returnFocus: () => {
                                 // The stats button inside More Tools is hidden when the menu closes.
@@ -2516,7 +2516,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
         function closeStatsModal() {
             const modal = document.getElementById('statsModal');
-            window.MathBankModal.close(modal);
+            window.StarHopeModal.close(modal);
             document.body.classList.remove('modal-active');
             
             modal.classList.add('opacity-0');
@@ -2532,7 +2532,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             compSelect.innerHTML = '<option value="">-- 选择学段 --</option>';
             if (globalStatsData && globalStatsData.compulsory_chapter_counts) {
                 Object.keys(globalStatsData.compulsory_chapter_counts).forEach(comp => {
-                    compSelect.innerHTML += `<option value="${window.MathBankSafe.escapeAttribute(comp)}">${window.MathBankSafe.escapeText(comp)}</option>`;
+                    compSelect.innerHTML += `<option value="${window.StarHopeSafe.escapeAttribute(comp)}">${window.StarHopeSafe.escapeText(comp)}</option>`;
                 });
             }
         }
@@ -2548,7 +2548,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             if (compVal && globalStatsData && globalStatsData.compulsory_chapter_counts[compVal]) {
                 chapSelect.disabled = false;
                 Object.keys(globalStatsData.compulsory_chapter_counts[compVal]).forEach(chap => {
-                    chapSelect.innerHTML += `<option value="${window.MathBankSafe.escapeAttribute(chap)}">${window.MathBankSafe.escapeText(chap)}</option>`;
+                    chapSelect.innerHTML += `<option value="${window.StarHopeSafe.escapeAttribute(chap)}">${window.StarHopeSafe.escapeText(chap)}</option>`;
                 });
             } else {
                 chapSelect.disabled = true;
@@ -2603,7 +2603,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                         listContainer.innerHTML += `
                             <div class="space-y-1 bg-slate-50/70 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-700/60">
                                 <div class="flex justify-between items-center text-[10px] font-semibold text-slate-700 dark:text-slate-200">
-                                    <span class="truncate pr-2">${window.MathBankSafe.escapeText(know)}</span>
+                                    <span class="truncate pr-2">${window.StarHopeSafe.escapeText(know)}</span>
                                     <span class="font-mono text-slate-600 dark:text-slate-400 text-[10px]">${knCount} 题 (${pct}%)</span>
                                 </div>
                                 <div class="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
@@ -2709,7 +2709,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             // 1. Compulsory
             compSelect.innerHTML = '<option value="">-- 选择学段 --</option>';
             Object.keys(categoryTree).forEach(c => {
-                compSelect.innerHTML += `<option value="${window.MathBankSafe.escapeAttribute(c)}">${window.MathBankSafe.escapeText(c)}</option>`;
+                compSelect.innerHTML += `<option value="${window.StarHopeSafe.escapeAttribute(c)}">${window.StarHopeSafe.escapeText(c)}</option>`;
             });
             
             compSelect.onchange = () => {
@@ -2721,7 +2721,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 if (comp && categoryTree[comp]) {
                     chapSelect.disabled = false;
                     Object.keys(categoryTree[comp]).forEach(ch => {
-                        chapSelect.innerHTML += `<option value="${window.MathBankSafe.escapeAttribute(ch)}">${window.MathBankSafe.escapeText(ch)}</option>`;
+                        chapSelect.innerHTML += `<option value="${window.StarHopeSafe.escapeAttribute(ch)}">${window.StarHopeSafe.escapeText(ch)}</option>`;
                     });
                 } else {
                     chapSelect.disabled = true;
@@ -2737,7 +2737,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 if (comp && chap && Array.isArray(categoryTree[comp]?.[chap])) {
                     knowSelect.disabled = false;
                     categoryTree[comp][chap].forEach(k => {
-                        knowSelect.innerHTML += `<option value="${window.MathBankSafe.escapeAttribute(k)}">${window.MathBankSafe.escapeText(k)}</option>`;
+                        knowSelect.innerHTML += `<option value="${window.StarHopeSafe.escapeAttribute(k)}">${window.StarHopeSafe.escapeText(k)}</option>`;
                     });
                 } else {
                     knowSelect.disabled = !(comp && chap);
@@ -2771,7 +2771,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             const previous = [compSelect.value, chapSelect.value, knowSelect.value];
             function fill(select, values, placeholder, selected = '') {
                 select.innerHTML = '<option value="">' + placeholder + '</option>' + values.map(value =>
-                    `<option value="${window.MathBankSafe.escapeAttribute(value)}">${window.MathBankSafe.escapeText(value)}</option>`).join('');
+                    `<option value="${window.StarHopeSafe.escapeAttribute(value)}">${window.StarHopeSafe.escapeText(value)}</option>`).join('');
                 select.value = values.includes(selected) ? selected : '';
             }
             function fillKnowledge(selected = '') {
@@ -2916,11 +2916,11 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                                 const hiddenCount = tagList.length - 2;
                                 
                                 displayTags.forEach(tag => {
-                                    tagsHtml += `<span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-300/60 px-1.5 py-0.5 rounded-full flex items-center space-x-0.5"><i class="fa-solid fa-tag text-[7px] text-amber-500 mr-0.5"></i><span class="max-w-[80px] truncate">${window.MathBankSafe.escapeText(tag)}</span></span>`;
+                                    tagsHtml += `<span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-300/60 px-1.5 py-0.5 rounded-full flex items-center space-x-0.5"><i class="fa-solid fa-tag text-[7px] text-amber-500 mr-0.5"></i><span class="max-w-[80px] truncate">${window.StarHopeSafe.escapeText(tag)}</span></span>`;
                                 });
                                 
                                 if (hiddenCount > 0) {
-                                    const fullTagsHtml = tagList.map(tag => `<span class="inline-flex items-center whitespace-nowrap"><i class="fa-solid fa-tag text-[7px] text-amber-500/80 mr-1"></i>${window.MathBankSafe.escapeText(tag)}</span>`).join('<span class="mx-1.5 text-amber-300/50">|</span>');
+                                    const fullTagsHtml = tagList.map(tag => `<span class="inline-flex items-center whitespace-nowrap"><i class="fa-solid fa-tag text-[7px] text-amber-500/80 mr-1"></i>${window.StarHopeSafe.escapeText(tag)}</span>`).join('<span class="mx-1.5 text-amber-300/50">|</span>');
                                     tagsHtml += `
                                     <div class="relative flex items-center" onclick="event.stopPropagation()">
                                         <span class="peer text-[9px] font-bold text-amber-600 bg-amber-100 border border-amber-300/60 px-1.5 py-0.5 rounded-full cursor-default flex items-center shadow-sm hover:bg-amber-200 transition-colors">+${hiddenCount}</span>
@@ -2936,11 +2936,11 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
                         itemCard.innerHTML = `
                             <div class="bank-question-card-header flex items-start justify-between">
-                                <span class="bank-question-type text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0 mt-0.5">${window.MathBankSafe.escapeText(typeText)}</span>
+                                <span class="bank-question-type text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0 mt-0.5">${window.StarHopeSafe.escapeText(typeText)}</span>
                                 <div class="bank-question-badges flex items-center gap-1.5 justify-end flex-wrap flex-1 ml-2">
                                     <div class="bank-question-tags">${tagsHtml}</div>
                                     ${difficultyBadge}
-                                    <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-brand-50 text-brand-600 shadow-sm">#${window.MathBankSafe.escapeText(item.seq_num)}</span>
+                                    <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-brand-50 text-brand-600 shadow-sm">#${window.StarHopeSafe.escapeText(item.seq_num)}</span>
                                     <!-- Delete Button -->
                                     <button type="button" aria-label="删除题目" onclick="event.stopPropagation(); deleteQuestion(${item.id})" class="text-slate-400 hover:text-red-500 p-0.5 rounded hover:bg-slate-100 transition-all opacity-0 group-hover:opacity-100" title="删除">
                                         <i class="fa-solid fa-trash-can text-[10px]"></i>
@@ -2949,9 +2949,9 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                             </div>
                             <div class="bank-question-excerpt text-xs text-slate-700 leading-relaxed font-medium ${cleanContent.includes('choices-grid') ? 'question-choice-preview' : 'line-clamp-2'} card-formula-render">${cleanContent || '[空白题干]'}</div>
                             <div class="bank-question-meta flex justify-between items-center text-[9px] text-slate-400 border-t pt-1.5">
-                                <span class="truncate max-w-[120px] font-semibold"><i class="fa-solid fa-folder-open mr-0.5"></i>${window.MathBankSafe.escapeText(item.category_knowledge || item.category_chapter || '未分类')}</span>
-                                <span class="font-mono text-slate-400">${window.MathBankSafe.escapeText(item.source ? item.source.substring(0, 12) : '本地录入')}</span>
-                                <time class="bank-question-time" title="录入于 ${window.MathBankSafe.escapeText(formatChineseDate(item.created_at))}">${window.MathBankSafe.escapeText(String(item.created_at || '').slice(0, 10))}</time>
+                                <span class="truncate max-w-[120px] font-semibold"><i class="fa-solid fa-folder-open mr-0.5"></i>${window.StarHopeSafe.escapeText(item.category_knowledge || item.category_chapter || '未分类')}</span>
+                                <span class="font-mono text-slate-400">${window.StarHopeSafe.escapeText(item.source ? item.source.substring(0, 12) : '本地录入')}</span>
+                                <time class="bank-question-time" title="录入于 ${window.StarHopeSafe.escapeText(formatChineseDate(item.created_at))}">${window.StarHopeSafe.escapeText(String(item.created_at || '').slice(0, 10))}</time>
                             </div>
                         `;
                         
@@ -3090,7 +3090,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
         // Format ISO Date string to Chinese local datetime: xxxx年xx月xx日xx时xx分
         function escapeEditorMetaText(value) {
-            return window.MathBankSafe.escapeText(value);
+            return window.StarHopeSafe.escapeText(value);
         }
 
         function renderEditorPaperMeta() {
@@ -3547,12 +3547,12 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             // leave KaTeX's untrusted-command policy unchanged.
             const { Span, SvgNode, PathNode } = renderer.__domTree;
             renderer.__defineFunction({
-                type: 'mathbankParallelogram',
+                type: 'starhopeParallelogram',
                 names: ['\\parallelogram'],
                 props: { numArgs: 0, allowedInText: true, allowedInArgument: true },
-                handler: ({ parser }) => ({ type: 'mathbankParallelogram', mode: parser.mode }),
+                handler: ({ parser }) => ({ type: 'starhopeParallelogram', mode: parser.mode }),
                 htmlBuilder: (group, options) => {
-                    const path = new PathNode('mathbankParallelogram',
+                    const path = new PathNode('starhopeParallelogram',
                         'M230 0H930L700 600H0Z M266 50L70 550H665L860 50Z');
                     const svg = new SvgNode([path], {
                         width: '0.93em', height: '0.6em', viewBox: '0 0 930 600',
@@ -3581,11 +3581,11 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             renderer.__defineMacro('\\ensuremath', context =>
                 context.mode === 'text' ? '\\({#1}\\)' : '{#1}');
             renderer.__defineFunction({
-                type: 'mathbankArcAccent', names: ['\\mathbankArcAccent'],
+                type: 'starhopeArcAccent', names: ['\\starhopeArcAccent'],
                 props: { numArgs: 0, allowedInArgument: true },
-                handler: ({ parser }) => ({ type: 'mathbankArcAccent', mode: parser.mode }),
+                handler: ({ parser }) => ({ type: 'starhopeArcAccent', mode: parser.mode }),
                 htmlBuilder: (group, options) => {
-                    const path = new PathNode('mathbankArcAccent',
+                    const path = new PathNode('starhopeArcAccent',
                         'M0 280 Q500 -200 1000 280 L1000 330 Q500 -150 0 330 Z');
                     const svg = new SvgNode([path], {
                         width: '100%', height: '0.33em', viewBox: '0 0 1000 330',
@@ -3605,7 +3605,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 mathmlBuilder: () => createMathMLSymbol('⏜', { stretchy: 'true', accent: 'true' })
             });
             ['wideparen', 'overparen', 'widearc'].forEach(name => {
-                renderer.__defineMacro('\\' + name, '\\overset{\\mathbankArcAccent}{#1}');
+                renderer.__defineMacro('\\' + name, '\\overset{\\starhopeArcAccent}{#1}');
             });
             renderer.__defineMacro('\\overarc', context => {
                 context.consumeSpaces();
@@ -3621,13 +3621,13 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 return '\\wideparen';
             });
             renderer.__defineFunction({
-                type: 'mathbankPerThousand', names: ['\\perthousand', '\\textperthousand', '\\permil'],
+                type: 'starhopePerThousand', names: ['\\perthousand', '\\textperthousand', '\\permil'],
                 props: { numArgs: 0, allowedInText: true, allowedInArgument: true },
-                handler: ({ parser }) => ({ type: 'mathbankPerThousand', mode: parser.mode }),
+                handler: ({ parser }) => ({ type: 'starhopePerThousand', mode: parser.mode }),
                 htmlBuilder: (group, options) => {
                     const ring = (x, y) => `M${x} ${y - 110}a110 110 0 1 1 0 220a110 110 0 1 1 0 -220Z`
                         + `M${x} ${y - 70}a70 70 0 1 0 0 140a70 70 0 1 0 0 -140Z`;
-                    const path = new PathNode('mathbankPerThousand',
+                    const path = new PathNode('starhopePerThousand',
                         ring(140, 140) + ring(530, 555) + ring(810, 555) + 'M570 30H625L245 665H190Z');
                     const svg = new SvgNode([path], {
                         width: '0.95em', height: '0.7em', viewBox: '0 0 950 700',
@@ -3700,7 +3700,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 /\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g,
                 /!\[[^\]\n]*\]\([^\n)]*\)/g,
                 /\]\([^\n)]*\)/g,
-                /<mathbank-math\b[^>]*>[\s\S]*?<\/mathbank-math\s*>/g,
+                /<starhope-math\b[^>]*>[\s\S]*?<\/starhope-math\s*>/g,
                 /\[\[MBM_[A-Za-z0-9_:-]+\]\]/g,
                 /\[ILLUSTRATION_BOX:\s*[^\]\n]*\]/gi,
                 // Cells already contain these tokens when table rendering
@@ -3783,7 +3783,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
         }
 
         function previewLiteralPattern() {
-            return /```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|(`+)[\s\S]*?\1(?!`)|\\begin\{(tikzpicture|verbatim\*?|Verbatim\*?|lstlisting|minted|comment)\}[\s\S]*?(?:\\end\{\2\}|$)|\\(?:verb|Verb|lstinline)\*?(?:\[[^\]\n]*\])?([^\w\s{])[^\n]*?(?:\3|(?=\r?\n)|$)|\\mintinline(?:\[[^\]\n]*\])?\{[^{}\n]*\}([^\w\s{])[^\n]*?(?:\4|(?=\r?\n)|$)|\\(?:detokenize|url|path|lstinline\*?(?:\[[^\]\n]*\])?|mintinline(?:\[[^\]\n]*\])?\{[^{}\n]*\})\s*\{|<(?:[cC][oO][dD][eE]|[pP][rR][eE])\b[^>]*>[\s\S]*?(?:<\/(?:[cC][oO][dD][eE]|[pP][rR][eE])\s*>|$)|!\[[^\]\n]*\]\([^\n)]*\)|\]\([^\n)]*\)|[hH][tT][tT][pP][sS]?:\/\/[^\s<>"']+|<mathbank-math\b[^>]*>[\s\S]*?<\/mathbank-math\s*>|<\/?[A-Za-z][^>\n]*>|\[\[MBM_[A-Za-z0-9_:-]+\]\]/g;
+            return /```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|(`+)[\s\S]*?\1(?!`)|\\begin\{(tikzpicture|verbatim\*?|Verbatim\*?|lstlisting|minted|comment)\}[\s\S]*?(?:\\end\{\2\}|$)|\\(?:verb|Verb|lstinline)\*?(?:\[[^\]\n]*\])?([^\w\s{])[^\n]*?(?:\3|(?=\r?\n)|$)|\\mintinline(?:\[[^\]\n]*\])?\{[^{}\n]*\}([^\w\s{])[^\n]*?(?:\4|(?=\r?\n)|$)|\\(?:detokenize|url|path|lstinline\*?(?:\[[^\]\n]*\])?|mintinline(?:\[[^\]\n]*\])?\{[^{}\n]*\})\s*\{|<(?:[cC][oO][dD][eE]|[pP][rR][eE])\b[^>]*>[\s\S]*?(?:<\/(?:[cC][oO][dD][eE]|[pP][rR][eE])\s*>|$)|!\[[^\]\n]*\]\([^\n)]*\)|\]\([^\n)]*\)|[hH][tT][tT][pP][sS]?:\/\/[^\s<>"']+|<starhope-math\b[^>]*>[\s\S]*?<\/starhope-math\s*>|<\/?[A-Za-z][^>\n]*>|\[\[MBM_[A-Za-z0-9_:-]+\]\]/g;
         }
 
         function previewLiteralEnd(text, match) {
@@ -4289,7 +4289,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
         }
 
         function stripSourceAttributionComment(text) {
-            const prefix = '<!-- MathBank source attribution:\n';
+            const prefix = '<!-- StarHope source attribution:\n';
             if (!text.startsWith(prefix)) return text;
             const closing = text.indexOf('-->', prefix.length);
             if (closing < 0) return text;
@@ -4666,14 +4666,14 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                                
             // 转换 Markdown 题目插图与配图语法 ![](/static/uploads/xxx.png) 为精美自适应预览图
             tempText = tempText.replace(/!\[(.*?)\]\(([^)]+)\)/g, function(match, alt, src) {
-                const safeSrc = window.MathBankSafe.safeImageUrl(src);
+                const safeSrc = window.StarHopeSafe.safeImageUrl(src);
                 if (!safeSrc) return '';
-                const safeAlt = window.MathBankSafe.escapeAttribute(alt || '题目配图');
+                const safeAlt = window.StarHopeSafe.escapeAttribute(alt || '题目配图');
                 const key = window.ImageLayoutTools ? window.ImageLayoutTools.key(src) : src;
                 const layout = Object.prototype.hasOwnProperty.call(imageLayouts || {}, key) ? imageLayouts[key] : null;
                 const align = layout && ['left', 'center', 'right'].includes(layout.align) ? layout.align : 'center';
                 const size = layout && ['auto', 'small', 'medium', 'large'].includes(layout.size) ? layout.size : 'auto';
-                return `<div class="my-2.5 text-center mb-inline-image-align-${align}"><img src="${window.MathBankSafe.escapeAttribute(safeSrc)}" alt="${safeAlt}" class="mb-inline-image-size-${size} max-w-[220px] max-h-[180px] object-contain rounded-lg border border-slate-200 shadow-sm inline-block cursor-zoom-in hover:shadow-sm hover:scale-[1.02] transition-all" data-safe-image-open="true" title="点击在新标签页查看高清原图"></div>`;
+                return `<div class="my-2.5 text-center mb-inline-image-align-${align}"><img src="${window.StarHopeSafe.escapeAttribute(safeSrc)}" alt="${safeAlt}" class="mb-inline-image-size-${size} max-w-[220px] max-h-[180px] object-contain rounded-lg border border-slate-200 shadow-sm inline-block cursor-zoom-in hover:shadow-sm hover:scale-[1.02] transition-all" data-safe-image-open="true" title="点击在新标签页查看高清原图"></div>`;
             });
 
             // Generated block content already owns its vertical spacing. Keep
@@ -4885,7 +4885,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                     if (Number(owner.id) !== sourceId || String(owner[reference.field] || '') !== entry.originalSource
                             || !current || current.status !== 'resolved'
                             || Number(current.target_question_id) !== entry.target) {
-                        window.dispatchEvent(new Event('mathbank-question-mutated'));
+                        window.dispatchEvent(new Event('starhope-question-mutated'));
                         showToast('此处引用已变化，已刷新引用信息，请重新查看', 'info');
                         return;
                     }
@@ -4902,10 +4902,10 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
         function parseMarkdownWithMath(text, imageLayouts = {}, referenceContext = null) {
             if (!text) return "";
             if (!referenceContext) {
-                return window.MathBankSafe.sanitizeRichHtml(preprocessFormulaForKaTeX(text, imageLayouts));
+                return window.StarHopeSafe.sanitizeRichHtml(preprocessFormulaForKaTeX(text, imageLayouts));
             }
             const prepared = QuestionReferenceTools.prepare(text, referenceContext);
-            const html = window.MathBankSafe.sanitizeRichHtml(preprocessFormulaForKaTeX(prepared.source, imageLayouts));
+            const html = window.StarHopeSafe.sanitizeRichHtml(preprocessFormulaForKaTeX(prepared.source, imageLayouts));
             return QuestionReferenceTools.appendControls(html, prepared.entries);
         }
         window.parseMarkdownWithMath = parseMarkdownWithMath;
@@ -4916,7 +4916,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             const includeImages = settings.includeImages !== false;
             let preparedHtml;
             if (typeof settings.preparedHtml === 'string' && !settings.referenceContext) {
-                preparedHtml = window.MathBankSafe.sanitizeRichHtml(settings.preparedHtml);
+                preparedHtml = window.StarHopeSafe.sanitizeRichHtml(settings.preparedHtml);
                 if (!includeImages) {
                     preparedHtml = preparedHtml.replace(/<img\b[^>]*>/gi, '');
                 }

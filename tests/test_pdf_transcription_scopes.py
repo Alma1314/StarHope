@@ -4,7 +4,7 @@ from pathlib import Path
 import hashlib
 import pytest
 from PIL import Image
-from mathbank.pdf_transcription_scopes import (
+from starhope.pdf_transcription_scopes import (
     begin_pdf_transcription_witness, finish_pdf_transcription_witness,
     finalize_pdf_transcription_snapshot, verify_pdf_transcription_snapshot,
 )
@@ -14,7 +14,7 @@ def snapshot(tmp_path):
     result={'markdown':'1. 求$x+1$。','layout':{'figures':[],'page_complete':True,'notes':[]}}
     ticket=begin_pdf_transcription_witness(str(image),{'page_index':0})
     witness=finish_pdf_transcription_witness(ticket,result)
-    pages=[{'page_number':1,'origin':'joint_vision','markdown':'<!-- MATHBANK_PDF_PAGE:1 -->\n'+result['markdown'],'figures':[]}]
+    pages=[{'page_number':1,'origin':'joint_vision','markdown':'<!-- STARHOPE_PDF_PAGE:1 -->\n'+result['markdown'],'figures':[]}]
     layout={'pages':[{'page_index':0,'status':'checked','figures':[],'warnings':[]}],'page_texts':[pages[0]['markdown']]}
     source='\n'+result['markdown'];diag={'pdf_layout':{'warnings':[]}}
     evidence=finalize_pdf_transcription_snapshot(source,diag,source_document_sha256='a'*64,

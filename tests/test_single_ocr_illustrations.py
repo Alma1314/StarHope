@@ -7,8 +7,8 @@ from types import SimpleNamespace
 from PIL import Image, ImageDraw
 import pytest
 
-from mathbank.ocr_illustrations import materialize_ocr_illustrations, parse_single_ocr_response
-from mathbank.prompts import build_single_ocr_vision_prompt
+from starhope.ocr_illustrations import materialize_ocr_illustrations, parse_single_ocr_response
+from starhope.prompts import build_single_ocr_vision_prompt
 
 
 CODE = r"\begin{tikzpicture}\draw (0,0)--(1,1);\end{tikzpicture}"
@@ -105,7 +105,7 @@ def test_crop_filename_collision_does_not_remove_existing_asset(tmp_path, monkey
     recognized = parsed()
     existing = tmp_path / "ocr_figure_collision.png"
     existing.write_bytes(b"existing question asset")
-    monkeypatch.setattr("mathbank.ocr_illustrations.uuid.uuid4", lambda: SimpleNamespace(hex="collision"))
+    monkeypatch.setattr("starhope.ocr_illustrations.uuid.uuid4", lambda: SimpleNamespace(hex="collision"))
     result = materialize(recognized, tmp_path, skip=True, draw=lambda *_args: pytest.fail("must not draw"))
     assert existing.read_bytes() == b"existing question asset"
     assert result["markdown"] == recognized["markdown"]

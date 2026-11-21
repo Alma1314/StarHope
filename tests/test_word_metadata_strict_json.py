@@ -5,18 +5,18 @@ import json
 
 import pytest
 
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.source_metadata import prepare_word_source_metadata
-from mathbank.source_metadata_request import request_word_source_metadata, SourceMetadataPermanentHTTPError
-from mathbank.source_metadata import SourceMetadataContractError, SourceMetadataNoFallbackError
-from mathbank.task_manager import TaskCancelled
+from starhope.docx_helper import _new_diagnostics
+from starhope.source_metadata import prepare_word_source_metadata
+from starhope.source_metadata_request import request_word_source_metadata, SourceMetadataPermanentHTTPError
+from starhope.source_metadata import SourceMetadataContractError, SourceMetadataNoFallbackError
+from starhope.task_manager import TaskCancelled
 
 
 CURRICULUM = {"必修一": {"函数": ["函数概念"]}}
 
 
 def setup(monkeypatch):
-    import mathbank.source_metadata_request as module
+    import starhope.source_metadata_request as module
     monkeypatch.setattr(module, "apply_model_thinking_policy", lambda payload, **_: payload)
     plan = prepare_word_source_metadata("1. 已知二次函数$f(x)=x^2$，求$f(3)$。", _new_diagnostics())
     assert plan["eligible"]

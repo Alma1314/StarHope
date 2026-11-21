@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
+from starhope import pdf_inspector_helper as helper
 
 
 def table(rows, columns=13):
@@ -168,8 +168,8 @@ def test_per_page_gate_preserves_raw_evidence_and_only_routes_bad_pages(monkeypa
     assert result["pages"][1]["markdown"] == corrupt
     assert result["pages"][1]["quality_reasons"]
     assert result["pages"][0]["quality_reasons"] == []
-    assert "MATHBANK_PDF_PAGE:3" in result["markdown"]
-    assert "MATHBANK_PDF_PAGE:5" not in result["markdown"]
+    assert "STARHOPE_PDF_PAGE:3" in result["markdown"]
+    assert "STARHOPE_PDF_PAGE:5" not in result["markdown"]
     assert capsys.readouterr().out == ""
 
 

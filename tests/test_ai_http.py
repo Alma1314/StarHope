@@ -3,13 +3,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from mathbank.ai_http import (
+from starhope.ai_http import (
     AIProviderHTTPError,
     post_chat_completion,
     robust_request_get,
     robust_request_post,
 )
-from mathbank.ai_providers import resolve_text_provider
+from starhope.ai_providers import resolve_text_provider
 
 
 def test_post_chat_completion_builds_common_request():
@@ -23,7 +23,7 @@ def test_post_chat_completion_builds_common_request():
     response = MagicMock(status_code=200)
 
     with patch(
-        "mathbank.ai_http.robust_request_post", return_value=response
+        "starhope.ai_http.robust_request_post", return_value=response
     ) as mock_post:
         result = post_chat_completion(
             provider,
@@ -54,7 +54,7 @@ def test_post_chat_completion_raises_consistent_http_error():
         headers={"x-request-id": "req-safe-123"},
     )
 
-    with patch("mathbank.ai_http.robust_request_post", return_value=response):
+    with patch("starhope.ai_http.robust_request_post", return_value=response):
         with pytest.raises(AIProviderHTTPError) as exc_info:
             post_chat_completion(
                 provider,
@@ -73,8 +73,8 @@ def test_post_chat_completion_raises_consistent_http_error():
 @pytest.mark.parametrize(
     ("request_helper", "request_target"),
     [
-        (robust_request_post, "mathbank.ai_http.requests.post"),
-        (robust_request_get, "mathbank.ai_http.requests.get"),
+        (robust_request_post, "starhope.ai_http.requests.post"),
+        (robust_request_get, "starhope.ai_http.requests.get"),
     ],
 )
 def test_domestic_provider_requests_bypass_proxies_immediately(
@@ -97,7 +97,7 @@ def test_external_request_retries_once_without_proxies_on_proxy_error():
     response = MagicMock(status_code=200)
 
     with patch(
-        "mathbank.ai_http.requests.post",
+        "starhope.ai_http.requests.post",
         side_effect=[requests.exceptions.ProxyError("proxy failed"), response],
     ) as request_mock:
         result = robust_request_post("https://transit.example/v1", timeout=10)
@@ -110,7 +110,7 @@ def test_external_request_retries_once_without_proxies_on_proxy_error():
 
 def test_post_read_timeout_is_not_retried_to_avoid_duplicate_billing():
     with patch(
-        "mathbank.ai_http.requests.post",
+        "starhope.ai_http.requests.post",
         side_effect=requests.exceptions.ReadTimeout("provider timed out"),
     ) as request_mock:
         with pytest.raises(requests.exceptions.ReadTimeout):
@@ -125,7 +125,7 @@ def test_explicit_single_attempt_skips_even_connection_retry(error):
         "ZHONGZHAN_GPT_API_KEY": "unused-test-key",
         "ZHONGZHAN_GPT_BASE_URL": "https://transit.example/v1/",
     })
-    with patch("mathbank.ai_http.requests.post", side_effect=error("connect failure")) as post:
+    with patch("starhope.ai_http.requests.post", side_effect=error("connect failure")) as post:
         with pytest.raises(error):
             post_chat_completion(provider, {"model": "test", "messages": []}, timeout=10,
                                  retry_connection=False)

@@ -10,12 +10,12 @@ import pytest
 from pdf_feature_contract import experimental_pdf_only
 import requests
 
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.pdf_navigation_cache import bind_pdf_navigation
-from mathbank.pdf_ocr_archive import retain_pdf_ocr_response
-from mathbank.pdf_ocr_protocol_recovery import restore_pdf_protocol_pages
-from mathbank.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
-from mathbank.task_manager import TaskCancelled
+from starhope.document_projects import DocumentProjectStore
+from starhope.pdf_navigation_cache import bind_pdf_navigation
+from starhope.pdf_ocr_archive import retain_pdf_ocr_response
+from starhope.pdf_ocr_protocol_recovery import restore_pdf_protocol_pages
+from starhope.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
+from starhope.task_manager import TaskCancelled
 
 
 TEXT = '16. 已保存的原题 $x=1$。\n17. 原题不能改写。'

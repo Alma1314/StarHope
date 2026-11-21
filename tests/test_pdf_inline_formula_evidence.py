@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
+from starhope import pdf_inspector_helper as helper
 
 
 def _items(count=3, *, repeated_anchors=False):

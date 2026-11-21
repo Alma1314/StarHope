@@ -5,9 +5,9 @@ import json
 import pytest
 import requests
 
-from mathbank import pdf_symbol_risks as risks
-from mathbank import pdf_source_verify as verify
-from mathbank import prompts
+from starhope import pdf_symbol_risks as risks
+from starhope import pdf_source_verify as verify
+from starhope import prompts
 from test_pdf_source_verify import setup as verification_setup, checks
 
 TICK = chr(96)
@@ -86,7 +86,7 @@ def test_lowercase_point_conflict_is_only_a_visual_risk():
     "[圆弧点B](https://example.test/$AB$)",
     "![](https://example.test/圆弧$AB$.png)",
     '<code>圆弧 $AB$ 的长度，点 $B$</code>',
-    '<mathbank-math id="MBM_scope_0001">圆弧 $AB$ 的长度，点 $B$</mathbank-math>',
+    '<starhope-math id="MBM_scope_0001">圆弧 $AB$ 的长度，点 $B$</starhope-math>',
     "% 圆弧 $AB$ 的长度，点 $B$\n",
 ])
 def test_literal_formula_and_geometry_context_cannot_trigger_real_body(literal):
@@ -242,7 +242,7 @@ def test_malformed_existing_review_cannot_be_replaced_with_eligible_risk(review)
 
 @pytest.mark.parametrize("content", [
     r"圆弧[[MBM_scope_0001]]，$AB$的长度为2。",
-    r'圆弧<mathbank-math id="MBM_scope_0001">$AB$的长度为2。',
+    r'圆弧<starhope-math id="MBM_scope_0001">$AB$的长度为2。',
 ])
 def test_unrestored_complete_or_partial_lock_protocol_is_not_scanned(content):
     question, _diagnostics, report = annotate(content)

@@ -8,8 +8,8 @@ from lxml import etree
 from PIL import Image
 
 from main import LOCAL_TOKEN
-from mathbank import word_export_helper
-from mathbank.word_export_helper import MathBoundaryIssue, MathToken, build_word_document, tokenize_mixed_content
+from starhope import word_export_helper
+from starhope.word_export_helper import MathBoundaryIssue, MathToken, build_word_document, tokenize_mixed_content
 
 
 def _document_xml(docx_bytes: bytes) -> bytes:
@@ -146,7 +146,7 @@ def test_word_exports_currency_standalone_equations_and_nested_cases():
 @pytest.mark.parametrize("as_single_docx", [True, False])
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
 def test_word_export_reports_damaged_boundaries_and_failed_conversions(client, db_session, as_single_docx):
-    from mathbank.database import Question
+    from starhope.database import Question
 
     question = Question(
         content="样题。",
@@ -154,7 +154,7 @@ def test_word_export_reports_damaged_boundaries_and_failed_conversions(client, d
         answer_markdown=(
             r"残缺的 \(x^2=4" "\n\n"
             r"残缺的 \begin{gather*}x=1" "\n\n"
-            r"未知命令 $x+\mathbankUndefinedCommand{2}$。紧随的公式 $y=3$。"
+            r"未知命令 $x+\starhopeUndefinedCommand{2}$。紧随的公式 $y=3$。"
         ),
     )
     db_session.add(question)
@@ -182,7 +182,7 @@ def test_word_export_reports_damaged_boundaries_and_failed_conversions(client, d
     assert len(red) == 3
     assert "缺少闭合定界符" in red[0] and r"\(x^2=4" in red[0]
     assert "公式环境 gather* 未正确闭合" in red[1] and r"\begin{gather*}x=1" in red[1]
-    assert red[2] == r"[公式待核对：x+\mathbankUndefinedCommand{2}]"
+    assert red[2] == r"[公式待核对：x+\starhopeUndefinedCommand{2}]"
     assert "".join(xml.xpath(".//m:oMath//m:t/text()", namespaces=ns)) == "y=3"
 
 
@@ -408,8 +408,8 @@ def test_word_export_uses_native_omml_when_pandoc_is_available():
 
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
 def test_word_export_roundtrips_the_imported_mathtype_interval():
-    from mathbank.docx_helper import extract_docx_markdown
-    from mathbank.mtef_helper import decode_mtef_formula
+    from starhope.docx_helper import extract_docx_markdown
+    from starhope.mtef_helper import decode_mtef_formula
 
     payload = bytes.fromhex((Path(__file__).parent / "fixtures/mtef/tabbed_interval.hex").read_text())
     formula = decode_mtef_formula(payload).latex
@@ -1114,7 +1114,7 @@ def test_word_export_api_keeps_answer_images_out_of_questions(
     client, db_session, tmp_path, monkeypatch, single_docx, include_answers,
 ):
     import main
-    from mathbank.database import Question
+    from starhope.database import Question
 
     Image.new("RGB", (120, 80), "red").save(tmp_path / "answer-only.png")
     monkeypatch.setattr(main, "UPLOAD_DIR", str(tmp_path))

@@ -2,7 +2,7 @@
 import pytest
 
 from main import validate_import_knowledge
-from mathbank.prompts import build_classification_system_prompt
+from starhope.prompts import build_classification_system_prompt
 
 TREE = {"必修二": {"8. 立体几何初步": ["8.1 基本立体图形", "8.2 立体图形的直观图"]}}
 

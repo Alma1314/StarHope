@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pymupdf as fitz
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
+from starhope import pdf_inspector_helper as helper
 
 OLD = "OLD_VALUE=999"
 VISIBLE = "VISIBLE_VALUE=1"
@@ -129,7 +129,7 @@ def mocked_inspector(monkeypatch, markdown=MARKDOWN, pages=None):
 
 
 def forbid_recertification(monkeypatch):
-    from mathbank import pdf_native_math
+    from starhope import pdf_native_math
     monkeypatch.setattr(pdf_native_math, "repair_native_page", lambda *_args: {
         "status": "repaired", "markdown": MARKDOWN, "notes": [], "stats": {}})
 

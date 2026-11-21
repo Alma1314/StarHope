@@ -1,8 +1,8 @@
 """Bare sentence-ending zero is distinct from merged question headings."""
 import pytest
 
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.source_metadata import prepare_word_source_metadata, _visible_heading_census
+from starhope.docx_helper import _new_diagnostics
+from starhope.source_metadata import prepare_word_source_metadata, _visible_heading_census
 
 
 @pytest.mark.parametrize("body", [

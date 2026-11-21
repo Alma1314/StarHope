@@ -1,7 +1,7 @@
 """Source declarations/values can be recognized without weakening boundaries."""
 import pytest
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.source_metadata import prepare_word_source_metadata
+from starhope.docx_helper import _new_diagnostics
+from starhope.source_metadata import prepare_word_source_metadata
 
 def plan(source):
     return prepare_word_source_metadata(source,_new_diagnostics())

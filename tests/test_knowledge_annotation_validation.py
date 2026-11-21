@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.ai_knowledge_points import annotate_ai_knowledge_points, restore_ai_knowledge_evidence
+from starhope.ai_knowledge_points import annotate_ai_knowledge_points, restore_ai_knowledge_evidence
 
 
 CATALOG = [{"code": "demo:goal", "name": "研究目标"}, {"code": "demo:method", "name": "实际方法"}]

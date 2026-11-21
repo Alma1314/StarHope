@@ -12,8 +12,8 @@ import uuid
 
 import pytest
 
-import mathbank.document_projects as module
-from mathbank.document_projects import (
+import starhope.document_projects as module
+from starhope.document_projects import (
     DocumentProjectError, DocumentProjectStore, ProjectConflict, ProjectCorrupt,
     ProjectNotFound, ProjectUnsafePath,
 )

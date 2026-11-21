@@ -7,10 +7,10 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
-from mathbank.pdf_transcript_recovery import recover_pdf_transcript_pages, STAGE
-from mathbank.task_manager import TaskCancelled
+from starhope.document_projects import DocumentProjectStore
+from starhope.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
+from starhope.pdf_transcript_recovery import recover_pdf_transcript_pages, STAGE
+from starhope.task_manager import TaskCancelled
 
 
 GOOD = '1. 完整原题\n\\begin{choices}\n\\item 0\n\\item 1\n\\item 2\n\\item 3\n\\end{choices}'

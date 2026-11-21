@@ -8,8 +8,8 @@ import subprocess
 
 import pytest
 
-from mathbank.geometry_symbols import normalize_school_math_symbols
-from mathbank.paper_helper import build_latex_document, clean_content_for_latex
+from starhope.geometry_symbols import normalize_school_math_symbols
+from starhope.paper_helper import build_latex_document, clean_content_for_latex
 
 
 @pytest.mark.parametrize("source,expected", [
@@ -37,7 +37,7 @@ def test_reasoning_signs_follow_existing_math_and_text_modes(source, expected):
     r"\url{https://example.test/∵∴}", r"\path{images/∵∴.png}", "/static/uploads/∵∴.png",
     "/static/test_uploads/∵∴.png", r"\verb|∵∴|",
     r"\begin{tikzpicture}\node {$∵$ ∴};\end{tikzpicture}", r"\tikz{\node {∵∴};}",
-    r'<mathbank-math id="MBM_REASON_0001">$∵$ ∴</mathbank-math>',
+    r'<starhope-math id="MBM_REASON_0001">$∵$ ∴</starhope-math>',
     r"\begin{verbatim}∵ ∴\end{verbatim}", r"\∵ \∴",
 ])
 def test_reasoning_adapter_preserves_code_tikz_paths_comments_and_formula_locks(source):
@@ -69,7 +69,7 @@ def test_default_pdf_export_normalizes_reasoning_on_a_copy_only():
     assert clean_content_for_latex(SAMPLE_ANSWER, is_answer=True).count("$") == SAMPLE_ANSWER.count("$")
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_SYMBOL_NATIVE") != "1" or not shutil.which("xelatex"),
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_SYMBOL_NATIVE") != "1" or not shutil.which("xelatex"),
                     reason="Opt-in real XeLaTeX reasoning-symbol glyph check")
 def test_native_pdf_reasoning_prose_math_and_text_macros_have_glyphs(tmp_path):
     import pymupdf as fitz

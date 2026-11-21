@@ -69,7 +69,7 @@ jobs:
           import uuid
 
           root = Path.cwd()
-          target = Path(os.environ["RUNNER_TEMP"]) / ("MathBank 中文 空格 分享-" + uuid.uuid4().hex)
+          target = Path(os.environ["RUNNER_TEMP"]) / ("StarHope 中文 空格 分享-" + uuid.uuid4().hex)
           target.mkdir()
           tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=root).decode("utf-8").split("\0")
           for name in filter(None, tracked):
@@ -85,18 +85,18 @@ jobs:
               destination.parent.mkdir(parents=True, exist_ok=True)
               shutil.copy2(source, destination)
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
-              output.write("MATHBANK_SHARING_QA_ROOT=" + str(target) + "\n")
+              output.write("STARHOPE_SHARING_QA_ROOT=" + str(target) + "\n")
       - name: Exercise native backup, sharing, rollback and task receipts
         shell: pwsh
         run: |
-          Set-Location -LiteralPath $env:MATHBANK_SHARING_QA_ROOT
+          Set-Location -LiteralPath $env:STARHOPE_SHARING_QA_ROOT
           python -B -m pytest tests/test_gitignore_privacy.py tests/test_storage_access.py tests/test_windows_launcher.py tests/test_library_transfer_storage_api.py tests/test_library_transfer_windows.py tests/test_library_transfer.py tests/test_library_transfer_api.py tests/test_library_transfer_tasks.py tests/test_library_transfer_tasks_api.py tests/test_library_transfer_upload.py tests/test_library_transfer_record_memory.py tests/test_library_transfer_batch_import.py tests/test_library_transfer_batch_export.py tests/test_raster_validation.py tests/test_question_fingerprint_batches.py tests/test_question_duplicates.py tests/test_sync_exchange_catalog_memory.py tests/test_sync_batch_export.py tests/test_question_reference_batches.py tests/test_asset_security.py tests/test_full_backup.py -q --junitxml=sharing-windows.xml
       - name: Preserve native regression diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sharing-windows-results
-          path: ${{ env.MATHBANK_SHARING_QA_ROOT }}/sharing-windows.xml
+          path: ${{ env.STARHOPE_SHARING_QA_ROOT }}/sharing-windows.xml
           if-no-files-found: ignore
 
   pandoc-native:
@@ -116,7 +116,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest==9.0.3
       - name: Verify real download, Unicode paths, OMML and cached reinstallation
         env:
-          MATHBANK_TEST_PANDOC_NATIVE: "1"
+          STARHOPE_TEST_PANDOC_NATIVE: "1"
         run: python -m pytest --noconftest tests/test_runtime_components.py
 
   release-guards:
@@ -145,16 +145,16 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $archive = Join-Path $PWD 'dist\MathBank-Windows-x64.zip'
+          $archive = Join-Path $PWD 'dist\StarHope-Windows-x64.zip'
           $testRoot = Join-Path $env:RUNNER_TEMP (
-            'MathBank 中文 空格 启动-' + [Guid]::NewGuid().ToString('N')
+            'StarHope 中文 空格 启动-' + [Guid]::NewGuid().ToString('N')
           )
           New-Item -ItemType Directory -Path $testRoot | Out-Null
           Expand-Archive -LiteralPath $archive -DestinationPath $testRoot
           $launcher = Join-Path $testRoot '启动题库系统.bat'
           $statePath = Join-Path $testRoot '.system_generated\server-state.json'
-          $env:MATHBANK_NO_PAUSE = '1'
-          $env:MATHBANK_NO_BROWSER = '1'
+          $env:STARHOPE_NO_PAUSE = '1'
+          $env:STARHOPE_NO_BROWSER = '1'
           $stateDirectory = Join-Path $testRoot '.system_generated'
           New-Item -ItemType Directory -Path $stateDirectory | Out-Null
           Set-Content -LiteralPath $statePath -Value 'invalid old state'
@@ -242,7 +242,7 @@ jobs:
                 $request.Timeout = 2000
                 $request.Method = 'POST'
                 $request.Headers.Add('X-Local-Token', $token)
-                $request.Headers.Add('X-MathBank-Launch-ID', [string]$state.launch_id)
+                $request.Headers.Add('X-StarHope-Launch-ID', [string]$state.launch_id)
                 $request.ContentLength = 0
                 $shutdownResponse = $request.GetResponse()
                 $shutdownResponse.Close()

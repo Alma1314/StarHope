@@ -8,7 +8,7 @@ import zipfile
 import pytest
 from lxml import etree
 
-from mathbank import word_export_helper as word
+from starhope import word_export_helper as word
 
 
 NS = {"w": word.WORD_NS, "m": word.MATH_NS}

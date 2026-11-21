@@ -8,13 +8,13 @@ import pytest
 from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.orm import Session
 
-from mathbank import sync_helper
-from mathbank.content_sources import CONTENT_SOURCES_NOTICE_NAME, content_source_export_files
-from mathbank.database import (
+from starhope import sync_helper
+from starhope.content_sources import CONTENT_SOURCES_NOTICE_NAME, content_source_export_files
+from starhope.database import (
     Base, KnowledgePoint, KnowledgePointCurriculum, Question, QuestionCurriculum,
     QuestionKnowledgePoint,
 )
-from mathbank.question_references import sync_question_references, sync_question_source_labels
+from starhope.question_references import sync_question_references, sync_question_source_labels
 
 
 @pytest.fixture
@@ -179,7 +179,7 @@ def test_late_batch_failure_keeps_all_previous_output_files(export_database, mon
             sync_helper.export_database_to_files(db, quiet=True)
     assert len(calls) == 2
     assert all(path.read_bytes() == b"previous complete export" for path in paths)
-    assert not list(directory.glob(".mathbank-export-*"))
+    assert not list(directory.glob(".starhope-export-*"))
 
 
 def test_empty_database_preserves_the_empty_array(tmp_path, monkeypatch):

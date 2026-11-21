@@ -1,6 +1,6 @@
 import pytest
 
-from mathbank.source_review_results import parse_review_response
+from starhope.source_review_results import parse_review_response
 
 
 @pytest.mark.parametrize('raw', ['{"items":[]}', '```json\n{"items":[]}\n```',

@@ -18,13 +18,13 @@ import textwrap
 import pytest
 
 from scripts import build_release, release_overlay
-from mathbank.db_migrations import LATEST_SCHEMA_VERSION
+from starhope.db_migrations import LATEST_SCHEMA_VERSION
 
 
 NEW_RUNTIME_MODULES = (
-    "mathbank/question_reads.py",
-    "mathbank/background_export.py",
-    "mathbank/question_queries.py",
+    "starhope/question_reads.py",
+    "starhope/background_export.py",
+    "starhope/question_queries.py",
 )
 
 
@@ -45,7 +45,7 @@ def run_child(root, source):
 
 @pytest.fixture(scope="module")
 def portable_source_trees(tmp_path_factory):
-    root = tmp_path_factory.mktemp("mathbank-portable-source")
+    root = tmp_path_factory.mktemp("starhope-portable-source")
     trees = {}
     for platform, launcher in (
         ("macos", "启动题库系统.command"),
@@ -65,15 +65,15 @@ def test_actual_portable_copy_includes_both_new_runtime_modules(portable_source_
         assert digest(tree / relative) == digest(Path(build_release.BASE_DIR) / relative)
     assert not (tree / "scripts/build_release.py").exists()
     assert not (tree / ".env").exists()
-    assert not (tree / "math_question_bank.db").exists()
+    assert not (tree / "starhope.db").exists()
     assert not (tree / "data_backup").exists()
     assert not (tree / "tests").exists()
     assert {p.name for p in (tree / "static/uploads").iterdir()} == {".gitkeep"}
     run_child(tree, """
-        from mathbank.question_reads import find_association_candidates, question_summary_load_options
-        from mathbank.background_export import DatabaseExportQueue
-        from mathbank.question_queries import QuestionReadSnapshot, page_questions
-        from mathbank.paths import DATABASE_FILE
+        from starhope.question_reads import find_association_candidates, question_summary_load_options
+        from starhope.background_export import DatabaseExportQueue
+        from starhope.question_queries import QuestionReadSnapshot, page_questions
+        from starhope.paths import DATABASE_FILE
         assert callable(find_association_candidates)
         assert callable(question_summary_load_options)
         assert callable(QuestionReadSnapshot) and callable(page_questions)
@@ -87,11 +87,11 @@ import json
 import sqlite3
 from pathlib import Path
 
-from mathbank import database
-from mathbank.database import (
+from starhope import database
+from starhope.database import (
     Question, QuestionCurriculum, QuestionKnowledgePoint, KnowledgePoint, SessionLocal,
 )
-from mathbank.curriculums import build_default_metadata
+from starhope.curriculums import build_default_metadata
 
 database.init_db()
 image_url = '/static/uploads/old-user-diagram.png'
@@ -103,7 +103,7 @@ metadata['curriculum']['自编教材'] = {'用户历史章节': ['历史自定�
 metadata['upgrade_regression_marker'] = '保留用户自定义配置'
 Path('data_backup/custom_metadata.json').write_text(
     json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-Path('.env').write_text('DEEPSEEK_API_KEY=synthetic-upgrade-test-only\nMATHBANK_QA_ENABLED=1\n', encoding='utf-8')
+Path('.env').write_text('DEEPSEEK_API_KEY=synthetic-upgrade-test-only\nSTARHOPE_QA_ENABLED=1\n', encoding='utf-8')
 
 audit = {'scope': ['(1)'], 'evidence_source': '旧题人工核验',
          'evidence': {'excerpt': '保留原证据'}, 'reason': '人工分类依据',
@@ -160,12 +160,12 @@ def test_overwrite_upgrade_starts_with_old_data_and_keeps_user_assets(
     for relative in NEW_RUNTIME_MODULES:
         (installed / relative).unlink()
     (installed / "main.py").write_text("# Synthetic previous application entrypoint\n")
-    (installed / "mathbank/obsolete_upgrade_fixture.py").write_text("# previous owned file\n")
+    (installed / "starhope/obsolete_upgrade_fixture.py").write_text("# previous owned file\n")
     build_release.write_release_manifest(installed, "macos")
     release_overlay.apply_release_overlay(installed, "macos")
 
     run_child(installed, SEED_OLD_DATA)
-    database_path = installed / "math_question_bank.db"
+    database_path = installed / "starhope.db"
     with sqlite3.connect(database_path) as connection:
         if old_schema == 12:
             connection.execute("DROP TABLE question_references")
@@ -186,7 +186,7 @@ def test_overwrite_upgrade_starts_with_old_data_and_keeps_user_assets(
     shutil.copy2(source / release_overlay.MANIFEST_NAME, installed / release_overlay.MANIFEST_NAME)
     result = release_overlay.apply_release_overlay(installed, "macos")
     assert result["status"] == "updated"
-    assert "mathbank/obsolete_upgrade_fixture.py" in result["deleted"]
+    assert "starhope/obsolete_upgrade_fixture.py" in result["deleted"]
     assert digest(database_path) == old_database_hash
     assert {relative: digest(installed / relative) for relative in protected} == original_hashes
 
@@ -202,8 +202,8 @@ def test_overwrite_upgrade_starts_with_old_data_and_keeps_user_assets(
 
         import main
         from fastapi.testclient import TestClient
-        from mathbank import __version__
-        from mathbank.db_migrations import LATEST_SCHEMA_VERSION
+        from starhope import __version__
+        from starhope.db_migrations import LATEST_SCHEMA_VERSION
         assert not main.IS_TESTING, 'Exercise the production lifespan and actual metadata path'
         finished = threading.Event()
         cleanup = main.start_startup_cleanup

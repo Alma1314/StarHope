@@ -9,7 +9,7 @@ from test_preview_browser import browser
 
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1",
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1",
     reason="opt-in isolated large-library browser regression",
 )
 
@@ -86,11 +86,11 @@ def test_old_draft_target_and_local_storage_survive_picker_hydration(browser):
     draft = {"id": "legacy-scale-draft", "content": "旧版草稿 $x=1$。", "related_question_id": str(target)}
     browser.evaluate(f"""(() => {{
       const drafts=[{json.dumps(draft,ensure_ascii=False)}];
-      localStorage.setItem('mathbank_local_drafts',JSON.stringify(drafts));
-      window.scaleDraftBefore=localStorage.getItem('mathbank_local_drafts');
+      localStorage.setItem('starhope_local_drafts',JSON.stringify(drafts));
+      window.scaleDraftBefore=localStorage.getItem('starhope_local_drafts');
       selectDraft(drafts[0]);return true;
     }})()""")
     browser.command("wait", "--fn", f"document.getElementById('editRelatedQuestion').value === '{target}' && document.getElementById('editRelatedQuestionNum').value === '45'")
     assert not browser.evaluate("isEditorModified()")
-    assert browser.evaluate("localStorage.getItem('mathbank_local_drafts') === scaleDraftBefore")
+    assert browser.evaluate("localStorage.getItem('starhope_local_drafts') === scaleDraftBefore")
     assert browser.evaluate("document.getElementById('editContent').value") == draft["content"]

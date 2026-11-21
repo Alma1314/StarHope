@@ -4,8 +4,8 @@ import threading
 
 import pytest
 
-from mathbank.document_project_service import DocumentProjectService
-from mathbank.document_projects import DocumentProjectStore
+from starhope.document_project_service import DocumentProjectService
+from starhope.document_projects import DocumentProjectStore
 
 
 class Tasks:

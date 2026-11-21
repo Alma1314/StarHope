@@ -2,7 +2,7 @@
 
 import pytest
 
-from mathbank.prompts import (
+from starhope.prompts import (
     COMMON_OCR_PROMPT,
     FILLIN_STYLE_RULE,
     build_ai_solve_prompts,

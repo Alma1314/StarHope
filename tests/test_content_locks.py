@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mathbank.content_locks import (
+from starhope.content_locks import (
     ContentLockIntegrityError,
     lock_visible_math,
     restore_visible_math,
@@ -66,7 +66,7 @@ def test_docx_task_restores_formula_before_returning_questions():
     }
 
     def fake_parse(locked_text, _generate_answers, **_kwargs):
-        assert '<mathbank-math id="' in locked_text
+        assert '<starhope-math id="' in locked_text
         assert r"$f(x)=x^2+1$" in locked_text
         lock_id = re.search(r'id="(MBM_[^"]+)"', locked_text).group(1)
         return [{
@@ -333,12 +333,12 @@ def test_reconcile_unsegmented_source_is_conservative_if_multiple_questions_cann
     assert report['unmatched_source']
 
 
-@pytest.mark.skipif(not os.getenv('MATHBANK_LOCK_REAL_DOCX'), reason='optional local user-provided Word fixture')
+@pytest.mark.skipif(not os.getenv('STARHOPE_LOCK_REAL_DOCX'), reason='optional local user-provided Word fixture')
 def test_reconcile_real_docx_without_ids_with_model_choices_and_no_question_numbers(tmp_path):
-    from mathbank.docx_helper import extract_docx_markdown
-    from mathbank.content_locks import _source_parts
+    from starhope.docx_helper import extract_docx_markdown
+    from starhope.content_locks import _source_parts
 
-    extracted = extract_docx_markdown(Path(os.environ['MATHBANK_LOCK_REAL_DOCX']), output_dir=tmp_path)
+    extracted = extract_docx_markdown(Path(os.environ['STARHOPE_LOCK_REAL_DOCX']), output_dir=tmp_path)
     assert extracted['success']
     source = extracted['markdown']
     _, locks = lock_visible_math(source, 'real-word')

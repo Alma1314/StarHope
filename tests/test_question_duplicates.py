@@ -6,8 +6,8 @@ import re
 
 import pytest
 
-import mathbank.question_duplicates as duplicate_module
-from mathbank.question_duplicates import (
+import starhope.question_duplicates as duplicate_module
+from starhope.question_duplicates import (
     DuplicateComparison,
     EMPTY_TEXT_BAND,
     FINGERPRINT_VERSION,

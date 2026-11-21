@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from mathbank.pdf_transcript_quality import assess_pdf_transcript_quality, transcript_quality_reasons
+from starhope.pdf_transcript_quality import assess_pdf_transcript_quality, transcript_quality_reasons
 
 
 def choices(*values, close=True):

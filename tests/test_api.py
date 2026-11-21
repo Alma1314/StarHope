@@ -1,5 +1,5 @@
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 import base64
 import os
 import json
@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from main import LOCAL_TOKEN, SERVER_INSTANCE_ID
-from mathbank.database import Question
+from starhope.database import Question
 
 def test_api_forbidden_without_token(client):
     # Any POST/PUT/DELETE request without X-Local-Token must return 403 Forbidden
@@ -24,7 +24,7 @@ def test_shutdown_rejects_a_different_server_instance(client):
         "/api/shutdown",
         headers={
             "X-Local-Token": LOCAL_TOKEN,
-            "X-MathBank-Launch-ID": "different-instance",
+            "X-StarHope-Launch-ID": "different-instance",
         },
     )
 
@@ -52,7 +52,7 @@ def test_shutdown_accepts_current_instance_and_schedules_daemon_thread(client):
                 "/api/shutdown",
                 headers={
                     "X-Local-Token": LOCAL_TOKEN,
-                    "X-MathBank-Launch-ID": SERVER_INSTANCE_ID,
+                    "X-StarHope-Launch-ID": SERVER_INSTANCE_ID,
                 },
             )
 
@@ -60,7 +60,7 @@ def test_shutdown_accepts_current_instance_and_schedules_daemon_thread(client):
                 "/api/shutdown",
                 headers={
                     "X-Local-Token": LOCAL_TOKEN,
-                    "X-MathBank-Launch-ID": SERVER_INSTANCE_ID,
+                    "X-StarHope-Launch-ID": SERVER_INSTANCE_ID,
                 },
             )
     finally:
@@ -397,7 +397,7 @@ def test_api_metadata_config(client):
 
 
 def test_curriculum_preset_api(client):
-    from mathbank.curriculums import CURRICULUM_NAMES
+    from starhope.curriculums import CURRICULUM_NAMES
     for version in CURRICULUM_NAMES:
         response = client.get(f"/api/config/curriculum-presets/{version}")
         assert response.status_code == 200
@@ -438,7 +438,7 @@ def test_api_ai_solve_with_ocr(client):
     headers = {"X-Local-Token": LOCAL_TOKEN}
     
     with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "fake_key"}):
-        with patch("mathbank.ai_http.robust_request_post") as mock_post:
+        with patch("starhope.ai_http.robust_request_post") as mock_post:
             mock_resp = MagicMock()
             mock_resp.status_code = 200
             mock_resp.json.return_value = {
@@ -498,7 +498,7 @@ def test_bailian_solve_uses_model_specific_thinking_policy(
         "choices": [{"message": {"content": "【参考答案】2\n【详细解析】略"}}]
     }
     with patch.dict(os.environ, {"ALI_BAILIAN_API_KEY": "bailian-key"}), patch(
-        "mathbank.ai_http.robust_request_post", return_value=response_payload
+        "starhope.ai_http.robust_request_post", return_value=response_payload
     ) as mock_post:
         response = client.post(
             "/api/ai/solve",
@@ -580,7 +580,7 @@ def test_parse_paper_flows_use_shared_provider_resolution(client):
         "ALI_BAILIAN_API_BASE": "https://bailian.example/v1/",
     }
     with patch.dict(os.environ, provider_env):
-        with patch("mathbank.ai_http.robust_request_post", side_effect=provider_response) as mock_post:
+        with patch("starhope.ai_http.robust_request_post", side_effect=provider_response) as mock_post:
             response = client.post(
                 "/api/ai/parse-paper",
                 data={
@@ -936,7 +936,7 @@ def test_version_and_update_check_api(client):
     assert res_ver.status_code == 200
     data_ver = res_ver.json()
     assert "current_version" in data_ver
-    assert data_ver["repo"] == "JudgePeach/math-question-bank"
+    assert data_ver["repo"] == "Alma1314/StarHope"
     assert data_ver["server_instance_id"] == SERVER_INSTANCE_ID
 
     # 3. Test GET /api/version/check-update with mocked GitHub response
@@ -946,17 +946,17 @@ def test_version_and_update_check_api(client):
         "tag_name": "v9.9.9",
         "name": "Release 9.9.9",
         "body": "Mocked changelog",
-        "html_url": "https://github.com/JudgePeach/math-question-bank/releases/tag/v9.9.9",
+        "html_url": "https://github.com/Alma1314/StarHope/releases/tag/v9.9.9",
         "published_at": "2026-08-09T00:00:00Z",
         "assets": [
             {
-                "name": "MathBank-macOS.zip",
+                "name": "StarHope-macOS.zip",
                 "size": 10485760,
                 "download_count": 100,
                 "browser_download_url": "https://example.com/mac.zip"
             },
             {
-                "name": "MathBank-Windows-x64.zip",
+                "name": "StarHope-Windows-x64.zip",
                 "size": 20971520,
                 "download_count": 200,
                 "browser_download_url": "https://example.com/win.zip"
@@ -964,7 +964,7 @@ def test_version_and_update_check_api(client):
         ]
     }
     
-    with patch("mathbank.ai_http.requests.get", return_value=mock_resp):
+    with patch("starhope.ai_http.requests.get", return_value=mock_resp):
         res_update = client.get("/api/version/check-update")
         assert res_update.status_code == 200
         data_update = res_update.json()
@@ -977,7 +977,7 @@ def test_version_and_update_check_api(client):
 
 
 def test_solve_without_model_uses_saved_solver_and_shared_prompt(client):
-    from mathbank.prompts import build_ai_solve_prompts
+    from starhope.prompts import build_ai_solve_prompts
 
     with patch.dict(os.environ, {"PREFER_SOLVE_MODEL": "DEEPSEEK/deepseek-chat", "DEEPSEEK_API_KEY": "fake"}), patch("main.post_chat_completion") as post:
         post.return_value.json.return_value = {"choices": [{"message": {"content": "answer"}}]}

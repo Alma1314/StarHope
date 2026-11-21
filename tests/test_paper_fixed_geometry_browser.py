@@ -20,7 +20,7 @@ def geometry(browser):
 
 def test_fixed_page_wraps_identically_while_zooming_and_scaled_drag_keeps_cart_order(browser):
     browser.command('set','viewport','1600','1100')
-    browser.evaluate("setPaperMobilePane('preview');MathBankBrowserChecks.seed(15,2);true")
+    browser.evaluate("setPaperMobilePane('preview');StarHopeBrowserChecks.seed(15,2);true")
     browser.settle()
     wide=geometry(browser)
     assert len(wide['pages']) >= 2
@@ -42,10 +42,10 @@ def test_fixed_page_wraps_identically_while_zooming_and_scaled_drag_keeps_cart_o
     dark=geometry(browser)
     assert [page['ids'] for page in dark['pages']] == original
     assert all(page['padding']==['96px']*4 for page in dark['pages'])
-    result=browser.evaluate('MathBankBrowserChecks.drag(1,15)')
+    result=browser.evaluate('StarHopeBrowserChecks.drag(1,15)')
     assert result == list(range(2,16))+[1]
     browser.settle()
-    assert browser.evaluate('MathBankBrowserChecks.drag(2,1,false,true)') == result
+    assert browser.evaluate('StarHopeBrowserChecks.drag(2,1,false,true)') == result
     browser.settle()
     browser.evaluate("document.documentElement.classList.remove('dark');true")
     browser.command('set','viewport','1600','1100')

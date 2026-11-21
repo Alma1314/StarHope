@@ -7,7 +7,7 @@
             if (typeof renderContentBadges === 'function') {
                 window.renderIllustrationBadges = function() {
                     uploadedImages = Array.isArray(uploadedImages)
-                        ? Array.from(new Set(uploadedImages.map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean)))
+                        ? Array.from(new Set(uploadedImages.map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean)))
                         : [];
                     return renderContentBadges();
                 };
@@ -17,20 +17,20 @@
             if (typeof renderAnswerBadges === 'function') {
                 window.renderAnswerImageBadges = function() {
                     uploadedAnswerImages = Array.isArray(uploadedAnswerImages)
-                        ? Array.from(new Set(uploadedAnswerImages.map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean)))
+                        ? Array.from(new Set(uploadedAnswerImages.map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean)))
                         : [];
                     return renderAnswerBadges();
                 };
             }
 
             window.collectAnswerImagePaths = function(markdown) {
-                if (window.MathBankImageAssets) return window.MathBankImageAssets.collect(markdown);
+                if (window.StarHopeImageAssets) return window.StarHopeImageAssets.collect(markdown);
                 markdown = String(markdown || '');
                 const foundImages = [];
                 const imagePattern = /!\[.*?\]\(([^)]+)\)/g;
                 let match;
                 while ((match = imagePattern.exec(markdown)) !== null) {
-                    const safePath = window.MathBankSafe.safeImageUrl(match[1]);
+                    const safePath = window.StarHopeSafe.safeImageUrl(match[1]);
                     if (safePath && !foundImages.includes(safePath)) {
                         foundImages.push(safePath);
                     }
@@ -62,22 +62,22 @@
 
         function editorAssetReferences() {
             syncEditorImageReferences();
-            return Array.from(new Set([...window.MathBankImageAssets.all(
+            return Array.from(new Set([...window.StarHopeImageAssets.all(
                 document.getElementById('editContent').value,
                 document.getElementById('editAnswerMarkdown').value,
                 TikzState.contentAssets, TikzState.answerAssets
-            ), ...window.MathBankImageAssets.collect(document.getElementById('editReview').value)]));
+            ), ...window.StarHopeImageAssets.collect(document.getElementById('editReview').value)]));
         }
         window.editorAssetReferences = editorAssetReferences;
 
         function applyEditorAssetPathMap(rawMapping, session) {
-            if (!EditorState.isCurrent(session) || !window.MathBankImageAssets) return;
-            const mapping = window.MathBankImageAssets.normalizeMap(rawMapping);
+            if (!EditorState.isCurrent(session) || !window.StarHopeImageAssets) return;
+            const mapping = window.StarHopeImageAssets.normalizeMap(rawMapping);
             if (!Object.keys(mapping).length) return;
             const content = document.getElementById('editContent');
             const answer = document.getElementById('editAnswerMarkdown');
             const review = document.getElementById('editReview');
-            const mapped = window.MathBankImageAssets.mapRecord({
+            const mapped = window.StarHopeImageAssets.mapRecord({
                 content: content.value, answer_markdown: answer.value,
                 review: review.value,
                 content_tikz_assets: TikzState.contentAssets, answer_tikz_assets: TikzState.answerAssets,
@@ -85,9 +85,9 @@
             }, mapping);
             // Only migrate URLs in the current values: text typed while saving
             // and later additions/removals remain untouched and remain dirty.
-            window.MathBankImageAssets.mapInput(content, mapping);
-            window.MathBankImageAssets.mapInput(answer, mapping);
-            window.MathBankImageAssets.mapInput(review, mapping);
+            window.StarHopeImageAssets.mapInput(content, mapping);
+            window.StarHopeImageAssets.mapInput(answer, mapping);
+            window.StarHopeImageAssets.mapInput(review, mapping);
             TikzState.contentAssets = mapped.content_tikz_assets;
             TikzState.answerAssets = mapped.answer_tikz_assets;
             FigureLayoutState.imageLayouts = mapped.image_layouts;
@@ -119,7 +119,7 @@
                     image_path: findContentTikzImagePath(record.content || ''),
                     tikz_code: tikzCode,
                     instruction: '',
-                    reference_image_path: window.MathBankSafe.safeImageUrl(
+                    reference_image_path: window.StarHopeSafe.safeImageUrl(
                         record.tikz_reference_image_path || ''
                     )
                 }] : []);
@@ -443,7 +443,7 @@
             const isCurrent = () => EditorState.isCurrent(session)
                 && sequence === relatedDropdownLoadSequence;
             updateRelatedCandidatePagination('查找中...');
-            const timeout = setTimeout(() => controller.abort(), MathBankTimeouts.QUERY_MS);
+            const timeout = setTimeout(() => controller.abort(), StarHopeTimeouts.QUERY_MS);
             return fetch(`/api/questions/association-candidates?${params}`, {signal: controller.signal})
                 .then(response => {
                     if (!response.ok) throw new Error('关联题目查找失败');
@@ -731,9 +731,9 @@
                             item.onclick = () => selectQuestionById(q.id);
                             item.innerHTML = `
                                 <div class="truncate pr-2">
-                                    <span class="font-bold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded text-[10px] mr-1.5 shadow-sm">#${window.MathBankSafe.escapeText(q.seq_num)}</span>
-                                    <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 mr-1.5">${window.MathBankSafe.escapeText(getTypeText(q.question_type))}</span>
-                                    <span>${window.MathBankSafe.escapeText(cleanContent)}</span>
+                                    <span class="font-bold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded text-[10px] mr-1.5 shadow-sm">#${window.StarHopeSafe.escapeText(q.seq_num)}</span>
+                                    <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 mr-1.5">${window.StarHopeSafe.escapeText(getTypeText(q.question_type))}</span>
+                                    <span>${window.StarHopeSafe.escapeText(cleanContent)}</span>
                                 </div>
                                 <i class="fa-solid fa-chevron-right text-[9px] text-slate-400 shrink-0"></i>
                             `;
@@ -790,7 +790,7 @@
             } catch (_) { return false; }
         };
         window.addEventListener('focus', () => window.refreshCurrentQuestionReferences());
-        window.addEventListener('mathbank-question-mutated', () => window.refreshCurrentQuestionReferences());
+        window.addEventListener('starhope-question-mutated', () => window.refreshCurrentQuestionReferences());
 
         function blockEditorSessionChangeWhileSaving() {
             if (!saveQuestionInFlight) return false;
@@ -937,11 +937,11 @@
                     window.hydrateTikzState(fullItem);
                     FigureLayoutState.hydrate(fullItem);
                     const allStoredImages = Array.isArray(fullItem.image_paths)
-                        ? fullItem.image_paths.map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean)
+                        ? fullItem.image_paths.map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean)
                         : [];
                     uploadedAnswerImages = window.collectAnswerImagePaths(fullItem.answer_markdown || '');
                     const hiddenTikzReferencePaths = new Set(TikzState.referencePaths());
-                    uploadedImages = window.MathBankImageAssets.withoutReviewOnly(
+                    uploadedImages = window.StarHopeImageAssets.withoutReviewOnly(
                         allStoredImages, fullItem.content, fullItem.answer_markdown, fullItem.review
                     ).filter(path => {
                         return !uploadedAnswerImages.includes(path)
@@ -1100,7 +1100,7 @@
                 const firstContentTikzAsset = contentTikzAssets[0] || null;
                 const tikzCode = firstContentTikzAsset ? firstContentTikzAsset.tikz_code : '';
                 const tikzReferencePath = firstContentTikzAsset
-                    ? (window.MathBankSafe.safeImageUrl(firstContentTikzAsset.reference_image_path) || '')
+                    ? (window.StarHopeSafe.safeImageUrl(firstContentTikzAsset.reference_image_path) || '')
                     : '';
                 const rawTags = document.getElementById('editTags') ? document.getElementById('editTags').value : '';
                 const tags = rawTags.trim();
@@ -1240,7 +1240,7 @@
                     ...uploadedImages,
                     ...(typeof uploadedAnswerImages !== 'undefined' ? uploadedAnswerImages : []),
                     ...TikzState.referencePaths()
-                ].map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean)));
+                ].map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean)));
                 formData.append('image_paths', JSON.stringify(combinedImages));
                 if (duplicateDecision.duplicateSnapshotHash) {
                     formData.append('duplicate_snapshot_hash', duplicateDecision.duplicateSnapshotHash);
@@ -1321,9 +1321,9 @@
                         const editorSessionStillCurrent = EditorState.isCurrent(editorSession);
                         const requestStillVisible = editorSessionStillCurrent &&
                             window.editorMatchesBackupSnapshot(requestBackupSnapshot);
-                        const mappedBackupSnapshot = window.MathBankImageAssets
-                            ? window.MathBankImageAssets.mapRecord(requestBackupSnapshot,
-                                window.MathBankImageAssets.normalizeMap(data.asset_path_map))
+                        const mappedBackupSnapshot = window.StarHopeImageAssets
+                            ? window.StarHopeImageAssets.mapRecord(requestBackupSnapshot,
+                                window.StarHopeImageAssets.normalizeMap(data.asset_path_map))
                             : requestBackupSnapshot;
                         const savedKnowledgePoints = Array.isArray(data.question.knowledge_points)
                             ? data.question.knowledge_points : knowledgePoints;
@@ -1635,7 +1635,7 @@
             const modal = document.getElementById('aiClassifyModal');
             modal.dataset.classifyOpen = 'true';
             modal.classList.remove('hidden');
-            window.MathBankModal.open(modal, { onEscape: closeClassifyModal });
+            window.StarHopeModal.open(modal, { onEscape: closeClassifyModal });
             
             // Reset modal states
             document.getElementById('classifyLoading').classList.add('hidden');
@@ -1680,7 +1680,7 @@
             refreshClassifyRefineControls();
             const modal = document.getElementById('aiClassifyModal');
             delete modal.dataset.classifyOpen;
-            window.MathBankModal.close(modal);
+            window.StarHopeModal.close(modal);
             modal.classList.add('opacity-0');
             modal.querySelector('div').classList.remove('scale-100');
             modal.querySelector('div').classList.add('scale-95');
@@ -2267,7 +2267,7 @@
             const imagePattern = /!\[[^\]\n]*\]\(\s*(\/static\/(?:uploads|test_uploads)\/[^\s)]+)\s*\)/g;
             let imageMatch;
             while ((imageMatch = imagePattern.exec(String(excerpt || ''))) !== null) {
-                const safePath = window.MathBankSafe.safeImageUrl(imageMatch[1]);
+                const safePath = window.StarHopeSafe.safeImageUrl(imageMatch[1]);
                 if (safePath) sourceImages.add(safePath);
             }
             if (sourceImages.size) {
@@ -2362,7 +2362,7 @@
                 review.required = true;
             }
             if (previousState !== JSON.stringify([review.required, review.catalog_signature, review.catalog_changed])) {
-                window.MathBankDocumentImportSession?.saveSoon();
+                window.StarHopeDocumentImportSession?.saveSoon();
             }
             return review.required === true || problem === 'catalog_pending';
         }
@@ -2386,7 +2386,7 @@
             updateParsedClassificationReview(index);
             updateParsedSavedState(index);
             updateSelectedCount();
-            window.MathBankDocumentImportSession?.saveSoon();
+            window.StarHopeDocumentImportSession?.saveSoon();
             return true;
         }
 
@@ -2698,7 +2698,7 @@
                 const actions = document.createElement('div');
                 actions.className = 'flex flex-wrap items-center gap-2';
                 const pageIndex = pdfFigureReviewPageIndex(item.page_number);
-                const url = pageIndex >= 0 ? window.MathBankSafe.safeImageUrl(window.pdfPageImages[pageIndex]) : '';
+                const url = pageIndex >= 0 ? window.StarHopeSafe.safeImageUrl(window.pdfPageImages[pageIndex]) : '';
                 if (url) {
                     const original = document.createElement('a');
                     original.className = 'font-semibold text-brand-700 underline underline-offset-2';
@@ -2838,7 +2838,7 @@
             const summaries = [];
             const known = value => Number.isSafeInteger(value) && value >= 0;
             const projectPath = draft || metadata || cache && typeof cache === 'object'
-                || ['mathbank.pdf-parallel-split.v1', 'mathbank.pdf-full-context-split.v1'].includes(parallel?.schema);
+                || ['starhope.pdf-parallel-split.v1', 'starhope.pdf-full-context-split.v1'].includes(parallel?.schema);
             if (projectPath && options.includeOcr !== false) {
                 const ocr = pdfCurrentOcrReportSummary(report?.pdf_vision, report?.pdf_resume, report);
                 if (ocr) summaries.push(ocr);
@@ -2995,7 +2995,7 @@
             const current = report?.pdf_project_legacy_parse || report?.pdf_project_parse;
             const parallel = report?.pdf_parallel_split;
             if ((current && typeof current === 'object')
-                    || ['mathbank.pdf-parallel-split.v1', 'mathbank.pdf-full-context-split.v1'].includes(parallel?.schema)) {
+                    || ['starhope.pdf-parallel-split.v1', 'starhope.pdf-full-context-split.v1'].includes(parallel?.schema)) {
                 const incomplete = task.partial === true || current?.partial === true
                     || ['partial', 'cancelled', 'source_changed'].includes(parallel?.status)
                     || ['partial', 'partial_manual_review'].includes(current?.status)
@@ -3412,7 +3412,7 @@
             if (typeof resetParsedDuplicateCheckState === 'function') {
                 resetParsedDuplicateCheckState();
             }
-            if (options.saveDraft !== false) window.MathBankDocumentImportSession?.saveSoon();
+            if (options.saveDraft !== false) window.StarHopeDocumentImportSession?.saveSoon();
             return parsedQuestionsGeneration;
         }
 
@@ -3643,7 +3643,7 @@
             window.activePdfCropSession = {
                 serial: window.pdfCropSessionSerial = (window.pdfCropSessionSerial || 0) + 1,
                 taskId: window.currentPdfTaskId,
-                projectId: window.MathBankDocumentImportSession?.getProjectId?.() || null,
+                projectId: window.StarHopeDocumentImportSession?.getProjectId?.() || null,
                 generation: parsedQuestionsGeneration,
                 question,
                 card,
@@ -3685,7 +3685,7 @@
             // Show modal
             const modal = document.getElementById('pdfCropModal');
             modal.classList.remove('hidden');
-            window.MathBankModal.open(modal, { onEscape: closePdfCropModal });
+            window.StarHopeModal.open(modal, { onEscape: closePdfCropModal });
             const openingSession = window.activePdfCropSession;
             setTimeout(() => {
                 if (window.activePdfCropSession !== openingSession || openingSession.closed) return;
@@ -3699,7 +3699,7 @@
             if (window.activePdfCropSession) window.activePdfCropSession.closed = true;
             const closingSession = window.activePdfCropSession;
             const modal = document.getElementById('pdfCropModal');
-            window.MathBankModal.close(modal);
+            window.StarHopeModal.close(modal);
             modal.classList.add('opacity-0');
             modal.querySelector('div').classList.remove('scale-100');
             modal.querySelector('div').classList.add('scale-95');
@@ -3715,12 +3715,12 @@
             container.innerHTML = '';
             
             window.pdfPageImages.forEach((url, i) => {
-                const safeUrl = window.MathBankSafe.safeImageUrl(url);
+                const safeUrl = window.StarHopeSafe.safeImageUrl(url);
                 if (!safeUrl) return;
                 const thumb = document.createElement('div');
                 thumb.className = `cursor-pointer border-2 rounded-lg overflow-hidden transition-all duration-200 aspect-[3/4] relative group hover:border-brand-500 bg-white ${i === activePageIndex ? 'border-brand-500 shadow-md ring-2 ring-brand-500/20' : 'border-slate-200'}`;
                 thumb.innerHTML = `
-                    <img src="${window.MathBankSafe.escapeAttribute(safeUrl)}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+                    <img src="${window.StarHopeSafe.escapeAttribute(safeUrl)}" class="w-full h-full object-cover" loading="lazy" decoding="async">
                     <div class="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded font-bold">P${originalPdfPageNumber(i)}</div>
                 `;
                 thumb.onclick = () => {
@@ -3747,7 +3747,7 @@
             document.getElementById('pdfCropPageIndicator').textContent = `原卷第 ${originalPdfPageNumber(pageIdx)} 页（所选 ${pageIdx + 1} / ${window.pdfPageImages.length} 页）`;
             
             const img = document.getElementById('pdfCropActiveImage');
-            const safePageUrl = window.MathBankSafe.safeImageUrl(window.pdfPageImages[pageIdx]);
+            const safePageUrl = window.StarHopeSafe.safeImageUrl(window.pdfPageImages[pageIdx]);
             img.src = safePageUrl || '';
             
             clearPdfCropSelection();
@@ -3885,7 +3885,7 @@
             const confirmBtn = document.getElementById('pdfCropConfirmBtn');
             const cropSession = window.activePdfCropSession || {
                 taskId: window.currentPdfTaskId,
-                projectId: window.MathBankDocumentImportSession?.getProjectId?.() || null,
+                projectId: window.StarHopeDocumentImportSession?.getProjectId?.() || null,
                 generation: parsedQuestionsGeneration,
                 questionIndex: window.activeCropQuestionIndex,
                 question: parsedQuestionsData[window.activeCropQuestionIndex],
@@ -3904,7 +3904,7 @@
             const cropIsCurrent = () => !cropSession.closed
                 && (!window.activePdfCropSession || window.activePdfCropSession === cropSession)
                 && cropSession.taskId === window.currentPdfTaskId
-                && (cropSession.projectId || null) === (window.MathBankDocumentImportSession?.getProjectId?.() || null)
+                && (cropSession.projectId || null) === (window.StarHopeDocumentImportSession?.getProjectId?.() || null)
                 && cropSession.generation === parsedQuestionsGeneration
                 && parsedQuestionsData[cropSession.questionIndex] === cropSession.question
                 && originalPdfPageNumber(activePageIndex) - 1 === cropPageIndex
@@ -3940,7 +3940,7 @@
             })
             .then(data => {
                 if (data.status === 'success') {
-                    const croppedUrl = window.MathBankSafe.safeImageUrl(data.image_path);
+                    const croppedUrl = window.StarHopeSafe.safeImageUrl(data.image_path);
                     if (!croppedUrl) throw new Error('裁剪接口返回了无效的图片路径');
                     // A discarded response still owns a temporary asset that is
                     // cleaned by the existing project/session lifecycle.
@@ -3985,7 +3985,7 @@
                             // retain their drawing evidence.
                             const assetField = targetField === 'content' ? 'content_tikz_assets' : 'answer_tikz_assets';
                             if (replacement && Array.isArray(q[assetField])
-                                    && !window.MathBankImageAssets.collect(result.text).includes(result.replacedPath)) {
+                                    && !window.StarHopeImageAssets.collect(result.text).includes(result.replacedPath)) {
                                 const retainedAssets = q[assetField].filter(asset => asset.image_path !== result.replacedPath);
                                 if (retainedAssets.length !== q[assetField].length) {
                                     q[assetField] = retainedAssets;
@@ -4000,8 +4000,8 @@
                             // Private references are registered separately by
                             // prepare_question_assets; they must not become a
                             // visible, unanchored attachment after replacement.
-                            const stillVisible = window.MathBankImageAssets
-                                ? window.MathBankImageAssets.collect(remaining).includes(result.replacedPath)
+                            const stillVisible = window.StarHopeImageAssets
+                                ? window.StarHopeImageAssets.collect(remaining).includes(result.replacedPath)
                                 : remaining.includes(result.replacedPath);
                             if (!stillVisible) {
                                 q.image_paths = q.image_paths.filter(path => path !== result.replacedPath);
@@ -4032,7 +4032,7 @@
                     showToast(cropSession.replacement ? '已用新截图替换此图，其他图片保持原位。'
                         : `截图已插入${targetField === 'answer_markdown' ? '答案与解析' : '题干'}的选定位置。`);
                     closePdfCropModal();
-                    window.MathBankDocumentImportSession?.saveSoon();
+                    window.StarHopeDocumentImportSession?.saveSoon();
                 } else {
                     throw new Error(data.message || "裁剪错误");
                 }
@@ -4104,7 +4104,7 @@
                     ? session.question.document_import_manual_crops : [];
                 const receipt = receipts.find(item => item?.slot_id === session.slotId && item?.target_field === session.targetField
                     && item?.project_card_id === session.cardId);
-                if (receipt && window.MathBankSafe.safeImageUrl(receipt.image_path)) {
+                if (receipt && window.StarHopeSafe.safeImageUrl(receipt.image_path)) {
                     const images = [...value.matchAll(/!\[[^\]\n]*\]\(\s*(\/static\/(?:uploads|test_uploads)\/[^\s)]+)\s*\)/g)]
                         .filter(match => match[1] === receipt.image_path);
                     if (images.length === 1) anchor = images[0][0];
@@ -4156,13 +4156,13 @@
 
         function pdfCropReplacementIsValid(question, snapshots, replacement) {
             if (!['content', 'answer_markdown'].includes(replacement.field)
-                    || !window.MathBankSafe.safeImageUrl(replacement.path)) return false;
+                    || !window.StarHopeSafe.safeImageUrl(replacement.path)) return false;
             if (replacement.attachment) {
                 return replacement.field === 'content' && question.image_paths?.includes(replacement.path)
-                    && !window.MathBankImageAssets.collect(snapshots.content).includes(replacement.path)
-                    && !window.MathBankImageAssets.collect(snapshots.answer_markdown).includes(replacement.path);
+                    && !window.StarHopeImageAssets.collect(snapshots.content).includes(replacement.path)
+                    && !window.StarHopeImageAssets.collect(snapshots.answer_markdown).includes(replacement.path);
             }
-            return window.MathBankImageAssets.spans(snapshots[replacement.field]).some(span =>
+            return window.StarHopeImageAssets.spans(snapshots[replacement.field]).some(span =>
                 span.start === replacement.start && span.end === replacement.end && span.path === replacement.path);
         }
 
@@ -4186,14 +4186,14 @@
             ['content', 'answer_markdown'].forEach(field => {
                 const preview = card.querySelector(field === 'content' ? '.card-content-preview' : '.card-answer-preview');
                 if (!preview) return;
-                const spans = window.MathBankImageAssets.spans(snapshots[field]);
+                const spans = window.StarHopeImageAssets.spans(snapshots[field]);
                 const images = [...preview.querySelectorAll('img')];
-                const paths = new Set(images.map(image => window.MathBankSafe.safeImageUrl(image.getAttribute('src'))).filter(Boolean));
+                const paths = new Set(images.map(image => window.StarHopeSafe.safeImageUrl(image.getAttribute('src'))).filter(Boolean));
                 paths.forEach(path => {
-                    const rendered = images.filter(image => window.MathBankSafe.safeImageUrl(image.getAttribute('src')) === path);
+                    const rendered = images.filter(image => window.StarHopeSafe.safeImageUrl(image.getAttribute('src')) === path);
                     const matches = spans.filter(span => span.path === path);
                     const attachment = field === 'content' && matches.length === 0 && question.image_paths?.includes(path)
-                        && !window.MathBankImageAssets.collect(answerText).includes(path);
+                        && !window.StarHopeImageAssets.collect(answerText).includes(path);
                     // Mapping by occurrence is safe only when every authored
                     // reference has exactly one rendered counterpart.
                     if (!attachment && rendered.length !== matches.length) return;
@@ -4330,7 +4330,7 @@
                 const bytes = new Uint8Array(buffer || new ArrayBuffer(0));
                 const label = file.name.toLowerCase().endsWith('.md') ? 'Markdown' : 'TeX';
                 if (!bytes.length) throw new Error(`${label} 文件为空`);
-                const sourceLimit = window.MathBankLimits?.text_source_bytes || 5 * 1024 * 1024;
+                const sourceLimit = window.StarHopeLimits?.text_source_bytes || 5 * 1024 * 1024;
                 if (bytes.length > sourceLimit) throw new Error(`${label} 文件超过 ${sourceLimit / (1024 * 1024)}MB 上限`);
 
                 const attempts = [];
@@ -4459,7 +4459,7 @@
                         const formData = new FormData();
                         formData.append('file', file);
                         const controller = typeof AbortController === 'function' ? new AbortController() : null;
-                        const timeoutId = controller ? setTimeout(() => controller.abort(), MathBankTimeouts.UPLOAD_MS) : null;
+                        const timeoutId = controller ? setTimeout(() => controller.abort(), StarHopeTimeouts.UPLOAD_MS) : null;
                         const sourceEndpoint = sourceFormat === 'markdown' ? '/api/upload/markdown-source' : '/api/upload/tex-source';
                         return fetch(sourceEndpoint, {
                             method: 'POST',
@@ -4669,7 +4669,7 @@
             }
 
             // Keep the previous project's draft before clearing its cards.
-            window.MathBankDocumentImportSession?.prepareNewImport?.();
+            window.StarHopeDocumentImportSession?.prepareNewImport?.();
             // One generation owns task creation, polling and terminal UI. A
             // reset or a newer import makes every older callback inert.
             const importTaskGeneration = beginDocumentImportTask();
@@ -4736,7 +4736,7 @@
                     if (taskData.status === 'success') {
                         const taskId = taskData.task_id;
                         activeDocumentCreation = null;
-                        window.MathBankDocumentImportSession?.update({ taskId, phase: 'running',
+                        window.StarHopeDocumentImportSession?.update({ taskId, phase: 'running',
                             projectId: taskData.project_id, projectRevision: taskData.project_revision, expiresAt: taskData.expires_at });
                         appendImportLog(`Word 任务已成功创建！任务 ID: ${taskId}，开始轮询分析切片进度...`, 'success');
                         pollPdfTaskStatus(taskId, importTaskGeneration);
@@ -4747,7 +4747,7 @@
                 .catch(err => {
                     if (!isCurrentDocumentImportTask(importTaskGeneration)) return;
                     activeDocumentCreation = null;
-                    window.MathBankDocumentImportSession?.update({ phase: 'creation_uncertain', error: String(err.message || err) });
+                    window.StarHopeDocumentImportSession?.update({ phase: 'creation_uncertain', error: String(err.message || err) });
                     console.error(err);
                     appendImportLog(`Word 任务创建失败: ${err.message}`, 'error');
                     
@@ -4833,12 +4833,12 @@
                         const taskId = taskData.task_id;
                         activeDocumentCreation = null;
                         if (taskData.reused_project && taskData.project_id) {
-                            const opened = await window.MathBankDocumentImportSession?.openProject(taskData.project_id);
+                            const opened = await window.StarHopeDocumentImportSession?.openProject(taskData.project_id);
                             if (!opened) throw new Error('原PDF工程未能打开，已有工作稿仍保留，请从工程列表重试。');
                             appendImportLog('已打开这份 PDF 的本地工程，继续使用已保存的校对稿。', 'success');
                             return;
                         }
-                        window.MathBankDocumentImportSession?.update({ taskId, phase: 'running',
+                        window.StarHopeDocumentImportSession?.update({ taskId, phase: 'running',
                             projectId: taskData.project_id, projectRevision: taskData.project_revision, expiresAt: taskData.expires_at });
                         appendImportLog(`任务已成功创建！任务 ID: ${taskId}，开始轮询后台分析进度...`, 'success');
                         pollPdfTaskStatus(taskId, importTaskGeneration);
@@ -4849,7 +4849,7 @@
                 .catch(err => {
                     if (!isCurrentDocumentImportTask(importTaskGeneration)) return;
                     activeDocumentCreation = null;
-                    window.MathBankDocumentImportSession?.update({ phase: 'creation_uncertain', error: String(err.message || err) });
+                    window.StarHopeDocumentImportSession?.update({ phase: 'creation_uncertain', error: String(err.message || err) });
                     console.error(err);
                     appendImportLog(`PDF 任务创建失败: ${err.message}`, 'error');
                     
@@ -5023,13 +5023,13 @@
                 controller: typeof AbortController === 'function' ? new AbortController() : null };
             activeDocumentCreation = creation;
             window.currentDocumentClientRequestId = requestId;
-            window.MathBankDocumentImportSession?.begin({
+            window.StarHopeDocumentImportSession?.begin({
                 clientRequestId: requestId, documentType, phase: 'creating', taskId: null
             });
             return creation;
         }
 
-        async function fetchDocumentImportJson(url, options = {}, timeoutMs = MathBankTimeouts.QUERY_MS) {
+        async function fetchDocumentImportJson(url, options = {}, timeoutMs = StarHopeTimeouts.QUERY_MS) {
             const controller = typeof AbortController === 'function' ? new AbortController() : null;
             let timeoutId;
             const timeout = new Promise((resolve, reject) => {
@@ -5129,7 +5129,7 @@
                     || (window.currentPdfFile ? 'pdf' : window.currentDocxFile ? 'docx' : undefined);
                 const generation = beginDocumentImportTask({ skipCancellation: true });
                 appendImportLog('[USER] 已请求中止，正在等待本地服务确认。', 'info');
-                window.MathBankDocumentImportSession?.update({ taskId, clientRequestId: requestId, phase: 'cancellation_pending' });
+                window.StarHopeDocumentImportSession?.update({ taskId, clientRequestId: requestId, phase: 'cancellation_pending' });
                 const loadingState = document.getElementById('importLoadingState');
                 if (loadingState) {
                     loadingState.classList.add('hidden');
@@ -5148,18 +5148,18 @@
                     const resolvedTaskId = confirmation.task_id || taskId;
                     if (['completed', 'error', 'interrupted'].includes(taskStatus) && resolvedTaskId) {
                         window.currentPdfTaskId = resolvedTaskId;
-                        window.MathBankDocumentImportSession?.update({ phase: 'running', taskId: resolvedTaskId });
+                        window.StarHopeDocumentImportSession?.update({ phase: 'running', taskId: resolvedTaskId });
                         showToast(taskStatus === 'completed' ? '任务已完成，正在读取已完成的结果。' : '任务已停止，正在读取已保留的结果与继续入口。', 'info');
                         pollPdfTaskStatus(resolvedTaskId, generation);
                         return;
                     }
                     const pending = confirmation.cancellation_pending === true;
-                    window.MathBankDocumentImportSession?.update({ phase: pending ? 'cancellation_pending' : 'cancelled', taskId });
+                    window.StarHopeDocumentImportSession?.update({ phase: pending ? 'cancellation_pending' : 'cancelled', taskId });
                     appendImportLog(pending ? '本地服务已登记取消请求，正在等待任务停止。' : '本地服务已确认取消当前拆分任务。', 'info');
                     showToast(pending ? '已登记取消请求，后台停止状态待确认。' : '本地服务已确认取消当前拆分任务。', 'info');
                 } catch (error) {
                     if (!isCurrentDocumentImportTask(generation)) return;
-                    window.MathBankDocumentImportSession?.update({ phase: 'cancellation_pending', error: error.message });
+                    window.StarHopeDocumentImportSession?.update({ phase: 'cancellation_pending', error: error.message });
                     appendImportLog(`取消尚未确认：${error.message}。可重新连接查看后台状态。`, 'warning');
                     showToast('已停止页面等待，但后台取消尚未确认；请重新连接查看状态。', 'warning');
                 }
@@ -5186,7 +5186,7 @@
             window.currentPdfTaskId = taskId;
             const identity = { generation, taskId, intervalId: null, pending: false, failures: 0, nextPollAt: 0 };
             activeDocumentPoll = identity;
-            window.MathBankDocumentImportSession?.update({ taskId, phase: 'running' });
+            window.StarHopeDocumentImportSession?.update({ taskId, phase: 'running' });
             identity.intervalId = setInterval(() => {
                 if (!isCurrentDocumentPoll(identity) || identity.pending || Date.now() < identity.nextPollAt) return;
                 identity.pending = true;
@@ -5204,7 +5204,7 @@
                     }
                     identity.failures = 0;
                     identity.nextPollAt = 0;
-                    window.MathBankDocumentImportSession?.update({
+                    window.StarHopeDocumentImportSession?.update({
                         taskId, phase: task.status, documentType: task.document_type,
                         canResume: task.can_resume === true, resumeAction: task.resume_action,
                         diagnostics: task.diagnostics || null, error: task.error || '', log: task.log || '', sourceAvailable: task.source_available === true,
@@ -5216,7 +5216,7 @@
                             || (task.status === 'source_verification'
                                 && task.diagnostics?.pdf_local_draft?.persisted === true
                                 && Array.isArray(task.data) && task.data.length > 0)) {
-                        window.MathBankDocumentImportSession?.previewLocalDraft?.({...task, task_id: task.task_id || taskId});
+                        window.StarHopeDocumentImportSession?.previewLocalDraft?.({...task, task_id: task.task_id || taskId});
                     }
                     if (task.progress !== undefined) {
                         document.getElementById('importProgressBar').style.width = `${task.progress}%`;
@@ -5264,7 +5264,7 @@
                         window.pdfPageImages = task.page_images;
                         window.pdfPageNumbers = Array.isArray(task.page_numbers) ? task.page_numbers : [];
                     }
-                    if (task.pdf_review_preview === true && window.MathBankDocumentImportSession?.previewPdfReview?.(task)) {
+                    if (task.pdf_review_preview === true && window.StarHopeDocumentImportSession?.previewPdfReview?.(task)) {
                         identity.previewedPdfReview = true;
                     }
                     if (task.document_type === 'pdf' || task.diagnostics?.pdf_figure_review) {
@@ -5292,9 +5292,9 @@
                             : activeField?.matches?.('.card-answer-textarea') ? '.card-answer-textarea' : '';
                         const focusedCardId = fieldSelector && activeField.closest('[id^="parsed-card-"]')?.id;
                         const workingCopyRestore = task.diagnostics?.pdf_draft_restore?.working_copy === true;
-                        const questions = window.MathBankDocumentImportSession?.mergeCompletion(task.data || [], {workingCopyRestore, taskId}) || task.data || [];
+                        const questions = window.StarHopeDocumentImportSession?.mergeCompletion(task.data || [], {workingCopyRestore, taskId}) || task.data || [];
                         replaceParsedQuestions(questions, {saveDraft: !workingCopyRestore && questions.length > 0});
-                        window.MathBankDocumentImportSession?.completed(task, questions);
+                        window.StarHopeDocumentImportSession?.completed(task, questions);
                         if (typeof startDocumentResultRetention === 'function') startDocumentResultRetention(taskId);
                         const isWordTask = task.document_type === 'docx';
                         const documentLabel = isWordTask ? 'Word' : 'PDF';
@@ -5348,7 +5348,7 @@
                         }
                         
                         if (['pdf', 'docx'].includes(task.document_type) && task.generate_answers === true
-                                && !window.MathBankDocumentImportSession?.isRestored()) {
+                                && !window.StarHopeDocumentImportSession?.isRestored()) {
                             processAsyncAnswerGeneration(parsedQuestionsData, parsedQuestionsGeneration);
                         }
 
@@ -5356,7 +5356,7 @@
                         runBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>开始解析</span>';
                     } else if (task.status === 'cancelled') {
                         if (!finishDocumentPoll(identity)) return;
-                        window.MathBankDocumentImportSession?.update({ phase: 'cancelled', canResume: false });
+                        window.StarHopeDocumentImportSession?.update({ phase: 'cancelled', canResume: false });
                         document.getElementById('importLoadingState').classList.add('hidden');
                         runBtn.disabled = false;
                         runBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>开始解析</span>';
@@ -5365,9 +5365,9 @@
                         if (Array.isArray(task.data) && task.data.length
                                 && task.diagnostics?.pdf_local_draft?.assembly === 'first_pass_blocks') {
                             const workingCopyRestore = task.diagnostics?.pdf_draft_restore?.working_copy === true;
-                            const questions = window.MathBankDocumentImportSession?.mergeCompletion(task.data, {workingCopyRestore}) || task.data;
+                            const questions = window.StarHopeDocumentImportSession?.mergeCompletion(task.data, {workingCopyRestore}) || task.data;
                             replaceParsedQuestions(questions, {saveDraft: !workingCopyRestore});
-                            window.MathBankDocumentImportSession?.completed(task, questions);
+                            window.StarHopeDocumentImportSession?.completed(task, questions);
                             renderParsedQuestionsList(parsedQuestionsData, {diagnostics: task.diagnostics,
                                 partial: true, saveDraft: !workingCopyRestore});
                             renderSourceIntegrityReport(task.diagnostics);
@@ -5378,7 +5378,7 @@
                             renderSourceIntegrityReport(task.diagnostics);
                             document.getElementById('parsedQuestionsWrapper').classList.remove('hidden');
                         }
-                        window.MathBankDocumentImportSession?.update({ phase: task.status, canResume: task.can_resume === true });
+                        window.StarHopeDocumentImportSession?.update({ phase: task.status, canResume: task.can_resume === true });
                         const localDraft = Boolean(task.diagnostics?.pdf_local_draft);
                         appendImportLog(localDraft ? `本地题稿已保留，可继续校对入库。${task.error || ''}`
                             : `分析失败: ${task.error || '未知错误'}`, localDraft ? 'warning' : 'error');
@@ -5431,7 +5431,7 @@
                         : `任务状态待确认，第 ${identity.failures} 次连接失败；${retryDelay / 1000} 秒后继续连接原任务：${err.message}`, 'warning');
                     if (missing) {
                         finishDocumentPoll(identity);
-                        window.MathBankDocumentImportSession?.update({ phase: 'missing', error: err.message });
+                        window.StarHopeDocumentImportSession?.update({ phase: 'missing', error: err.message });
                         document.getElementById('importLoadingText').textContent = '后台任务已不存在，校对内容已保留';
                         const icon = document.querySelector('#importLoadingState .fa-circle-notch, #importLoadingState .fa-spinner');
                         if (icon) icon.className = 'fa-solid fa-circle-exclamation text-amber-500 text-3xl';
@@ -5439,7 +5439,7 @@
                         runBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>开始解析</span>';
                         showToast('后台确认任务不存在；已停止自动查询，当前校对内容仍保留。', 'warning');
                     } else {
-                        window.MathBankDocumentImportSession?.update({ taskId, phase: 'reconnecting', error: err.message });
+                        window.StarHopeDocumentImportSession?.update({ taskId, phase: 'reconnecting', error: err.message });
                         document.getElementById('importLoadingText').textContent = authorizationRequired
                             ? '本地授权待恢复；原任务与校对内容保留，继续查询原任务'
                             : `连接中断，任务状态待确认；${retryDelay / 1000} 秒后自动重连`;
@@ -5503,7 +5503,7 @@
             if (blockImportResetWhileSaving()) {
                 return false;
             }
-            window.MathBankDocumentImportSession?.clear();
+            window.StarHopeDocumentImportSession?.clear();
             invalidateImportTextRead();
             setImportTextSourceFormat('tex');
             updateImportSourceView('empty');
@@ -5618,14 +5618,14 @@
 
         function appendSafeImageBadge(container, imagePath) {
             if (!container) return;
-            const safePath = window.MathBankSafe.safeImageUrl(imagePath);
+            const safePath = window.StarHopeSafe.safeImageUrl(imagePath);
             if (!safePath) return;
 
             let filename = safePath.split('/').pop() || '题目配图';
             try {
                 filename = decodeURIComponent(filename.split('?')[0]);
             } catch (error) { }
-            filename = window.MathBankSafe.sanitizePlainText(filename);
+            filename = window.StarHopeSafe.sanitizePlainText(filename);
 
             const badge = document.createElement('div');
             badge.className = 'parsed-card-image-badge flex items-center space-x-1 px-2 py-0.5 bg-slate-100 border rounded-full text-[9px] font-semibold text-slate-500 hover:bg-white transition-colors cursor-pointer select-none';
@@ -5642,7 +5642,7 @@
         function safeDuplicateImagePaths(paths) {
             if (!Array.isArray(paths)) return [];
             return Array.from(new Set(
-                paths.map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean)
+                paths.map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean)
             ));
         }
 
@@ -5653,8 +5653,8 @@
                 return {
                     id: String(asset.id || ''),
                     tikz_code: String(asset.tikz_code || ''),
-                    image_path: window.MathBankSafe.safeImageUrl(asset.image_path) || '',
-                    reference_image_path: window.MathBankSafe.safeImageUrl(asset.reference_image_path) || ''
+                    image_path: window.StarHopeSafe.safeImageUrl(asset.image_path) || '',
+                    reference_image_path: window.StarHopeSafe.safeImageUrl(asset.reference_image_path) || ''
                 };
             }).filter(Boolean);
         }
@@ -5667,8 +5667,8 @@
                     id: String(asset.id || ''),
                     tikz_code: String(asset.tikz_code || ''),
                     instruction: String(asset.instruction || ''),
-                    image_path: window.MathBankSafe.safeImageUrl(asset.image_path) || '',
-                    reference_image_path: window.MathBankSafe.safeImageUrl(asset.reference_image_path) || ''
+                    image_path: window.StarHopeSafe.safeImageUrl(asset.image_path) || '',
+                    reference_image_path: window.StarHopeSafe.safeImageUrl(asset.reference_image_path) || ''
                 };
             }).filter(Boolean);
         }
@@ -5713,7 +5713,7 @@
             const typeInput = card.querySelector('.card-qtype');
             const contentAssets = safeDuplicateTikzAssets(q.content_tikz_assets);
             const answerAssets = safeDuplicateTikzAssets(q.answer_tikz_assets);
-            const legacyReference = window.MathBankSafe.safeImageUrl(q.tikz_reference_image_path) || '';
+            const legacyReference = window.StarHopeSafe.safeImageUrl(q.tikz_reference_image_path) || '';
             return {
                 client_key: `parsed-${generation}-${index}`,
                 content: contentInput ? contentInput.value : String(q.content || ''),
@@ -5722,9 +5722,9 @@
                 question_type: typeInput ? typeInput.value : String(q.question_type || ''),
                 image_paths: safeDuplicateImagePaths([
                     ...(Array.isArray(q.image_paths) ? q.image_paths : []),
-                    ...(window.MathBankImageAssets ? window.MathBankImageAssets.collect(contentInput ? contentInput.value : q.content) : []),
-                    ...(window.MathBankImageAssets ? window.MathBankImageAssets.collect(answerInput ? answerInput.value : q.answer_markdown) : []),
-                    ...(window.MathBankImageAssets ? window.MathBankImageAssets.collect(q.review) : []),
+                    ...(window.StarHopeImageAssets ? window.StarHopeImageAssets.collect(contentInput ? contentInput.value : q.content) : []),
+                    ...(window.StarHopeImageAssets ? window.StarHopeImageAssets.collect(answerInput ? answerInput.value : q.answer_markdown) : []),
+                    ...(window.StarHopeImageAssets ? window.StarHopeImageAssets.collect(q.review) : []),
                     ...collectTikzAssetImagePaths(contentAssets, answerAssets),
                     legacyReference
                 ]),
@@ -5756,9 +5756,9 @@
                 review: reviewInput ? reviewInput.value : '',
                 question_type: typeInput ? typeInput.value : '',
                 image_paths: safeDuplicateImagePaths([
-                    ...(window.MathBankImageAssets ? window.MathBankImageAssets.collect(contentInput ? contentInput.value : '') : []),
-                    ...(window.MathBankImageAssets ? window.MathBankImageAssets.collect(answerInput ? answerInput.value : '') : []),
-                    ...(window.MathBankImageAssets ? window.MathBankImageAssets.collect(reviewInput ? reviewInput.value : '') : []),
+                    ...(window.StarHopeImageAssets ? window.StarHopeImageAssets.collect(contentInput ? contentInput.value : '') : []),
+                    ...(window.StarHopeImageAssets ? window.StarHopeImageAssets.collect(answerInput ? answerInput.value : '') : []),
+                    ...(window.StarHopeImageAssets ? window.StarHopeImageAssets.collect(reviewInput ? reviewInput.value : '') : []),
                     ...(typeof uploadedImages !== 'undefined' ? uploadedImages : []),
                     ...(typeof uploadedAnswerImages !== 'undefined' ? uploadedAnswerImages : []),
                     ...(typeof TikzState !== 'undefined' ? TikzState.referencePaths() : []),
@@ -5770,7 +5770,7 @@
                 ),
                 tikz_code: contentAssets[0] ? String(contentAssets[0].tikz_code || '') : '',
                 tikz_reference_image_path: contentAssets[0]
-                    ? (window.MathBankSafe.safeImageUrl(contentAssets[0].reference_image_path) || '')
+                    ? (window.StarHopeSafe.safeImageUrl(contentAssets[0].reference_image_path) || '')
                     : '',
                 exclude_id: editorSession && editorSession.questionId ? editorSession.questionId : null
             };
@@ -5778,7 +5778,7 @@
 
         async function requestQuestionDuplicateCheck(items) {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), MathBankTimeouts.QUERY_MS);
+            const timeoutId = setTimeout(() => controller.abort(), StarHopeTimeouts.QUERY_MS);
             let response;
             try {
                 response = await fetch('/api/questions/check-duplicates', {
@@ -5792,7 +5792,7 @@
                 });
             } catch (error) {
                 if (error && error.name === 'AbortError') {
-                    throw new Error(`查重超时（${MathBankTimeouts.QUERY_MS / 1000} 秒）`);
+                    throw new Error(`查重超时（${StarHopeTimeouts.QUERY_MS / 1000} 秒）`);
                 }
                 throw error;
             } finally {
@@ -6129,7 +6129,7 @@
                 BATCH_EXACT: '与本批其他题目完全一致',
                 BATCH_SIMILAR: '与本批其他题目高度相似'
             };
-            return labels[String(reason || '')] || window.MathBankSafe.sanitizePlainText(String(reason || ''));
+            return labels[String(reason || '')] || window.StarHopeSafe.sanitizePlainText(String(reason || ''));
         }
 
         function resetParsedDuplicateCandidateRendering() {
@@ -6206,7 +6206,7 @@
             const title = document.createElement('div');
             title.className = 'flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-200';
             const seq = candidate.seq_num || candidate.id || '?';
-            const source = window.MathBankSafe.sanitizePlainText(String(candidate.source || '来源未标注'));
+            const source = window.StarHopeSafe.sanitizePlainText(String(candidate.source || '来源未标注'));
             title.textContent = `已收录 #${seq} · ${source} · 相似度 ${Math.round(Number(candidate.score || 0) * 100)}%`;
             row.appendChild(title);
             if (candidate.content_truncated) {
@@ -6251,7 +6251,7 @@
                 row.appendChild(renderedContent);
             }
             const imagePaths = Array.isArray(candidate.image_paths)
-                ? candidate.image_paths.map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean)
+                ? candidate.image_paths.map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean)
                 : [];
             if (imagePaths.length) {
                 const imageStrip = document.createElement('div');
@@ -6369,7 +6369,7 @@
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             modal.setAttribute('aria-hidden', 'false');
-            window.MathBankModal.open(modal, {
+            window.StarHopeModal.open(modal, {
                 onEscape: () => closeParsedDuplicateReviewModal('review')
             });
             setTimeout(() => {
@@ -6393,7 +6393,7 @@
             }
             resetParsedDuplicateCandidateRendering();
             if (modal && !modal.classList.contains('hidden')) {
-                window.MathBankModal.close(modal);
+                window.StarHopeModal.close(modal);
                 modal.classList.add('opacity-0');
                 modal.setAttribute('aria-hidden', 'true');
                 const surface = modal.querySelector('[data-modal-surface]');
@@ -6527,7 +6527,7 @@
                 question.knowledge_points = callback(KnowledgePointState.normalize(question.knowledge_points));
                 renderParsedKnowledgePoints(card, question, index);
                 updateParsedSavedState(index);
-                window.MathBankDocumentImportSession?.saveSoon();
+                window.StarHopeDocumentImportSession?.saveSoon();
             };
             labels.forEach(item => {
                 const row = knowledgePointNode('div', '', 'flex flex-wrap items-center gap-2 text-[11px]');
@@ -6579,7 +6579,7 @@
                 let qTypeOptionsHtml = '';
                 if (window.systemMetadata && window.systemMetadata.question_types) {
                     window.systemMetadata.question_types.forEach(item => {
-                        qTypeOptionsHtml += `<option value="${window.MathBankSafe.escapeAttribute(item.value)}" ${q.question_type === item.value ? 'selected' : ''}>${window.MathBankSafe.escapeText(item.label)}</option>`;
+                        qTypeOptionsHtml += `<option value="${window.StarHopeSafe.escapeAttribute(item.value)}" ${q.question_type === item.value ? 'selected' : ''}>${window.StarHopeSafe.escapeText(item.label)}</option>`;
                     });
                 } else {
                     qTypeOptionsHtml = `
@@ -6596,7 +6596,7 @@
                 let difficultyOptionsHtml = '';
                 if (window.systemMetadata && window.systemMetadata.difficulties) {
                     window.systemMetadata.difficulties.forEach(item => {
-                        difficultyOptionsHtml += `<option value="${window.MathBankSafe.escapeAttribute(item.value)}" ${q.difficulty === item.value ? 'selected' : ''}>${window.MathBankSafe.escapeText(item.label)}</option>`;
+                        difficultyOptionsHtml += `<option value="${window.StarHopeSafe.escapeAttribute(item.value)}" ${q.difficulty === item.value ? 'selected' : ''}>${window.StarHopeSafe.escapeText(item.label)}</option>`;
                     });
                 } else {
                     difficultyOptionsHtml = `
@@ -6699,13 +6699,13 @@
                 // Never interpolate AI/import values into attributes or textarea
                 // HTML. Property assignment preserves LaTeX verbatim and prevents
                 // attribute/textarea breakout payloads.
-                card.querySelector('.card-source').value = window.MathBankSafe.sanitizePlainText(q.source || '');
+                card.querySelector('.card-source').value = window.StarHopeSafe.sanitizePlainText(q.source || '');
                 card.querySelector('.card-content-textarea').value = String(q.content || '');
                 card.querySelector('.card-answer-textarea').value = String(q.answer_markdown || '');
 
                 container.appendChild(card);
                 renderParsedSourceReview(card, q, index);
-                window.MathBankDocumentImportSession?.renderCandidate?.(card, q, index);
+                window.StarHopeDocumentImportSession?.renderCandidate?.(card, q, index);
                 setupCardCategoryLinkage(card, q);
                 renderParsedKnowledgePoints(card, q, index);
                 updateParsedClassificationReview(index);
@@ -6714,7 +6714,7 @@
                 // Populate image badges
                 const badgesContainer = document.getElementById(`card-images-badges-${index}`);
                 const mappedImgs = Array.isArray(q.image_paths)
-                    ? q.image_paths.map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean)
+                    ? q.image_paths.map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean)
                     : [];
                 q.image_paths = Array.from(new Set(mappedImgs));
                 q.image_paths.forEach(path => appendSafeImageBadge(badgesContainer, path));
@@ -6762,7 +6762,7 @@
             });
 
             if (typeof updateSelectedCount === 'function') updateSelectedCount();
-            if (options.saveDraft !== false) window.MathBankDocumentImportSession?.saveSoon();
+            if (options.saveDraft !== false) window.StarHopeDocumentImportSession?.saveSoon();
         }
 
         function setupCardCategoryLinkage(card, q) {
@@ -6889,20 +6889,20 @@
                         const answerImagePaths = new Set(window.collectAnswerImagePaths(answerText));
                         let hasUnrenderedImage = false;
                         let imgHtml = '<div class="flex flex-wrap gap-2 mt-3 pt-2.5 border-t border-dashed border-slate-200/60">';
-                        const promptImages = window.MathBankImageAssets.withoutReviewOnly(
+                        const promptImages = window.StarHopeImageAssets.withoutReviewOnly(
                             q.image_paths, contentText, answerText, q.review
                         );
                         const privateReferences = new Set([q.tikz_reference_image_path,
                             ...(Array.isArray(q.content_tikz_assets) ? q.content_tikz_assets : []).map(asset => asset.reference_image_path),
                             ...(Array.isArray(q.answer_tikz_assets) ? q.answer_tikz_assets : []).map(asset => asset.reference_image_path)
-                        ].map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean));
+                        ].map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean));
                         promptImages.forEach(p => {
-                            const safePath = window.MathBankSafe.safeImageUrl(p);
+                            const safePath = window.StarHopeSafe.safeImageUrl(p);
                             if (safePath && !privateReferences.has(safePath) && !answerImagePaths.has(safePath) && !html.includes(safePath)) {
                                 hasUnrenderedImage = true;
                                 imgHtml += `
                                     <div class="relative group border border-slate-200 rounded-lg overflow-hidden bg-white max-w-[120px] aspect-[4/3] flex items-center justify-center shadow-sm hover:shadow-sm transition-all duration-300">
-                                        <img src="${window.MathBankSafe.escapeAttribute(safePath)}" class="max-h-full max-w-full object-contain cursor-zoom-in hover:scale-105 transition-transform duration-300" data-safe-image-open="true" title="点击在新标签页中查看大图">
+                                        <img src="${window.StarHopeSafe.escapeAttribute(safePath)}" class="max-h-full max-w-full object-contain cursor-zoom-in hover:scale-105 transition-transform duration-300" data-safe-image-open="true" title="点击在新标签页中查看大图">
                                     </div>`;
                             }
                         });
@@ -6912,7 +6912,7 @@
                         }
                     }
                     
-                    contentPrev.innerHTML = window.MathBankSafe.sanitizeRichHtml(html);
+                    contentPrev.innerHTML = window.StarHopeSafe.sanitizeRichHtml(html);
                     contentPrev.parentElement.classList.toggle(
                         'card-image-options-preview', !!contentPrev.querySelector('.choices-has-images')
                     );
@@ -7011,21 +7011,21 @@
 
         function applyParsedAssetPathMap(rawMapping, generation, index, question) {
             if (!isParsedQuestionSaveContextCurrent(generation, index, question)
-                    || !window.MathBankImageAssets) return;
-            const mapping = window.MathBankImageAssets.normalizeMap(rawMapping);
+                    || !window.StarHopeImageAssets) return;
+            const mapping = window.StarHopeImageAssets.normalizeMap(rawMapping);
             if (!Object.keys(mapping).length) return;
             const card = document.getElementById(`parsed-card-${index}`);
             if (!card) return;
             const content = card.querySelector('.card-content-textarea');
             const answer = card.querySelector('.card-answer-textarea');
-            const mapped = window.MathBankImageAssets.mapRecord({
+            const mapped = window.StarHopeImageAssets.mapRecord({
                 ...question,
                 content: content ? content.value : question.content,
                 answer_markdown: answer ? answer.value : question.answer_markdown
             }, mapping);
             Object.assign(question, mapped);
-            window.MathBankImageAssets.mapInput(content, mapping);
-            window.MathBankImageAssets.mapInput(answer, mapping);
+            window.StarHopeImageAssets.mapInput(content, mapping);
+            window.StarHopeImageAssets.mapInput(answer, mapping);
             const badges = document.getElementById(`card-images-badges-${index}`);
             if (badges) {
                 badges.innerHTML = '';
@@ -7088,12 +7088,12 @@
                 save.innerHTML = q.saved ? '<i class="fa-solid fa-rotate-right"></i> <span>再次导入</span>' : '<i class="fa-solid fa-file-arrow-up"></i> <span>导入此题</span>';
             }
             refreshDocumentResultRetention();
-            window.MathBankDocumentImportSession?.saveSoon();
+            window.StarHopeDocumentImportSession?.saveSoon();
             updateSelectedCount();
         }
 
         function saveParsedQuestion(index) {
-            if (window.MathBankDocumentImportSession?.pdfReviewInProgress?.()) {
+            if (window.StarHopeDocumentImportSession?.pdfReviewInProgress?.()) {
                 showToast('题卡正在核验，可先校对，核验结束后入库。', 'info');
                 return Promise.resolve(false);
             }
@@ -7253,8 +7253,8 @@
                 // The durable project draft and the create payload must hash
                 // the same normalized relation array.
                 q.knowledge_points = JSON.parse(JSON.stringify(submittedSnapshot.knowledge_points));
-                const projectImport = window.MathBankDocumentImportSession?.isProject?.()
-                    ? await window.MathBankDocumentImportSession.prepareQuestionImport(q, index) : null;
+                const projectImport = window.StarHopeDocumentImportSession?.isProject?.()
+                    ? await window.StarHopeDocumentImportSession.prepareQuestionImport(q, index) : null;
                 if (!isParsedQuestionSaveContextCurrent(saveGeneration, index, q)) return false;
                 if (JSON.stringify(captureSaveSnapshot()) !== JSON.stringify(submittedSnapshot)) {
                     showToast(`第 ${index + 1} 题在工程保存期间已修改，请重新点击导入。`, 'info');
@@ -7295,9 +7295,9 @@
                 if (typeof applyParsedAssetPathMap === 'function') {
                     applyParsedAssetPathMap(data.asset_path_map, saveGeneration, index, q);
                 }
-                const confirmedSnapshot = window.MathBankImageAssets
-                    ? window.MathBankImageAssets.mapRecord(submittedSnapshot,
-                        window.MathBankImageAssets.normalizeMap(data.asset_path_map))
+                const confirmedSnapshot = window.StarHopeImageAssets
+                    ? window.StarHopeImageAssets.mapRecord(submittedSnapshot,
+                        window.StarHopeImageAssets.normalizeMap(data.asset_path_map))
                     : submittedSnapshot;
                 const currentSnapshot = captureSaveSnapshot();
                 if (projectImport && data.question?.id) q.saved_id = data.question.id;
@@ -7311,7 +7311,7 @@
                     ...currentSnapshot.content_tikz_assets.map(asset => asset.reference_image_path),
                     ...currentSnapshot.answer_tikz_assets.map(asset => asset.reference_image_path),
                     currentSnapshot.tikz_reference_image_path
-                ].map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean));
+                ].map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean));
                 q.image_paths = q.image_paths.filter(path => !privateReferences.has(path));
                 if (typeof refreshDocumentResultRetention === 'function') refreshDocumentResultRetention();
                 q.duplicateIndexWarning = String(data.warning || '');
@@ -7345,7 +7345,7 @@
                     loadCategories();
                     loadQuestions();
                 }
-                window.MathBankDocumentImportSession?.saveSoon();
+                window.StarHopeDocumentImportSession?.saveSoon();
                 return true;
             })().catch(err => {
                 if (isParsedQuestionSaveContextCurrent(saveGeneration, index, q)) {
@@ -7389,7 +7389,7 @@
                 input.value = '';
                 input.dispatchEvent(new Event('change', { bubbles: true }));
             });
-            window.MathBankDocumentImportSession?.saveSoon();
+            window.StarHopeDocumentImportSession?.saveSoon();
             showToast('已成功一键清空所有拆解题目的试卷标题来源！', 'success');
         }
 
@@ -7537,7 +7537,7 @@
         }
 
         function saveAllParsedQuestions() {
-            if (window.MathBankDocumentImportSession?.pdfReviewInProgress?.()) {
+            if (window.StarHopeDocumentImportSession?.pdfReviewInProgress?.()) {
                 showToast('题卡正在核验，可先校对，核验结束后入库。', 'info');
                 return Promise.resolve(false);
             }
@@ -7577,7 +7577,7 @@
                 return valid;
             });
             updateSelectedCount();
-            window.MathBankDocumentImportSession?.saveSoon();
+            window.StarHopeDocumentImportSession?.saveSoon();
             if (!eligibleIndices.length) {
                 showToast(`本次跳过 ${selectedIndices.length} 道待确认题；题卡与修改已保留，请查看入库处理记录。`, 'warning');
                 return Promise.resolve(false);
@@ -7630,7 +7630,7 @@
                         if (action === 'review') {
                             eligibleIndices.forEach(index => setOutcome(index, 'skipped', '本次选择先审查疑似重复题，尚未入库。'));
                             updateSelectedCount();
-                            window.MathBankDocumentImportSession?.saveSoon();
+                            window.StarHopeDocumentImportSession?.saveSoon();
                             focusFirstParsedDuplicate(suspectIndices);
                             return false;
                         }
@@ -7715,13 +7715,13 @@
                 }
                 updateSelectedCount();
                 parsedQuestionsData.forEach((q, index) => updateParsedSavedState(index));
-                window.MathBankDocumentImportSession?.saveSoon();
+                window.StarHopeDocumentImportSession?.saveSoon();
                 const remainingUnsavedCount = parsedQuestionsData.filter(q => !q.saved).length;
                 if (remainingUnsavedCount === 0 && !failedCount && !skippedCount) {
                     showToast(`本次批量导入完成：成功 ${successCount}，失败 0，跳过 0${fingerprintWarningNote}。`, fingerprintWarningCount ? 'warning' : 'success');
                     // Keep the workspace until an explicit reset: an answer
                     // request or new source input can still arrive after save.
-                    window.MathBankDocumentImportSession?.flush();
+                    window.StarHopeDocumentImportSession?.flush();
                 } else {
                     showToast(`批量导入完成：成功 ${successCount}，失败 ${failedCount}，跳过 ${skippedCount}${fingerprintWarningNote}。逐题原因见入库处理记录；未入库题与新修改均已保留。`, 'warning');
                 }
@@ -7743,7 +7743,7 @@
                 if (icon) icon.className = originalIconClass;
                 if (btnText) btnText.textContent = originalText;
                 updateSelectedCount();
-                window.MathBankDocumentImportSession?.saveSoon();
+                window.StarHopeDocumentImportSession?.saveSoon();
             });
             parsedBatchSaveInFlight = operation;
             updateSelectedCount();
@@ -7953,7 +7953,7 @@
             }
 
             function setTikzReferencePath(path, sourceLabel = '已载入题目参考图') {
-                const safePath = window.MathBankSafe.safeImageUrl(path);
+                const safePath = window.StarHopeSafe.safeImageUrl(path);
                 if (!safePath) return;
                 clearTikzReference();
                 tikzWorkbenchState.referencePath = safePath;
@@ -7975,7 +7975,7 @@
                     showToast('参考文件必须是图片。', 'error');
                     return;
                 }
-                const imageLimit = window.MathBankLimits?.image_upload_bytes || 10 * 1024 * 1024;
+                const imageLimit = window.StarHopeLimits?.image_upload_bytes || 10 * 1024 * 1024;
                 if (file.size > imageLimit) {
                     showToast(`参考图不能超过 ${imageLimit / (1024 * 1024)}MB。`, 'error');
                     return;
@@ -8015,9 +8015,9 @@
                 return assets.filter(asset => {
                     return asset && typeof asset === 'object'
                         && typeof asset.id === 'string'
-                        && window.MathBankSafe.safeImageUrl(asset.image_path)
+                        && window.StarHopeSafe.safeImageUrl(asset.image_path)
                         && typeof asset.tikz_code === 'string'
-                        && (!asset.reference_image_path || window.MathBankSafe.safeImageUrl(asset.reference_image_path));
+                        && (!asset.reference_image_path || window.StarHopeSafe.safeImageUrl(asset.reference_image_path));
                 });
             }
 
@@ -8030,8 +8030,8 @@
             }
 
             function registerAutoTikzAsset(target, { tikzCode, imagePath, referenceImagePath }) {
-                const safeImagePath = window.MathBankSafe.safeImageUrl(imagePath);
-                const safeReferencePath = window.MathBankSafe.safeImageUrl(referenceImagePath);
+                const safeImagePath = window.StarHopeSafe.safeImageUrl(imagePath);
+                const safeReferencePath = window.StarHopeSafe.safeImageUrl(referenceImagePath);
                 if (!tikzCode || !safeImagePath) return;
                 const assets = target === 'content'
                     ? TikzState.contentAssets
@@ -8087,7 +8087,7 @@
                 panel.classList.toggle('hidden', assets.length === 0);
 
                 assets.forEach((asset, index) => {
-                    const safePath = window.MathBankSafe.safeImageUrl(asset.image_path);
+                    const safePath = window.StarHopeSafe.safeImageUrl(asset.image_path);
                     const card = document.createElement('div');
                     card.className = `answer-tikz-asset-card${isContent ? ' content-tikz-asset-card' : ''}`;
 
@@ -8195,7 +8195,7 @@
                 }
 
                 if (asset) {
-                    const safePath = window.MathBankSafe.safeImageUrl(asset.image_path);
+                    const safePath = window.StarHopeSafe.safeImageUrl(asset.image_path);
                     if (safePath) {
                         const preview = document.getElementById('answerTikzWorkbenchPreviewImage');
                         document.getElementById('answerTikzWorkbenchPlaceholder').classList.add('hidden');
@@ -8217,7 +8217,7 @@
 
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
-                window.MathBankModal.open(modal, { onEscape: window.closeTikzWorkbench });
+                window.StarHopeModal.open(modal, { onEscape: window.closeTikzWorkbench });
                 requestAnimationFrame(() => {
                     modal.classList.remove('opacity-0');
                     surface.classList.remove('scale-95');
@@ -8241,7 +8241,7 @@
                 const modal = document.getElementById('answerTikzWorkbenchModal');
                 const surface = modal && modal.querySelector('[data-modal-surface]');
                 if (!modal || modal.classList.contains('hidden')) return;
-                window.MathBankModal.close(modal);
+                window.StarHopeModal.close(modal);
                 modal.classList.add('opacity-0');
                 if (surface) {
                     surface.classList.remove('scale-100');
@@ -8272,7 +8272,7 @@
                 if (source.value.trim() !== tikzCode.trim()) {
                     throw new Error('源码在编译期间已修改，请重新预览。');
                 }
-                const safePath = window.MathBankSafe.safeImageUrl(data.image_path);
+                const safePath = window.StarHopeSafe.safeImageUrl(data.image_path);
                 if (!safePath) throw new Error('服务器返回了无效的预览图路径。');
                 const compiledCode = data.tikz_code || tikzCode;
                 if (data.tikz_code) source.value = compiledCode;
@@ -8377,7 +8377,7 @@
 
             window.applyTikzWorkbench = function() {
                 const tikzCode = document.getElementById('answerTikzWorkbenchCode').value.trim();
-                const imagePath = window.MathBankSafe.safeImageUrl(tikzWorkbenchState.compiledPath);
+                const imagePath = window.StarHopeSafe.safeImageUrl(tikzWorkbenchState.compiledPath);
                 if (!imagePath || !tikzCode || tikzCode !== tikzWorkbenchState.compiledCode) {
                     showToast('源码已改动或尚未编译，请先点击“编译预览”。', 'error');
                     return;
@@ -8388,7 +8388,7 @@
                 }
 
                 const instruction = document.getElementById('answerTikzInstruction').value.trim();
-                const referencePath = window.MathBankSafe.safeImageUrl(
+                const referencePath = window.StarHopeSafe.safeImageUrl(
                     tikzWorkbenchState.referencePath
                 );
                 if (tikzWorkbenchState.target === 'content') {
@@ -8475,7 +8475,7 @@
             };
 
             function removeUploadedPathIfUnused(path, excludedAsset = null) {
-                const safePath = window.MathBankSafe.safeImageUrl(path);
+                const safePath = window.StarHopeSafe.safeImageUrl(path);
                 if (!safePath) return;
                 const content = document.getElementById('editContent').value;
                 const answer = document.getElementById('editAnswerMarkdown').value;
@@ -8678,7 +8678,7 @@
                     q.answer_markdown = data.solution;
                     if (answerTextarea) answerTextarea.value = data.solution;
                     updateParsedSavedState(index);
-                    window.MathBankDocumentImportSession?.saveSoon();
+                    window.StarHopeDocumentImportSession?.saveSoon();
                     invalidateParsedSourceReview(index);
                     invalidateParsedDuplicateCheck(index);
                     renderCurrentParsedCardPreview(index);
@@ -8802,7 +8802,7 @@
                                     const answerTextarea = card.querySelector('.card-answer-textarea');
                                     if (answerTextarea) answerTextarea.value = data.solution;
                                     updateParsedSavedState(taskIdx);
-                                    window.MathBankDocumentImportSession?.saveSoon();
+                                    window.StarHopeDocumentImportSession?.saveSoon();
                                     invalidateParsedSourceReview(taskIdx);
                                     renderCurrentParsedCardPreview(taskIdx);
                                     const btn = card.querySelector('.card-solve-btn');

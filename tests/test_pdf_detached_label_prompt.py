@@ -1,8 +1,8 @@
 """Local crop evidence must not increase either cloud prompt's input."""
 from copy import deepcopy
 
-from mathbank.prompts import build_pdf_layout_prompt
-from mathbank.pdf_page_vision import _prompt_page_info
+from starhope.prompts import build_pdf_layout_prompt
+from starhope.pdf_page_vision import _prompt_page_info
 
 
 def test_private_vector_endpoint_evidence_stays_local_for_both_cloud_paths():

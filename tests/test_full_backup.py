@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-import mathbank.backup as backup_module
-from mathbank.backup import (
+import starhope.backup as backup_module
+from starhope.backup import (
     acquire_runtime_lock,
     create_full_backup,
     create_full_backup_if_due,
@@ -127,7 +127,7 @@ def _create_real_wal_sidecar_bytes(path):
 
 
 def test_full_backup_round_trip_restores_database_uploads_and_metadata(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     metadata = tmp_path / "custom_metadata.json"
     snapshots = tmp_path / "snapshots"
@@ -168,7 +168,7 @@ def test_full_backup_round_trip_restores_database_uploads_and_metadata(tmp_path)
     )
 
     assert safety_backup.is_file()
-    assert not list(safety.glob("mathbank-raw-pre-restore-*.zip"))
+    assert not list(safety.glob("starhope-raw-pre-restore-*.zip"))
     with _sqlite_connection(database) as connection:
         assert connection.execute("SELECT COUNT(*) FROM questions").fetchone()[0] == 1
     assert (uploads / "figure.png").read_bytes() == b"original-image"
@@ -194,7 +194,7 @@ def _rewrite_backup_sources(path, *, remove=(), replacements=None, manifest_upda
 
 
 def test_backup_has_one_verified_source_snapshot_and_restore_preserves_old_bytes(tmp_path, monkeypatch):
-    from mathbank.content_sources import content_source_export_files, load_content_sources
+    from starhope.content_sources import content_source_export_files, load_content_sources
     catalog = load_content_sources()
     catalog["title"] += "（历史快照）"
     historical = content_source_export_files(catalog)
@@ -353,10 +353,10 @@ def test_old_backup_native_reference_scope_remains_backward_compatible(tmp_path,
 
 @pytest.mark.parametrize("version", ("N", "X"))
 def test_full_backup_restores_new_curriculum_identity_and_old_mirrors(tmp_path, version):
-    from mathbank.curriculums import build_default_metadata
-    from mathbank.sub_knowledge import resolve_active_version
+    from starhope.curriculums import build_default_metadata
+    from starhope.sub_knowledge import resolve_active_version
 
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     metadata = tmp_path / "custom_metadata.json"
     uploads.mkdir()
@@ -384,7 +384,7 @@ def test_full_backup_restores_new_curriculum_identity_and_old_mirrors(tmp_path, 
 
 
 def test_backup_verifier_rejects_modified_payload(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     (uploads / "figure.png").write_bytes(b"original-image")
@@ -410,9 +410,9 @@ def test_backup_verifier_rejects_modified_payload(tmp_path):
 
 
 def test_schema_v6_backup_requires_and_counts_fingerprint_table(tmp_path):
-    from mathbank.db_migrations import V6_QUESTION_FINGERPRINT_INDEXES
+    from starhope.db_migrations import V6_QUESTION_FINGERPRINT_INDEXES
 
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -440,9 +440,9 @@ def test_schema_v6_backup_requires_and_counts_fingerprint_table(tmp_path):
 
 
 def test_schema_v7_backup_uses_its_three_column_band_indexes(tmp_path):
-    from mathbank.db_migrations import V7_QUESTION_FINGERPRINT_INDEXES
+    from starhope.db_migrations import V7_QUESTION_FINGERPRINT_INDEXES
 
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -469,7 +469,7 @@ def test_schema_v7_backup_uses_its_three_column_band_indexes(tmp_path):
 
 
 def test_schema_v6_backup_rejects_missing_fingerprint_table(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -487,7 +487,7 @@ def test_schema_v6_backup_rejects_missing_fingerprint_table(tmp_path):
 
 
 def test_schema_v6_backup_rejects_malformed_fingerprint_table(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -509,7 +509,7 @@ def test_schema_v6_backup_rejects_malformed_fingerprint_table(tmp_path):
 
 
 def test_restore_rejects_future_schema_before_replacing_current_database(tmp_path):
-    from mathbank.db_migrations import LATEST_SCHEMA_VERSION
+    from starhope.db_migrations import LATEST_SCHEMA_VERSION
 
     future_database = tmp_path / "future.db"
     current_database = tmp_path / "current.db"
@@ -573,15 +573,15 @@ def test_restore_rejects_future_schema_before_replacing_current_database(tmp_pat
 def test_automatic_backup_skips_when_recent_snapshot_exists(tmp_path, monkeypatch):
     snapshots = tmp_path / "snapshots"
     snapshots.mkdir()
-    recent = snapshots / "mathbank-backup-recent.zip"
+    recent = snapshots / "starhope-backup-recent.zip"
     recent.write_bytes(b"placeholder")
     called = []
 
     monkeypatch.setattr(
-        "mathbank.backup.create_full_backup",
+        "starhope.backup.create_full_backup",
         lambda **kwargs: called.append(kwargs),
     )
-    monkeypatch.setattr("mathbank.backup.verify_full_backup", lambda _path: {})
+    monkeypatch.setattr("starhope.backup.verify_full_backup", lambda _path: {})
     result = create_full_backup_if_due(
         output_dir=snapshots,
         minimum_interval_seconds=3600,
@@ -596,16 +596,16 @@ def test_invalid_recent_backup_does_not_suppress_automatic_backup(
 ):
     snapshots = tmp_path / "snapshots"
     snapshots.mkdir()
-    invalid = snapshots / "mathbank-backup-invalid.zip"
+    invalid = snapshots / "starhope-backup-invalid.zip"
     invalid.write_bytes(b"not-a-zip")
-    replacement = snapshots / "mathbank-backup-replacement.zip"
+    replacement = snapshots / "starhope-backup-replacement.zip"
     calls = []
 
     def create_replacement(**kwargs):
         calls.append(kwargs)
         return replacement
 
-    monkeypatch.setattr("mathbank.backup.create_full_backup", create_replacement)
+    monkeypatch.setattr("starhope.backup.create_full_backup", create_replacement)
     result = create_full_backup_if_due(
         output_dir=snapshots,
         minimum_interval_seconds=3600,
@@ -639,7 +639,7 @@ def test_backup_verifier_rejects_zip_symlinks(tmp_path):
 
 
 def test_restore_rolls_back_all_resources_when_upload_swap_fails(tmp_path, monkeypatch):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     metadata = tmp_path / "custom_metadata.json"
     uploads.mkdir()
@@ -698,7 +698,7 @@ def test_restore_rolls_back_all_resources_when_upload_swap_fails(tmp_path, monke
 
 
 def test_restore_supports_backup_with_empty_upload_directory(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -725,7 +725,7 @@ def test_restore_supports_backup_with_empty_upload_directory(tmp_path):
 
 
 def test_restore_quarantines_corrupt_current_database_before_recovery(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     metadata = tmp_path / "custom_metadata.json"
     uploads.mkdir()
@@ -756,14 +756,14 @@ def test_restore_quarantines_corrupt_current_database_before_recovery(tmp_path):
         runtime_lock_path=tmp_path / "runtime.lock",
     )
 
-    assert safety.name.startswith("mathbank-raw-pre-restore-")
+    assert safety.name.startswith("starhope-raw-pre-restore-")
     with zipfile.ZipFile(safety, "r") as recovery:
-        assert recovery.read("database/math_question_bank.db") == corrupt_bytes
-        assert recovery.read("database/math_question_bank.db-wal") == wal_bytes
-        assert recovery.read("database/math_question_bank.db-shm") == shm_bytes
+        assert recovery.read("database/starhope.db") == corrupt_bytes
+        assert recovery.read("database/starhope.db-wal") == wal_bytes
+        assert recovery.read("database/starhope.db-shm") == shm_bytes
         assert recovery.read("uploads/figure.png") == b"recoverable-upload"
         recovery_manifest = json.loads(recovery.read("recovery.json"))
-        assert recovery_manifest["format"] == "mathbank-raw-pre-restore"
+        assert recovery_manifest["format"] == "starhope-raw-pre-restore"
         assert (
             recovery_manifest["capture_stage"]
             == "before-current-database-sqlite-probe"
@@ -773,7 +773,7 @@ def test_restore_quarantines_corrupt_current_database_before_recovery(tmp_path):
 
 
 def test_online_backup_includes_committed_wal_rows(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -799,11 +799,11 @@ def test_online_backup_includes_committed_wal_rows(tmp_path):
         database_members = [
             name for name in backup_zip.namelist() if name.startswith("database/")
         ]
-    assert database_members == ["database/math_question_bank.db"]
+    assert database_members == ["database/starhope.db"]
 
 
 def test_locked_backup_times_out_without_mutating_database_or_publishing_archive(tmp_path, monkeypatch):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     snapshots = tmp_path / "snapshots"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
@@ -831,7 +831,7 @@ def test_locked_backup_times_out_without_mutating_database_or_publishing_archive
 
 
 def test_locked_restore_probe_supports_python310_without_named_error_constants(tmp_path, monkeypatch):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     _create_database(database)
     monkeypatch.delattr(sqlite3, "SQLITE_BUSY", raising=False)
     monkeypatch.delattr(sqlite3, "SQLITE_LOCKED", raising=False)
@@ -845,7 +845,7 @@ def test_locked_restore_probe_supports_python310_without_named_error_constants(t
 
 
 def test_backup_finishes_when_exclusive_lock_is_released_before_budget(tmp_path, monkeypatch):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -896,7 +896,7 @@ def test_backup_finishes_when_exclusive_lock_is_released_before_budget(tmp_path,
 
 
 def test_progressing_page_copy_has_no_total_duration_limit(tmp_path, monkeypatch):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     _create_database(database, content="x" * 200_000)
     connect = sqlite3.connect
     copied_pages = []
@@ -929,7 +929,7 @@ def test_progressing_page_copy_has_no_total_duration_limit(tmp_path, monkeypatch
 
 
 def test_backup_and_restore_fsync_reopened_files_with_write_access(tmp_path, monkeypatch):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -994,7 +994,7 @@ def test_zip_cleanup_failure_does_not_replace_original_sync_error(tmp_path, monk
 
 
 def test_backup_fails_if_database_references_a_missing_upload(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(
@@ -1012,7 +1012,7 @@ def test_backup_fails_if_database_references_a_missing_upload(tmp_path):
             retention=None,
         )
 
-    assert list(snapshots.glob("mathbank-backup-*.zip")) == []
+    assert list(snapshots.glob("starhope-backup-*.zip")) == []
 
 
 def _missing_image_backup(tmp_path, *, include_present=True):
@@ -1151,7 +1151,7 @@ def test_tolerant_backup_does_not_swallow_other_asset_failures(tmp_path, monkeyp
         create_full_backup(output_dir=tmp_path / "snapshots", database_path=database,
             uploads_dir=uploads, metadata_path=tmp_path / "missing.json", retention=None,
             allow_missing_uploads=True)
-    assert not list((tmp_path / "snapshots").glob("mathbank-backup-*.zip"))
+    assert not list((tmp_path / "snapshots").glob("starhope-backup-*.zip"))
 
 
 def test_tolerant_backup_records_source_disappearing_during_copy(tmp_path, monkeypatch):
@@ -1174,7 +1174,7 @@ def test_tolerant_backup_records_source_disappearing_during_copy(tmp_path, monke
 
 
 def test_standard_backup_archives_only_referenced_production_rasters(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     for name in (
@@ -1216,7 +1216,7 @@ def test_standard_backup_archives_only_referenced_production_rasters(tmp_path):
 
 
 def test_backup_preserves_legacy_review_image_and_ignores_literal_example(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     image = uploads / "review.png"
@@ -1252,7 +1252,7 @@ def test_backup_preserves_legacy_review_image_and_ignores_literal_example(tmp_pa
 def test_standard_backup_rejects_nonproduction_or_unsafe_structured_reference(
     tmp_path, reference
 ):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database, image_paths=[reference])
@@ -1268,7 +1268,7 @@ def test_standard_backup_rejects_nonproduction_or_unsafe_structured_reference(
 
 
 def test_test_upload_prefix_requires_explicit_parser_parameter(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     _create_database(
         database,
         image_paths=["/static/test_uploads/fixture.png"],
@@ -1281,7 +1281,7 @@ def test_test_upload_prefix_requires_explicit_parser_parameter(tmp_path):
 
 
 def test_standard_backup_refuses_arbitrary_metadata_file(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -1299,7 +1299,7 @@ def test_standard_backup_refuses_arbitrary_metadata_file(tmp_path):
 
 
 def test_verifier_rejects_secret_disguised_as_metadata(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -1338,7 +1338,7 @@ def test_verifier_rejects_secret_disguised_as_metadata(tmp_path):
 def test_legacy_upload_manifest_allows_safe_extras_but_does_not_restore_them(
     tmp_path, legacy_format_version
 ):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     (uploads / "figure.png").write_bytes(b"referenced")
@@ -1393,7 +1393,7 @@ def test_legacy_upload_manifest_allows_safe_extras_but_does_not_restore_them(
 def test_legacy_upload_manifest_rejects_unsafe_extra(
     tmp_path, unsafe_name, legacy_format_version
 ):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)
@@ -1446,7 +1446,7 @@ def test_runtime_lock_blocks_restore_probe_without_signalling_process(tmp_path):
 
 
 def test_public_restore_cannot_bypass_runtime_lock(tmp_path):
-    database = tmp_path / "math_question_bank.db"
+    database = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
     _create_database(database)

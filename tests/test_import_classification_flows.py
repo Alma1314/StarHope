@@ -60,9 +60,9 @@ def test_split_uses_one_curriculum_snapshot_and_keeps_actual_chapter_title(monke
 
 @pytest.mark.parametrize("chapter", ["统计", "不存在的章节", None, ["统计"]])
 def test_source_metadata_keeps_original_body_with_one_request(monkeypatch, chapter):
-    import mathbank.source_metadata_request as request_module
-    from mathbank.docx_helper import _new_diagnostics
-    from mathbank.source_metadata import prepare_word_source_metadata
+    import starhope.source_metadata_request as request_module
+    from starhope.docx_helper import _new_diagnostics
+    from starhope.source_metadata import prepare_word_source_metadata
     source = "1. 已知样本数据为$1,2,3$，求极差。"
     plan = prepare_word_source_metadata(source, _new_diagnostics())
     assert plan["eligible"]
@@ -94,8 +94,8 @@ def test_source_metadata_keeps_original_body_with_one_request(monkeypatch, chapt
 
 @pytest.mark.parametrize("knowledge", [None, [], {}, 0, False])
 def test_certified_outside_grade_invalid_optional_refinement_retains_body_without_guessing(knowledge):
-    from mathbank.docx_helper import _new_diagnostics
-    from mathbank.source_metadata import (
+    from starhope.docx_helper import _new_diagnostics
+    from starhope.source_metadata import (
         apply_source_metadata_response, prepare_word_source_metadata,
     )
     source = "九年级数学试卷\n1. 已知一次函数$y=2x+1$，求$x=3$时的函数值。"

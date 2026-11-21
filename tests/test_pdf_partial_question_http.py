@@ -20,16 +20,16 @@ import requests
 requests.sessions.Session.request = lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("No live network"))
 import pymupdf as fitz
 from fastapi.testclient import TestClient
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.database import SessionLocal, Question, engine
+from starhope.ai_providers import resolve_text_provider
+from starhope.database import SessionLocal, Question, engine
 import main
 
 root = Path.cwd().resolve()
 assert Path(main.__file__).resolve().parent == root
-assert Path(engine.url.database).resolve() == root / 'math_question_bank.db'
+assert Path(engine.url.database).resolve() == root / 'starhope.db'
 assert not (root / '.env').exists()
 assert main.PDF_CLOUD_ONLY is True
-strategy = os.environ['MATHBANK_ISOLATED_PDF_STRATEGY']
+strategy = os.environ['STARHOPE_ISOLATED_PDF_STRATEGY']
 main.METADATA_CACHE = {'curriculum_version': 'A', 'curriculum': {'必修一': {'函数': ['函数值']}}}
 main.schedule_database_export = lambda *_a, **_k: None
 provider = resolve_text_provider('deepseek-flash', {'DEEPSEEK_API_KEY': 'fake-offline-only'})
@@ -42,8 +42,8 @@ def ocr(*_a, **_k):
     ocr_calls.append(1)
     return source
 main.ocr_pdf_page_image = ocr
-import mathbank.pdf_page_vision as page_vision
-import mathbank.pdf_native_regions as regional
+import starhope.pdf_page_vision as page_vision
+import starhope.pdf_native_regions as regional
 regional.plan_pdf_regions = lambda *_a, **_k: None
 def joint_ocr(path, info, **kwargs):
     ocr_calls.append(1)
@@ -121,14 +121,14 @@ def test_pdf_upload_retains_valid_cards_and_reports_rejected_entries(tmp_path, s
     workspace = tmp_path / "source-only-partial-question-workspace"
     workspace.mkdir()
     shutil.copy2(root / "main.py", workspace / "main.py")
-    shutil.copytree(root / "mathbank", workspace / "mathbank",
+    shutil.copytree(root / "starhope", workspace / "starhope",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if (root / "templates").is_dir():
         shutil.copytree(root / "templates", workspace / "templates")
     (workspace / "static").mkdir()
     runner = workspace / "isolated_partial_question.py"
     runner.write_text(SCENARIO, encoding="utf-8")
-    environment = dict(os.environ, PYTHONPATH=str(workspace), MATHBANK_ISOLATED_PDF_STRATEGY=strategy)
+    environment = dict(os.environ, PYTHONPATH=str(workspace), STARHOPE_ISOLATED_PDF_STRATEGY=strategy)
     result = subprocess.run([sys.executable, str(runner)], cwd=workspace, env=environment,
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout[-7000:] + "\n" + result.stderr[-7000:]

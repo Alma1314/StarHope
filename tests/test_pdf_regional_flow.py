@@ -29,7 +29,7 @@ def joint(markdown):
 @pytest.mark.parametrize("strategy", ["layout_aware", "native_preferred"])
 def test_native_regional_and_full_pages_share_one_split_without_duplicate_vision(monkeypatch, strategy):
     import main
-    from mathbank import pdf_native_regions, pdf_region_vision, pdf_page_vision
+    from starhope import pdf_native_regions, pdf_region_vision, pdf_page_vision
 
     native = "1. 原生正文保持不变，计算结果并说明理由。"
     regional = "2. 局部页保留原文。识别公式 $x=2$。"
@@ -105,7 +105,7 @@ def test_native_regional_and_full_pages_share_one_split_without_duplicate_vision
 @pytest.mark.parametrize("page_count", [1, 2])
 def test_failed_regional_call_never_retries_full_page_or_splits(monkeypatch, page_count):
     import main
-    from mathbank import pdf_native_regions, pdf_region_vision, pdf_page_vision
+    from starhope import pdf_native_regions, pdf_region_vision, pdf_page_vision
 
     monkeypatch.setattr(main, "inspect_and_extract_pdf", lambda *a, **k: {
         "pdf_type": "mixed", "pages": [
@@ -138,7 +138,7 @@ def test_failed_regional_call_never_retries_full_page_or_splits(monkeypatch, pag
 
 def test_force_ocr_never_uses_regional_planning(monkeypatch):
     import main
-    from mathbank import pdf_native_regions, pdf_region_vision
+    from starhope import pdf_native_regions, pdf_region_vision
 
     def forbidden(*args, **kwargs):
         raise AssertionError("Force OCR must not use native or regional routing")

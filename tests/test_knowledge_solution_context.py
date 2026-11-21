@@ -1,7 +1,7 @@
 """Result-only and hypothetical text cannot license an auxiliary method."""
 import pytest
 
-from mathbank.knowledge_solution_context import evidence_is_reasoning, solution_context
+from starhope.knowledge_solution_context import evidence_is_reasoning, solution_context
 
 
 @pytest.mark.parametrize("answer", ["5", "【答案】5", "【答案】AB", "答案：A、B、D", "【答案】$x=5$",

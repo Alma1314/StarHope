@@ -1,8 +1,8 @@
 """Layout-only empty fields remain source data, never mathematical evidence."""
 import pytest
 
-from mathbank.content_locks import _formulas, lock_visible_math
-from mathbank.source_metadata import _atomic_ranges, _metadata_extra, inspect_source_structure
+from starhope.content_locks import _formulas, lock_visible_math
+from starhope.source_metadata import _atomic_ranges, _metadata_extra, inspect_source_structure
 
 
 CHOICES = '\n\\begin{choices}\n\\item 甲\n\\item 乙\n\\item 丙\n\\item 丁\n\\end{choices}'

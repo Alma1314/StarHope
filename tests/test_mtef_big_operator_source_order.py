@@ -5,7 +5,7 @@ are not distributed. Their original WMF uses TA_UPDATECP: upper n baselines are
 261/253, sum glyph baselines 740/749, lower m=k+1/k=1 baselines 1018/1027.
 The SDK's older slot table is not used as proof of this 0x70 variant's order.
 """
-from mathbank.mtef_helper import MtefNode, _render_template, decode_mtef_formula
+from starhope.mtef_helper import MtefNode, _render_template, decode_mtef_formula
 import pytest
 
 SOURCE_CASES = [

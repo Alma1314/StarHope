@@ -9,8 +9,8 @@ import zipfile
 import pymupdf as fitz
 import pytest
 
-from mathbank import docx_source_evidence as evidence
-from mathbank.task_manager import TaskCancelled
+from starhope import docx_source_evidence as evidence
+from starhope.task_manager import TaskCancelled
 
 
 def docx_bytes(*, relationship=None, field=None, macro=False):

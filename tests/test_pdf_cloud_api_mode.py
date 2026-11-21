@@ -7,14 +7,14 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank import pdf_legacy_parse as module
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.content_locks import lock_visible_math, reconcile_visible_math
-from mathbank.document_project_parse import run_project_legacy_parse
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.paper_parse import finalize_source_answers, parse_paper_completion
-from mathbank.pdf_full_context_split import full_context_pdf_split_eligibility
-from mathbank.prompts import build_pdf_parse_system_prompt
+from starhope import pdf_legacy_parse as module
+from starhope.ai_providers import resolve_text_provider
+from starhope.content_locks import lock_visible_math, reconcile_visible_math
+from starhope.document_project_parse import run_project_legacy_parse
+from starhope.document_projects import DocumentProjectStore
+from starhope.paper_parse import finalize_source_answers, parse_paper_completion
+from starhope.pdf_full_context_split import full_context_pdf_split_eligibility
+from starhope.prompts import build_pdf_parse_system_prompt
 
 
 WORKFLOW = "cloud-api-full-body.v1"
@@ -41,9 +41,9 @@ def no_local_card_routes_or_network(monkeypatch):
     monkeypatch.setattr(requests.sessions.Session, "request", forbidden)
     for name in ("prepare_pdf_task_plan", "request_pdf_hybrid", "request_pdf_parallel_split"):
         monkeypatch.setattr(module, name, forbidden)
-    monkeypatch.setattr("mathbank.pdf_fragment_draft.prepare_pdf_fragment_draft", forbidden)
-    monkeypatch.setattr("mathbank.document_project_draft.execute_pdf_local_draft", forbidden)
-    monkeypatch.setattr("mathbank.pdf_draft_metadata.request_pdf_local_draft_metadata", forbidden)
+    monkeypatch.setattr("starhope.pdf_fragment_draft.prepare_pdf_fragment_draft", forbidden)
+    monkeypatch.setattr("starhope.document_project_draft.execute_pdf_local_draft", forbidden)
+    monkeypatch.setattr("starhope.pdf_draft_metadata.request_pdf_local_draft_metadata", forbidden)
 
 
 def parser(observed):

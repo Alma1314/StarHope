@@ -7,10 +7,10 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import create_engine
 
-from mathbank import db_migrations
-from mathbank.curriculums import CURRICULUM_NAMES, build_default_metadata
-from mathbank.database import Base, Question, QuestionCurriculum, QuestionSubKnowledge
-from mathbank.sub_knowledge import normalize_sub_knowledge, resolve_active_version
+from starhope import db_migrations
+from starhope.curriculums import CURRICULUM_NAMES, build_default_metadata
+from starhope.database import Base, Question, QuestionCurriculum, QuestionSubKnowledge
+from starhope.sub_knowledge import normalize_sub_knowledge, resolve_active_version
 
 
 CONDITIONAL = {"compulsory": "选修三", "chapter": "7. 随机变量及其分布", "knowledge": "7.1 条件概率与全概率公式"}
@@ -232,7 +232,7 @@ def test_v10_migration_backup_unchanged_old_fields_empty_relation_idempotent_fk(
             connection.exec_driver_sql("INSERT INTO question_curriculums(id,question_id,version_code,knowledge) VALUES(1,1,'A','8. 立体几何初步'),(2,1,'B','历史B标签')")
         monkeypatch.setattr(db_migrations, "SCHEMA_SNAPSHOT_DIR", tmp_path / "snapshots")
         result = db_migrations.migrate_database(engine)
-        from mathbank.db_migrations import LATEST_SCHEMA_VERSION
+        from starhope.db_migrations import LATEST_SCHEMA_VERSION
         assert result["from_version"] == 10 and result["to_version"] == LATEST_SCHEMA_VERSION and result["backup"]
         with sqlite3.connect(result["backup"]) as original:
             assert original.execute("PRAGMA user_version").fetchone()[0] == 10

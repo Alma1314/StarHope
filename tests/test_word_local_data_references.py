@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.word_source_dependencies import analyze_word_source_dependencies
+from starhope.word_source_dependencies import analyze_word_source_dependencies
 
 
 TABLE = r"""\begin{tabular}{|c|c|c|}

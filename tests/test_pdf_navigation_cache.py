@@ -4,8 +4,8 @@ import hashlib
 
 import pytest
 
-from mathbank.pdf_navigation_cache import bind_pdf_navigation, cached_pdf_navigation
-from mathbank.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
+from starhope.pdf_navigation_cache import bind_pdf_navigation, cached_pdf_navigation
+from starhope.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
 
 
 @pytest.fixture

@@ -23,10 +23,10 @@ def _open_source_report(browser):
         browser.command('click', '#parsedSourceIntegrityReport > summary')
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1' or not os.environ.get('MATHBANK_TEST_PDF_BEIJING_TASK'),
+@pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1' or not os.environ.get('STARHOPE_TEST_PDF_BEIJING_TASK'),
                     reason='opt-in isolated browser replay of the Beijing task')
 def test_captured_beijing_optional_review_ui_selects_28_without_approval_or_network(browser, tmp_path):
-    task_path = Path(os.environ['MATHBANK_TEST_PDF_BEIJING_TASK'])
+    task_path = Path(os.environ['STARHOPE_TEST_PDF_BEIJING_TASK'])
     task = json.loads(task_path.read_text())
     assert len(task['data']) == 28
     assert sum(q.get('source_review', {}).get('required') is True for q in task['data']) == 21
@@ -819,7 +819,7 @@ const pdfScenarios = {
     assert.equal(document.querySelectorAll('.pdf-review-question-link')[0].textContent,'第1张题卡');
   },
   async captured_question_14_report_and_missing_metadata() {
-    const task=JSON.parse(require('node:fs').readFileSync(process.env.MATHBANK_TEST_PDF_REPORT_TASK,'utf8'));
+    const task=JSON.parse(require('node:fs').readFileSync(process.env.STARHOPE_TEST_PDF_REPORT_TASK,'utf8'));
     show(task.data);
     assert.equal(task.data.length,24);
     assert.equal(task.data[13].source_review.required,true);
@@ -966,7 +966,7 @@ pdfScenarios[process.argv[1]]().catch(error=>{console.error(error);process.exitC
     "native_structure_repair_summary_and_notes_are_local_only",
     "missing_review_metadata_uses_current_cards_and_provenance",
     pytest.param("captured_question_14_report_and_missing_metadata", marks=pytest.mark.skipif(
-        not os.environ.get("MATHBANK_TEST_PDF_REPORT_TASK"), reason="opt-in captured Q14 report; no network")),
+        not os.environ.get("STARHOPE_TEST_PDF_REPORT_TASK"), reason="opt-in captured Q14 report; no network")),
 ])
 def test_pdf_layout_ui_behavior(pdf_script, scenario):
     node = shutil.which("node")
@@ -1008,7 +1008,7 @@ def _prepare_browser_pdf_review(browser):
     """)
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
 def test_ignored_exam_metadata_and_inapplicable_graphic_do_not_warn(browser, tmp_path):
     _prepare_browser_pdf_review(browser)
     browser.evaluate(r"""
@@ -1036,7 +1036,7 @@ def test_ignored_exam_metadata_and_inapplicable_graphic_do_not_warn(browser, tmp
     browser.command('screenshot', str(tmp_path / 'ignored-metadata-nonblocking.png'))
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
 def test_pdf_modes_and_review_report_in_real_browser(browser, tmp_path):
     _prepare_browser_pdf_review(browser)
     try:
@@ -1101,7 +1101,7 @@ def test_pdf_modes_and_review_report_in_real_browser(browser, tmp_path):
     print(f'PDF import visual QA: {tmp_path}')
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
 def test_pdf_manual_crop_nonconsecutive_pages_in_real_browser(browser, tmp_path):
     _prepare_browser_pdf_review(browser)
     browser.evaluate(r"""
@@ -1147,7 +1147,7 @@ def test_pdf_manual_crop_nonconsecutive_pages_in_real_browser(browser, tmp_path)
         browser.evaluate('window.fetch = window.__originalPdfFetch; closePdfCropModal(); true')
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
 def test_pdf_notes_and_global_page_warning_in_real_browser(browser, tmp_path):
     _prepare_browser_pdf_review(browser)
     browser.evaluate(r"""
@@ -1201,12 +1201,12 @@ def test_pdf_notes_and_global_page_warning_in_real_browser(browser, tmp_path):
 
 
 @pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1" or not os.environ.get("MATHBANK_TEST_PDF_REAL_RESULT"),
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1" or not os.environ.get("STARHOPE_TEST_PDF_REAL_RESULT"),
     reason="opt-in saved real PDF result; requires adjacent assets/ PNG copies",
 )
 def test_saved_real_pdf_option_order_and_badminton_position(browser, tmp_path):
     """Render a saved Wuhan result without contacting a model or saving questions."""
-    task_path = Path(os.environ["MATHBANK_TEST_PDF_REAL_RESULT"]).expanduser().resolve()
+    task_path = Path(os.environ["STARHOPE_TEST_PDF_REAL_RESULT"]).expanduser().resolve()
     task_bytes = task_path.read_bytes()
     task = json.loads(task_bytes)
     questions = task.get("data", [])
@@ -1302,7 +1302,7 @@ def test_saved_real_pdf_option_order_and_badminton_position(browser, tmp_path):
     print('Real PDF browser evidence: ' + json.dumps(evidence, ensure_ascii=False))
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
 def test_pdf_card_action_labels_do_not_wrap_with_image_badges(browser, tmp_path):
     image_url = _prepare_browser_pdf_review(browser)
     paths = ['/static/uploads/figure_' + 'long_filename_' * 10 + str(index) + '.png' for index in range(8)]
@@ -1376,7 +1376,7 @@ def test_pdf_card_action_labels_do_not_wrap_with_image_badges(browser, tmp_path)
     print(f'PDF card actions visual QA: {tmp_path}')
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
 def test_pdf_review_report_locates_questions_and_unassigned_page(browser, tmp_path):
     _prepare_browser_pdf_review(browser)
     browser.evaluate(r"""
@@ -1438,7 +1438,7 @@ def test_pdf_review_report_locates_questions_and_unassigned_page(browser, tmp_pa
     print(f'PDF question review visual QA: {tmp_path}')
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
 def test_pdf_source_verification_control_and_revocable_result(browser, tmp_path):
     _prepare_browser_pdf_review(browser)
     browser.evaluate(r"""
@@ -1514,7 +1514,7 @@ def test_pdf_source_verification_control_and_revocable_result(browser, tmp_path)
     print(f'PDF automatic source verification visual QA: {tmp_path}')
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in actual browser regression")
 def test_docx_source_verification_upload_poll_and_revocable_result(browser, tmp_path):
     """Exercise real file selection and the shipped poller with local fake replies."""
     word_file = tmp_path / '原文核验界面测试.docx'
@@ -1655,7 +1655,7 @@ def test_docx_source_verification_upload_poll_and_revocable_result(browser, tmp_
     print(f'Word automatic source verification visual QA: {tmp_path}')
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1', reason='opt-in actual browser regression')
+@pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1', reason='opt-in actual browser regression')
 def test_visual_review_states_and_repair_evidence_are_specific_and_revocable(browser, tmp_path):
     browser.evaluate(r"""
     (() => {

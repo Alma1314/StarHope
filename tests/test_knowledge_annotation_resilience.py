@@ -4,7 +4,7 @@ import hashlib
 
 import pytest
 
-from mathbank.ai_knowledge_points import annotate_ai_knowledge_points
+from starhope.ai_knowledge_points import annotate_ai_knowledge_points
 
 
 CATALOG = [{"code": "demo:goal", "name": "直接目标"},

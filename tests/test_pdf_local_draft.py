@@ -5,7 +5,7 @@ import hashlib
 import pytest
 import requests
 
-from mathbank.pdf_local_draft import RULES_VERSION, prepare_pdf_local_draft
+from starhope.pdf_local_draft import RULES_VERSION, prepare_pdf_local_draft
 
 
 @pytest.fixture(autouse=True)
@@ -14,7 +14,7 @@ def no_network(monkeypatch):
 
 
 def draft(chunks):
-    pages=[{"page_number":i+1,"markdown":f"<!-- MATHBANK_PDF_PAGE:{i+1} -->\n"+text,"origin":"joint_vision"}
+    pages=[{"page_number":i+1,"markdown":f"<!-- STARHOPE_PDF_PAGE:{i+1} -->\n"+text,"origin":"joint_vision"}
            for i,text in enumerate(chunks)]
     source="\n\n".join("\n"+text for text in chunks)
     return source,pages,prepare_pdf_local_draft(source,pages,source_document_sha256="a"*64)

@@ -1,6 +1,6 @@
 """PDF text splitting retries have a separate budget from page recognition."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 from copy import deepcopy
 import json
@@ -10,13 +10,13 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank import paper_parse
-from mathbank.task_manager import TaskCancelled
+from starhope import paper_parse
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
     monkeypatch.setattr(requests.sessions.Session, "request", lambda *_a, **_kw: pytest.fail("No live model calls"))
 
 
@@ -252,7 +252,7 @@ def test_pdf_stream_valid_transport_but_invalid_json_retries_without_accepting(m
 
 
 def test_stream_resource_wait_precedes_http_attempt_accounting(monkeypatch):
-    from mathbank import ai_stream
+    from starhope import ai_stream
     semaphore = threading.BoundedSemaphore(4)
     monkeypatch.setattr(ai_stream, "_SLOTS", semaphore)
     for _ in range(4): assert semaphore.acquire()

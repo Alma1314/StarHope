@@ -21,8 +21,8 @@ INSTALLED_DIGEST_NAME = "installed-release-manifest.sha256"
 MAX_MANIFEST_BYTES = 8 * 1024 * 1024
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 HARD_PROTECTED_PATHS = frozenset(map(PurePosixPath, (
-    ".env", ".system_generated", "data_backup", "math_question_bank.db",
-    "math_question_bank.db-wal", "math_question_bank.db-shm",
+    ".env", ".system_generated", "data_backup", "starhope.db",
+    "starhope.db-wal", "starhope.db-shm",
     "static/uploads", "venv",
 )))
 HISTORICAL_TOMBSTONES = frozenset({
@@ -474,7 +474,7 @@ def apply_release_overlay(root, platform):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Reconcile a MathBank Release overlay")
+    parser = argparse.ArgumentParser(description="Reconcile a StarHope Release overlay")
     parser.add_argument("--platform", required=True, choices=sorted(PLATFORMS))
     args = parser.parse_args(argv)
     try:

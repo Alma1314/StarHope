@@ -1,6 +1,6 @@
 """Exercise the actual Word/PDF adapters, with no network or database writes."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 from copy import deepcopy
 import json
 from types import SimpleNamespace
@@ -9,8 +9,8 @@ import pytest
 
 from test_docx_source_verify import state as word_state
 from test_pdf_source_verify import setup as pdf_state
-from mathbank import docx_source_verify as word, pdf_source_verify as pdf
-from mathbank.task_manager import TaskCancelled
+from starhope import docx_source_verify as word, pdf_source_verify as pdf
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(params=['word', 'pdf'])
@@ -175,8 +175,8 @@ def test_repair_cannot_introduce_original_answer_protocol_marker(flow):
 
 def test_repaired_image_order_records_final_candidate_evidence_fingerprint(flow):
     from PIL import Image, ImageDraw
-    from mathbank.content_locks import _source_parts
-    from mathbank.source_review_images import prepare_candidate_images
+    from starhope.content_locks import _source_parts
+    from starhope.source_review_images import prepare_candidate_images
 
     state = flow.state
     root = state.image.parent.parent if flow.kind == 'word' else state.root

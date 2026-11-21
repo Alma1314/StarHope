@@ -6,7 +6,7 @@ import pytest
 from test_document_projects_frontend import project_script, run_node  # noqa: F401
 from test_import_source_review import review_script  # noqa: F401
 from test_pdf_layout_frontend import pdf_script  # noqa: F401
-from mathbank.document_project_service import project_question_ids
+from starhope.document_project_service import project_question_ids
 
 
 @pytest.mark.parametrize('scenario', ['nineteen_results_keep_teacher_edit', 'out_of_order_progress_cannot_reorder_cards', 'restoring_full_draft_never_reanalyzes','new_path_ignores_stale_block_manual_and_cache_history','partial_groups_keep_numbered_pending_scopes',
@@ -41,7 +41,7 @@ const resultScenarios={
  },
  async new_path_ignores_stale_block_manual_and_cache_history(){
   const diag={pdf_project_legacy_parse:{mode:'legacy_executor_cache',reused:true,status:'reused',new_calls:0,executor_calls:0},
-   pdf_parallel_split:{schema:'mathbank.pdf-parallel-split.v1',used_parallel:true,status:'used',calls:9,group_count:2,completed_groups:2,reused_groups:0},
+   pdf_parallel_split:{schema:'starhope.pdf-parallel-split.v1',used_parallel:true,status:'used',calls:9,group_count:2,completed_groups:2,reused_groups:0},
    pdf_local_structure:{status:'manual_review',manual_reasons:['nested_table','unclosed_environment']},
    pdf_project_partial:true,pdf_splitting:{calls:9}};
   const review=pdfStructureReviewState(diag,{partial:false});assert.equal(review.incomplete,false);assert.equal(review.manual,false);
@@ -51,7 +51,7 @@ const resultScenarios={
  },
  async partial_groups_keep_numbered_pending_scopes(){
   const diag={pdf_project_legacy_parse:{mode:'legacy_executor_cache',reused:false,status:'partial',new_calls:2,executor_calls:1},
-   pdf_parallel_split:{schema:'mathbank.pdf-parallel-split.v1',used_parallel:true,status:'partial',calls:2,group_count:3,completed_groups:1,reused_groups:0,
+   pdf_parallel_split:{schema:'starhope.pdf-parallel-split.v1',used_parallel:true,status:'partial',calls:2,group_count:3,completed_groups:1,reused_groups:0,
     groups:[{id:'a',source_numbers:[1,2],status:'completed'},{id:'b',source_numbers:[3,4],status:'failed'},{id:'c',source_numbers:[5,6],status:'pending'}]},
    pdf_local_structure:{status:'manual_review',manual_reasons:['nested_table']}};
   const review=pdfStructureReviewState(diag,{partial:true});assert.equal(review.incomplete,true);assert.equal(review.manual,false);
@@ -59,7 +59,7 @@ const resultScenarios={
   assert.ok(!review.lines.join('').includes('嵌套'));assert.ok(pdfProjectParseReportSummary(diag).includes('已完成 1/3 组'));
  },
  async full_context_schema_without_outer_cache_keeps_pending_numbers(){
-  const diag={pdf_parallel_split:{schema:'mathbank.pdf-full-context-split.v1',used_parallel:true,status:'partial',
+  const diag={pdf_parallel_split:{schema:'starhope.pdf-full-context-split.v1',used_parallel:true,status:'partial',
    calls:2,group_count:2,completed_groups:1,reused_groups:0,
    groups:[{id:'one',source_numbers:[1,2,3],status:'completed'},{id:'two',source_numbers:[12,13,14,15,16,17,18,19],status:'failed'}]},
    pdf_local_structure:{status:'manual_review',manual_reasons:['nested_table']}};

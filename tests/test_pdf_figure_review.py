@@ -1,6 +1,6 @@
 """PDF crop semantics, full-page relocation and immutable cache receipts (offline)."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 from copy import deepcopy
 from dataclasses import replace
 import hashlib
@@ -14,9 +14,9 @@ from PIL import Image, ImageDraw
 import pytest
 import requests
 
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.pdf_figure_review import CHECKS, FRAME, PdfFigureReviewError, review_pdf_figures
-from mathbank.task_manager import TaskCancelled
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.pdf_figure_review import CHECKS, FRAME, PdfFigureReviewError, review_pdf_figures
+from starhope.task_manager import TaskCancelled
 
 
 def png(path, size=(100, 80), label="source"):

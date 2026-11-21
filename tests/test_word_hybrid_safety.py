@@ -10,14 +10,14 @@ from PIL import Image
 
 import pytest
 
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.content_locks import _formulas
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.source_metadata import SourceMetadataContractError
-from mathbank.question_assets import embedded_question_assets
-from mathbank.task_manager import TaskCancelled
-from mathbank.word_hybrid_plan import WordHybridPlanError, build_word_hybrid_plan
-from mathbank.word_hybrid_request import request_word_hybrid
+from starhope.ai_providers import resolve_text_provider
+from starhope.content_locks import _formulas
+from starhope.docx_helper import extract_docx_markdown
+from starhope.source_metadata import SourceMetadataContractError
+from starhope.question_assets import embedded_question_assets
+from starhope.task_manager import TaskCancelled
+from starhope.word_hybrid_plan import WordHybridPlanError, build_word_hybrid_plan
+from starhope.word_hybrid_request import request_word_hybrid
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 M = "http://schemas.openxmlformats.org/officeDocument/2006/math"
@@ -147,7 +147,7 @@ def test_global_source_identity_failure_has_no_paid_full_or_scoped_repeat(tmp_pa
         else: parsed['page_complete'] = True
         return Response(parsed)
     def fallback(): fallbacks.append(True); return original
-    from mathbank.source_metadata import SourceMetadataNoFallbackError
+    from starhope.source_metadata import SourceMetadataNoFallbackError
     with pytest.raises(SourceMetadataNoFallbackError):
         call(plan, post, fallback=fallback)
     assert len(calls) == 1 and fallbacks == []
@@ -171,7 +171,7 @@ def test_only_failed_group_is_sent_once_more_without_repeating_accepted_ids(tmp_
             else: parsed['splits'].pop(0)
         return Response(parsed)
     if mutation in {'missing_metadata', 'changed_content'}:
-        from mathbank.source_metadata import SourceMetadataNoFallbackError
+        from starhope.source_metadata import SourceMetadataNoFallbackError
         with pytest.raises(SourceMetadataNoFallbackError):
             call(plan, post)
         assert len(calls) == 1
@@ -261,7 +261,7 @@ def test_risky_source_identity_and_answer_binding_cannot_be_certified_by_self_re
         elif mutation == 'swapped_content': rows[0]['content'], rows[1]['content'] = rows[1]['content'], rows[0]['content']
         else: rows[0]['answer_markdown'], rows[1]['answer_markdown'] = rows[1]['answer_markdown'], rows[0]['answer_markdown']
         return Response(parsed)
-    from mathbank.source_metadata import SourceMetadataNoFallbackError
+    from starhope.source_metadata import SourceMetadataNoFallbackError
     with pytest.raises(SourceMetadataNoFallbackError):
         call(plan, post, fallback=lambda: fallbacks.append(True) or [{'content': 'Old fallback', **FIELDS}])
     assert len(calls) == 1 and fallbacks == []
@@ -356,7 +356,7 @@ def test_uncovered_metadata_ids_stop_without_guessing_or_repeating_full_mixed_pa
     def post(_provider, payload, **options):
         posts.append(deepcopy(payload)); return Response({'metadata': {'items': []}, 'splits': []})
     original = [{'content': 'Original fallback result', **FIELDS}]
-    from mathbank.source_metadata import SourceMetadataNoFallbackError
+    from starhope.source_metadata import SourceMetadataNoFallbackError
     with pytest.raises(SourceMetadataNoFallbackError):
         call(plan, post, fallback=lambda: fallbacks.append(True) or original)
     assert len(posts) == 1 and fallbacks == []

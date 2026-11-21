@@ -8,8 +8,8 @@
     'use strict';
 
     // Local Storage Keys
-    const STORAGE_KEY_CART = 'mathbank_paper_cart';
-    const STORAGE_KEY_META = 'mathbank_paper_meta';
+    const STORAGE_KEY_CART = 'starhope_paper_cart';
+    const STORAGE_KEY_META = 'starhope_paper_meta';
     const PAPER_STREAM_PAGE_SIZE = 15;
     const PAPER_QUESTION_CACHE_LIMIT = 120;
     const A4_PAGE = Object.freeze({ width: 794, height: 1123, margin: 96 });
@@ -215,7 +215,7 @@
         Array.from(getPaperReferenceRefreshIds()).forEach(qid => loadPaperQuestionAnswer(qid, true));
     }
     window.addEventListener('focus', refreshExpandedPaperReferences);
-    window.addEventListener('mathbank-question-mutated', refreshExpandedPaperReferences);
+    window.addEventListener('starhope-question-mutated', refreshExpandedPaperReferences);
 
     async function loadPaperQuestionAnswer(qid, refresh = false) {
         qid = parseInt(qid, 10);
@@ -1672,7 +1672,7 @@
                         isCurrent: () => window.PaperStore.answerCache[q.id] === answerText
                             && window.PaperStore.expandedAnswerIds.has(q.id)
                     })
-                    : window.MathBankSafe.sanitizeRichHtml(answerText);
+                    : window.StarHopeSafe.sanitizeRichHtml(answerText);
             } else {
                 answerBodyHtml = '<p class="py-3 text-xs text-slate-400 italic">本题暂无答案与解析。</p>';
             }
@@ -3338,7 +3338,7 @@
         });
     }
 
-    const PAPER_PREFLIGHT_HISTORY_KEY = 'mathbank_paper_export_preflights';
+    const PAPER_PREFLIGHT_HISTORY_KEY = 'starhope_paper_export_preflights';
 
     function readPaperPreflightHistory() {
         try {
@@ -3766,10 +3766,10 @@
     }
 
     async function pollPandocInstall(taskId) {
-        const deadline = Date.now() + MathBankTimeouts.PANDOC_INSTALL_MS;
+        const deadline = Date.now() + StarHopeTimeouts.PANDOC_INSTALL_MS;
         while (Date.now() < deadline) {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), Math.min(MathBankTimeouts.QUERY_MS, deadline - Date.now()));
+            const timeout = setTimeout(() => controller.abort(), Math.min(StarHopeTimeouts.QUERY_MS, deadline - Date.now()));
             try {
                 const response = await fetch(`/api/runtime/pandoc/install/${encodeURIComponent(taskId)}`, {signal: controller.signal});
                 if (!response.ok) {
@@ -4215,7 +4215,7 @@
             }
             return;
         }
-        window.MathBankModal.close(modal);
+        window.StarHopeModal.close(modal);
         modal.remove();
     };
 
@@ -4229,7 +4229,7 @@
 
         let modal = document.getElementById('savedPapersModal');
         if (modal) {
-            window.MathBankModal.close(modal);
+            window.StarHopeModal.close(modal);
             modal.remove();
         }
 
@@ -4275,7 +4275,7 @@
             </div>
         `;
         document.body.appendChild(modal);
-        window.MathBankModal.open(modal, { onEscape: window.closeSavedPapersModal });
+        window.StarHopeModal.open(modal, { onEscape: window.closeSavedPapersModal });
 
         try {
             const res = await fetch('/api/papers');
@@ -4484,7 +4484,7 @@
 
     // Dynamic Helper utilities
     function escapeHtml(str) {
-        return window.MathBankSafe.escapeText(str);
+        return window.StarHopeSafe.escapeText(str);
     }
 
     function isWrittenQuestionType(type) {
@@ -4568,7 +4568,7 @@
         }
 
         const cleanLabel = String(label || '').replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
-        colorClass = window.MathBankSafe.safeClassList(colorClass, 'text-slate-600 bg-slate-100 border border-slate-200/60');
+        colorClass = window.StarHopeSafe.safeClassList(colorClass, 'text-slate-600 bg-slate-100 border border-slate-200/60');
         return `<span class="px-2 py-0.5 rounded-lg text-xs font-semibold ${colorClass}">${escapeHtml(cleanLabel)}</span>`;
     }
 
@@ -5164,7 +5164,7 @@
         if (shouldPreserveInlinePaperImages(html)) {
             const inlineHtml = typeof window.parseMarkdownWithMath === 'function'
                 ? window.parseMarkdownWithMath(html, imageLayouts, paperContentReferenceContext(html, qid))
-                : window.MathBankSafe.sanitizeRichHtml(html);
+                : window.StarHopeSafe.sanitizeRichHtml(html);
             if (embedInSolSpace) {
                 return {
                     stemHtml: `<div>${inlineHtml}</div>`,
@@ -5179,7 +5179,7 @@
         const imgSrcList = [];
         const imgMatches = [...html.matchAll(/!\[.*?\]\(([^)]+)\)/g)];
         imgMatches.forEach(m => {
-            const safeSrc = window.MathBankSafe.safeImageUrl(m[1]);
+            const safeSrc = window.StarHopeSafe.safeImageUrl(m[1]);
             if (safeSrc && !imgSrcList.includes(safeSrc)) imgSrcList.push(safeSrc);
         });
         html = html.replace(/!\[.*?\]\(([^)]+)\)/g, '').trim();
@@ -5188,7 +5188,7 @@
         if (typeof window.parseMarkdownWithMath === 'function') {
             html = window.parseMarkdownWithMath(html, imageLayouts, paperContentReferenceContext(html, qid));
         } else {
-            html = window.MathBankSafe.sanitizeRichHtml(html);
+            html = window.StarHopeSafe.sanitizeRichHtml(html);
         }
 
         const stemText = anchoredHtml + html;
@@ -5221,7 +5221,7 @@
                 const controlAttrs = showControls
                     ? `data-figure-align-qid="${qidAttr}" title="点击或右击可切换插图排版位置 (图${idx + 1} 当前: ${currentLabel})"`
                     : '';
-                return `<img src="${window.MathBankSafe.escapeAttribute(src)}" alt="题目配图 ${idx + 1}" class="${imgClass}" style="${imageStyle}" ${sizingAttrs} ${controlAttrs} loading="lazy" decoding="async">`;
+                return `<img src="${window.StarHopeSafe.escapeAttribute(src)}" alt="题目配图 ${idx + 1}" class="${imgClass}" style="${imageStyle}" ${sizingAttrs} ${controlAttrs} loading="lazy" decoding="async">`;
             }).join('');
 
             const btnHtml = showControls ? `
@@ -5264,7 +5264,7 @@
                     const rightImgClass = showControls
                         ? 'paper-figure-image max-w-full object-contain rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:ring-2 hover:ring-brand-500 hover:scale-[1.02] transition-all inline-block'
                         : 'paper-figure-image max-w-full object-contain rounded-lg border border-slate-200 shadow-sm inline-block';
-                    return `<img src="${window.MathBankSafe.escapeAttribute(src)}" alt="题目配图 ${idx + 1}" class="${rightImgClass}" style="${figureImageStyle(rightDimensions)}" data-figure-size="${figSize}" data-figure-align="right" data-figure-image-count="${imgSrcList.length}" ${controlAttrs} loading="lazy" decoding="async">`;
+                    return `<img src="${window.StarHopeSafe.escapeAttribute(src)}" alt="题目配图 ${idx + 1}" class="${rightImgClass}" style="${figureImageStyle(rightDimensions)}" data-figure-size="${figSize}" data-figure-align="right" data-figure-image-count="${imgSrcList.length}" ${controlAttrs} loading="lazy" decoding="async">`;
                 }).join('');
 
                 const rightImgControlHtml = `

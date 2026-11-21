@@ -1,6 +1,6 @@
 """Event-driven PDF layout concurrency checks; no real AI or database access."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 from concurrent.futures import ThreadPoolExecutor
 import io
@@ -11,13 +11,13 @@ import pymupdf as fitz
 import pytest
 from PIL import Image
 
-from mathbank import pdf_figures
-from mathbank.task_manager import TaskCancelled
+from starhope import pdf_figures
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
     monkeypatch.setattr("requests.sessions.Session.request", lambda *a, **k: pytest.fail("real network forbidden"))
 
 
@@ -214,7 +214,7 @@ def test_cancellation_while_waiting_for_http_permit_starts_no_request(monkeypatc
     def check():
         if cancelled.is_set():
             raise TaskCancelled(reason)
-        if threading.current_thread().name.startswith("mathbank-pdf-layout"):
+        if threading.current_thread().name.startswith("starhope-pdf-layout"):
             waiting.set()
 
     monkeypatch.setattr(pdf_figures, "request_pdf_layout", lambda *a, **k: calls.append(a))
@@ -231,7 +231,7 @@ def test_cancellation_while_waiting_for_http_permit_starts_no_request(monkeypatc
 
 
 def test_parallel_attempt_usage_and_retry_counts_remain_per_page(monkeypatch, tmp_path):
-    from mathbank.ai_providers import resolve_ocr_provider
+    from starhope.ai_providers import resolve_ocr_provider
     import requests
     provider = resolve_ocr_provider("siliconflow", {"SILICONFLOW_API_KEY": "unused-test-key"})
     monkeypatch.setattr(pdf_figures, "resolve_ocr_provider", lambda _engine: provider)

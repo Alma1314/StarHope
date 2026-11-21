@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from mathbank.import_classification import (
+from starhope.import_classification import (
     normalize_import_classifications,
     summarize_import_classifications,
 )

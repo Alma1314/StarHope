@@ -193,7 +193,7 @@ def test_editor_preview_restores_adjacent_math_without_splitting_fillin_lines():
     assert node, "Node.js is required for the frontend executable regression"
     script = r"""
 global.window = {
-  MathBankSafe: {
+  StarHopeSafe: {
     safeImageUrl(value) { return value; },
     escapeAttribute(value) { return value; },
   },
@@ -272,7 +272,7 @@ def test_shared_question_preview_pipeline_renders_fillin_through_local_preproces
     assert node, "Node.js is required for the frontend executable regression"
     script = r"""
 global.window = {
-  MathBankSafe: {
+  StarHopeSafe: {
     safeImageUrl(value) { return value; },
     escapeAttribute(value) { return value; },
     sanitizeRichHtml(value) { return value; },
@@ -510,7 +510,7 @@ def test_paper_preview_preserves_images_at_authored_complex_content_positions():
     script = helper_source + r'''
 global.window = {
   parseMarkdownWithMath: value => value,
-  MathBankSafe: {
+  StarHopeSafe: {
     safeImageUrl: value => value,
     escapeAttribute: value => value,
     sanitizeRichHtml: value => value
@@ -572,7 +572,7 @@ def test_paper_figure_size_presets_and_auto_wide_resolution_are_executable():
     script = helper_source + r'''
 global.window = {
   parseMarkdownWithMath: value => value,
-  MathBankSafe: {
+  StarHopeSafe: {
     safeImageUrl: value => value,
     escapeAttribute: value => value,
     sanitizeRichHtml: value => value
@@ -700,7 +700,7 @@ if (editorImage.attrs['aria-label'] !== '调整插图排版：下方居左，大
 }
 
 window.parseMarkdownWithMath = value => value;
-window.MathBankSafe = {
+window.StarHopeSafe = {
   safeImageUrl: value => value,
   escapeAttribute: value => value,
   sanitizeRichHtml: value => value
@@ -774,7 +774,7 @@ def test_paper_and_editor_figure_layout_controls_keep_their_write_boundaries():
     assert "function hasDetachedEditorFigureGroup(sourceText)" in ocr_source
     assert "const allowLayoutControls = hasDetachedEditorFigureGroup" in ocr_source
     assert "调整此图的对齐与尺寸，保持正文位置" in ocr_source
-    assert 'data-editor-image-key="${window.MathBankSafe.escapeAttribute(anchored ? imageKey' in ocr_source
+    assert 'data-editor-image-key="${window.StarHopeSafe.escapeAttribute(anchored ? imageKey' in ocr_source
     assert "anchoredKeys.has(imageKey)" in ocr_source
 
     editor_popover_start = ocr_source.index("window.showEditorFigureLayoutPopover")
@@ -1250,7 +1250,7 @@ def test_duplicate_review_has_accessible_decision_controls_and_live_summary():
         assert button_id in elements
 
     import_source = _read(STATIC_JS_DIR / "import.js")
-    assert "window.MathBankModal.open(modal" in import_source
+    assert "window.StarHopeModal.open(modal" in import_source
     assert "onEscape: () => closeParsedDuplicateReviewModal('review')" in import_source
     assert "badge.focus({ preventScroll: true })" in import_source
 
@@ -1289,7 +1289,7 @@ def test_modal_manager_traps_focus_handles_escape_and_restores_focus():
     paper_source = _read(STATIC_JS_DIR / "paper.js")
 
     for marker in (
-        "window.MathBankModal = MathBankModal",
+        "window.StarHopeModal = StarHopeModal",
         "const focusableSelector",
         "function resolveInitialFocusTarget(dialog, options = {})",
         "dialog.querySelector('[autofocus]')",
@@ -1310,11 +1310,11 @@ def test_modal_manager_traps_focus_handles_escape_and_restores_focus():
     assert "dialog.querySelector('[autofocus], [data-modal-close]')" not in api_source
     assert "|| getFocusable(dialog)[0]" not in api_source
 
-    assert api_source.count("window.MathBankModal.open") >= 2
-    assert editor_source.count("window.MathBankModal.open") >= 3
-    assert import_source.count("window.MathBankModal.open") >= 3
-    assert "window.MathBankModal.open(lightbox" in ocr_source
-    assert "window.MathBankModal.open(modal" in paper_source
+    assert api_source.count("window.StarHopeModal.open") >= 2
+    assert editor_source.count("window.StarHopeModal.open") >= 3
+    assert import_source.count("window.StarHopeModal.open") >= 3
+    assert "window.StarHopeModal.open(lightbox" in ocr_source
+    assert "window.StarHopeModal.open(modal" in paper_source
 
 
 def test_loading_saved_paper_restores_modal_background_interactivity():
@@ -1327,7 +1327,7 @@ def test_loading_saved_paper_restores_modal_background_interactivity():
     load_end = paper_source.index("window.deleteSavedPaper = async function (paperId)", load_start)
     load_source = paper_source[load_start:load_end]
 
-    assert close_source.index("window.MathBankModal.close(modal)") < close_source.index("modal.remove()")
+    assert close_source.index("window.StarHopeModal.close(modal)") < close_source.index("modal.remove()")
     assert "window.closeSavedPapersModal();" in load_source
     assert "modal.remove()" not in load_source
 
@@ -1375,7 +1375,7 @@ def test_application_shell_navigation_reuses_peer_workspaces():
     paper_source = _read(STATIC_JS_DIR / "paper.js")
     workspace_source = _read(STATIC_JS_DIR / "workspace.js")
 
-    assert elements["appNavigation"]["aria-label"] == "MathBank 主导航"
+    assert elements["appNavigation"]["aria-label"] == "StarHope 主导航"
     assert elements["appNavPrimary"]["aria-label"] == "主要工作区"
     assert elements["appNavDashboard"]["data-app-nav-target"] == "dashboard"
     assert elements["appNavDashboard"]["aria-current"] == "page"
@@ -1802,7 +1802,7 @@ def test_shared_tikz_workbench_is_multimodal_contextual_and_persistent():
         "answer_tikz_assets",
         "content_tikz_assets",
         "tikz_reference_image_path",
-        "window.MathBankModal.open(modal",
+        "window.StarHopeModal.open(modal",
         "EditorState.isCurrent(tikzWorkbenchState.editorSession)",
     ):
         assert marker in import_source
@@ -2080,7 +2080,7 @@ global.fetch = (url, options = {}) => {
     throw new Error('new bank request did not abort only the previous request');
   }
   for (const [index, expectedPage] of [[0, '2'], [1, '3']]) {
-    const url = new URL(fetchCalls[index].url, 'http://mathbank.local');
+    const url = new URL(fetchCalls[index].url, 'http://starhope.local');
     if (url.searchParams.get('page') !== expectedPage ||
         url.searchParams.get('page_size') !== '15' ||
         url.searchParams.get('sort') !== 'desc') {
@@ -2651,7 +2651,7 @@ def test_paper_missing_question_recovery_removes_only_confirmed_missing_items():
     assert node, "Node.js is required for the frontend executable regression"
     script = r'''
 const PAPER_STREAM_PAGE_SIZE = 15;
-const STORAGE_KEY_CART = 'mathbank_paper_cart';
+const STORAGE_KEY_CART = 'starhope_paper_cart';
 const saved = new Map();
 let streamRenders = 0;
 let canvasRenders = 0;
@@ -2708,7 +2708,7 @@ if (store.streamPagination.selected.page !== 1 ||
     store.cartQuestionLoad.failedIds[0] !== 5) {
   throw new Error(`recovery state was not reset: ${JSON.stringify(store)}`);
 }
-const persisted = JSON.parse(saved.get('mathbank_paper_cart'));
+const persisted = JSON.parse(saved.get('starhope_paper_cart'));
 if (persisted.length !== 10 || persisted.some(item => [11, 12, 13].includes(item.id))) {
   throw new Error(`recovered cart was not persisted: ${JSON.stringify(persisted)}`);
 }
@@ -2740,7 +2740,7 @@ def test_paper_reload_removes_only_fresh_missing_questions_without_confirmation(
     prelude = r'''
 const assert = require('node:assert/strict');
 const PAPER_STREAM_PAGE_SIZE = 15;
-const STORAGE_KEY_CART = 'mathbank_paper_cart';
+const STORAGE_KEY_CART = 'starhope_paper_cart';
 const saved = new Map();
 let confirmCalls = 0;
 let calls = [];

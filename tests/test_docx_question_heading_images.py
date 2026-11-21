@@ -7,8 +7,8 @@ import zipfile
 from PIL import Image
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.content_locks import _source_parts,lock_visible_math
+from starhope.docx_helper import extract_docx_markdown
+from starhope.content_locks import _source_parts,lock_visible_math
 
 W='http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 WP='http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
@@ -240,7 +240,7 @@ def test_adjacent_unplaced_figure_reference_vetoes_guessing_across_paragraphs(tm
     (picture().replace('<wp:extent cx="1600" cy="1600"/>',''),'anchor_position_or_extent_incomplete'),
 ])
 def test_adjacent_question_hint_does_not_turn_an_unknown_anchor_into_bounded_ownership(tmp_path,figure,reason):
-    from mathbank.docx_source_scopes import verify_source_review_evidence
+    from starhope.docx_source_scopes import verify_source_review_evidence
     body=('<w:p>'+figure+'<w:r><w:t>13．在数列中求值。</w:t></w:r></w:p>'
           '<w:p><w:r><w:t>14．如图，已知条件。</w:t></w:r></w:p>')
     blob=docx(body)

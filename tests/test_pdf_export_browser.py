@@ -9,14 +9,14 @@ from unittest.mock import patch
 import pytest
 
 from test_preview_browser import browser as source_browser
-from mathbank.paths import SYSTEM_GENERATED_DIR
+from starhope.paths import SYSTEM_GENERATED_DIR
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE = Path(os.environ.get("MATHBANK_PDF_EXPORT_EVIDENCE_DIR", "")) if os.environ.get(
-    "MATHBANK_PDF_EXPORT_EVIDENCE_DIR") else SYSTEM_GENERATED_DIR / "test_artifacts" / "pdf-export-browser"
+EVIDENCE = Path(os.environ.get("STARHOPE_PDF_EXPORT_EVIDENCE_DIR", "")) if os.environ.get(
+    "STARHOPE_PDF_EXPORT_EVIDENCE_DIR") else SYSTEM_GENERATED_DIR / "test_artifacts" / "pdf-export-browser"
 pytestmark = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1" or not shutil.which("xelatex"),
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1" or not shutil.which("xelatex"),
     reason="opt-in source-only browser and native XeLaTeX regression",
 )
 

@@ -7,10 +7,10 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown, _SYMBOL_FONT_MAP
-from mathbank.docx_source_scopes import verify_source_review_evidence
-from mathbank.mathml_helper import MathMLUnsupported, mathml_element_to_latex
-from mathbank.source_metadata import prepare_word_source_metadata
+from starhope.docx_helper import extract_docx_markdown, _SYMBOL_FONT_MAP
+from starhope.docx_source_scopes import verify_source_review_evidence
+from starhope.mathml_helper import MathMLUnsupported, mathml_element_to_latex
+from starhope.source_metadata import prepare_word_source_metadata
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 M = "http://schemas.openxmlformats.org/officeDocument/2006/math"
@@ -199,7 +199,7 @@ def test_omml_normalizer_unknown_tokens_also_force_review(monkeypatch, tmp_path)
     def unknown(latex, diagnostics):
         diagnostics["unsupported_math_tokens"] = ["privateUse:U+F123"]
         return latex
-    monkeypatch.setattr("mathbank.docx_helper.normalize_word_formula_latex", unknown)
+    monkeypatch.setattr("starhope.docx_helper.normalize_word_formula_latex", unknown)
     result, proof = extract('<w:p><w:r><w:t>1. 原式</w:t></w:r><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></w:p>', tmp_path)
     assert result["diagnostics"]["omml_unsupported"] == result["diagnostics"]["review_required"] == 1
     assert result["diagnostics"]["unsupported_omml_tags"] == ["privateUse:U+F123"]

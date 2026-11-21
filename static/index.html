@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>判桃MATH</title>
+    <title>StarHope</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="256x256" href="/static/favicon.png">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -72,13 +72,13 @@
 
     <!-- Persistent application navigation. Core actions continue to call the
          existing workspace and modal functions; this is a UI shell only. -->
-    <aside id="appNavigation" class="app-navigation" aria-label="MathBank 主导航">
+    <aside id="appNavigation" class="app-navigation" aria-label="StarHope 主导航">
         <div class="app-nav-brand">
             <span class="app-nav-logo" aria-hidden="true">
                 <img src="/static/favicon.png" alt="">
             </span>
             <span class="app-nav-brand-copy">
-                <strong>MathBank</strong>
+                <strong>StarHope</strong>
                 <small>本地教研工作台</small>
             </span>
         </div>
@@ -143,11 +143,11 @@
         <div class="flex items-center space-x-3">
             <!-- 1. Absolute Top-Left Anchor: Logo & Title -->
             <div id="appLogoMark" class="h-10 w-10 rounded-xl overflow-hidden shadow-sm shrink-0 flex items-center justify-center">
-                <img src="/static/favicon.png" alt="MathBank Logo" class="w-full h-full object-cover">
+                <img src="/static/favicon.png" alt="StarHope Logo" class="w-full h-full object-cover">
             </div>
             <div class="relative" id="workspaceDropdownContainer">
                 <div onclick="toggleWorkspaceDropdown(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleWorkspaceDropdown(event)}" id="workspaceDropdownBtn" role="button" tabindex="0" aria-label="切换工作台" aria-haspopup="menu" aria-expanded="false" class="group cursor-pointer rounded-xl px-2 py-1 -mx-2 hover:bg-slate-200/50 dark:hover:bg-slate-800/60 active:scale-95 transition-all" title="点击切换工作台">
-                    <span class="font-semibold text-lg tracking-tight font-['Outfit'] brand-title block">MathBank</span>
+                    <span class="font-semibold text-lg tracking-tight font-['Outfit'] brand-title block">StarHope</span>
                     <div class="flex items-center space-x-1 -mt-1">
                         <span id="currentWorkspaceName" class="text-sm font-medium text-slate-700 dark:text-slate-200">工作台</span>
                         <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform duration-200" id="workspaceDropdownArrow"></i>
@@ -1282,7 +1282,7 @@
             <div class="qa-workspace-content">
                 <div class="qa-heading">
                     <h2 id="qaWorkspaceTitle">QA · 常见问题</h2>
-                    <p>MathBank 使用问答</p>
+                    <p>StarHope 使用问答</p>
                     <p id="qaSourceNote" class="qa-source-note"></p>
                 </div>
                 <div class="qa-search-row">
@@ -1760,7 +1760,7 @@
                         </section>
                         <section id="libraryImportPanel" hidden class="mb-transfer-import" aria-label="导入分享包">
                             <div class="mb-transfer-import-heading"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><h4>将分享包加入我的题库</h4></div>
-                            <p id="libraryImportHelp" class="mb-transfer-import-help">选择 MathBank 导出的 ZIP 分享包，自动导入题目、配图、解析与分类。每道题分配新 ID，同名图片安全改名。</p>
+                            <p id="libraryImportHelp" class="mb-transfer-import-help">选择 StarHope 导出的 ZIP 分享包，自动导入题目、配图、解析与分类。每道题分配新 ID，同名图片安全改名。</p>
                             <div class="mb-transfer-file-picker">
                                 <label for="libraryImportFile">选择题库分享包</label>
                                 <input id="libraryImportFile" type="file" accept=".zip,application/zip" onchange="onLibraryImportFileChange()" aria-describedby="libraryImportHelp libraryImportRepeatNote" class="block min-h-[44px] w-full min-w-0 text-xs text-slate-600 dark:text-slate-300">
@@ -1795,7 +1795,7 @@
                         </div>
                         <div class="flex-1">
                             <div class="flex items-center space-x-2">
-                                <h4 class="font-bold text-base text-slate-800 dark:text-white">MathBank 本地数学题库系统</h4>
+                                <h4 class="font-bold text-base text-slate-800 dark:text-white">StarHope 本地数学题库系统</h4>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-600 text-white" id="aboutCurrentVersionBadge">v2.0.1</span>
                             </div>
                             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">本地轻量化数学题库</p>
@@ -1837,14 +1837,14 @@
 
                     <!-- Links & Environmental Details -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <a href="https://github.com/JudgePeach/math-question-bank" target="_blank" class="p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70 hover:border-brand-500/50 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-all flex items-center justify-between group">
+                        <a href="https://github.com/Alma1314/StarHope" target="_blank" class="p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70 hover:border-brand-500/50 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-all flex items-center justify-between group">
                             <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
                                 <i class="fa-brands fa-github text-base"></i>
                                 <span class="font-medium">GitHub 开源主页</span>
                             </div>
                             <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-400 group-hover:text-brand-500"></i>
                         </a>
-                        <a href="https://github.com/JudgePeach/math-question-bank/releases" target="_blank" class="p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70 hover:border-brand-500/50 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-all flex items-center justify-between group">
+                        <a href="https://github.com/Alma1314/StarHope/releases" target="_blank" class="p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70 hover:border-brand-500/50 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-all flex items-center justify-between group">
                             <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
                                 <i class="fa-solid fa-tags text-base text-brand-500"></i>
                                 <span class="font-medium">Releases 发布页面</span>
@@ -1953,7 +1953,7 @@
                 </button>
                 <div class="flex items-center space-x-2">
                     <button type="button" onclick="closeUpdateModal()" class="glass-btn px-4 py-2 rounded-xl text-xs font-medium text-slate-500">稍后再说</button>
-                    <a id="btnViewOnGithub" href="https://github.com/JudgePeach/math-question-bank/releases" target="_blank" class="glass-btn-primary px-5 py-2 rounded-xl font-medium text-xs flex items-center space-x-1.5">
+                    <a id="btnViewOnGithub" href="https://github.com/Alma1314/StarHope/releases" target="_blank" class="glass-btn-primary px-5 py-2 rounded-xl font-medium text-xs flex items-center space-x-1.5">
                         <i class="fa-brands fa-github"></i>
                         <span>前往 GitHub 查看</span>
                     </a>
@@ -2482,7 +2482,7 @@
                 <div class="min-w-0 flex-1">
                     <h3 id="pandocInstallTitle" class="text-base font-bold text-slate-800 dark:text-slate-100">安装 Word 可编辑公式组件</h3>
                     <p id="pandocInstallDescription" class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        安装 Pandoc 后，导出的数学公式可在 Word/WPS 中直接编辑。组件仅安装在 MathBank 本地目录，无需管理员权限，也不会修改系统环境。
+                        安装 Pandoc 后，导出的数学公式可在 Word/WPS 中直接编辑。组件仅安装在 StarHope 本地目录，无需管理员权限，也不会修改系统环境。
                     </p>
                 </div>
             </div>

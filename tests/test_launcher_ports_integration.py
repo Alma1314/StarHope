@@ -32,13 +32,13 @@ import time
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse
 
-from mathbank.paths import PROJECT_ROOT, project_instance_id
+from starhope.paths import PROJECT_ROOT, project_instance_id
 from scripts.local_launcher import launcher_lock
 
 STATE = PROJECT_ROOT / ".system_generated"
-INSTANCE = os.environ["MATHBANK_LAUNCH_ID"]
+INSTANCE = os.environ["STARHOPE_LAUNCH_ID"]
 TOKEN = "integration-only-synthetic-token-12345678"
-LEGACY = os.environ.get("MATHBANK_SYNTHETIC_LEGACY") == "1"
+LEGACY = os.environ.get("STARHOPE_SYNTHETIC_LEGACY") == "1"
 
 
 @asynccontextmanager
@@ -61,7 +61,7 @@ def identity():
 
 @app.get("/api/version")
 def version():
-    return {"repo": "JudgePeach/math-question-bank", **identity()}
+    return {"repo": "Alma1314/StarHope", **identity()}
 
 
 @app.get("/healthz")
@@ -92,12 +92,12 @@ def _disposable_source(root):
     root.mkdir()
     for relative in (
         "scripts/local_launcher.py", "scripts/windows_launcher.py",
-        "mathbank/paths.py", "mathbank/storage_access.py",
+        "starhope/paths.py", "starhope/storage_access.py",
     ):
         target = root / relative
         target.parent.mkdir(exist_ok=True)
         shutil.copy2(SOURCE_ROOT / relative, target)
-    (root / "mathbank/__init__.py").write_text("# Synthetic integration package.\n")
+    (root / "starhope/__init__.py").write_text("# Synthetic integration package.\n")
     (root / "main.py").write_text(APP_SOURCE, encoding="utf-8")
 
 
@@ -149,8 +149,8 @@ def test_real_confirmed_port_start_memory_reuse_and_cooperative_shutdown(
     pytest.importorskip("uvicorn")
     root = tmp_path / "中文 空格题库"
     _disposable_source(root)
-    monkeypatch.delenv("MATHBANK_PORT", raising=False)
-    monkeypatch.setenv("MATHBANK_SYNTHETIC_LEGACY", "1" if legacy else "0")
+    monkeypatch.delenv("STARHOPE_PORT", raising=False)
+    monkeypatch.setenv("STARHOPE_SYNTHETIC_LEGACY", "1" if legacy else "0")
     monkeypatch.setattr(launcher, "ACTIVE_ROOT", root)
     monkeypatch.setattr(launcher, "PORT", 8000)
     monkeypatch.setattr(launcher, "BASE_URL", "http://127.0.0.1:8000")
@@ -231,7 +231,7 @@ def test_real_confirmed_port_start_memory_reuse_and_cooperative_shutdown(
             assert not launcher.runtime_is_busy(root)
             assert not launcher.port_in_use()
             assert _json_request(occupied, "/api/version")["still_running"] is True
-            assert not (root / "math_question_bank.db").exists()
+            assert not (root / "starhope.db").exists()
     finally:
         # Every handle below came from owned_spawn in this test. Prefer the
         # synthetic app's cooperative HTTP exit; signal only this known child

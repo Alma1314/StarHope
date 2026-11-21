@@ -8,16 +8,16 @@ import pytest
 import requests
 from PIL import Image
 
-from mathbank.pdf_page_fragments import SCHEMA, validate_pdf_page_fragments
-from mathbank.pdf_fragment_sources import (prepare_pdf_fragment_sources, checked_fragment_page,
+from starhope.pdf_page_fragments import SCHEMA, validate_pdf_page_fragments
+from starhope.pdf_fragment_sources import (prepare_pdf_fragment_sources, checked_fragment_page,
                                           invalidate_pdf_fragment_derivation)
-from mathbank.pdf_fragment_draft import RULES_VERSION, prepare_pdf_fragment_draft
+from starhope.pdf_fragment_draft import RULES_VERSION, prepare_pdf_fragment_draft
 
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(requests.sessions.Session, "request", lambda *_a, **_k: pytest.fail("Local fragments only"))
-    monkeypatch.setattr("mathbank.pdf_local_draft.prepare_pdf_local_draft",
+    monkeypatch.setattr("starhope.pdf_local_draft.prepare_pdf_local_draft",
                         lambda *_a, **_k: pytest.fail("No whole-paper regex fallback"))
 
 

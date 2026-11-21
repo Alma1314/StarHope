@@ -11,9 +11,9 @@ import zipfile
 from docx import Document
 import pytest
 
-from mathbank.paper_helper import build_latex_document, compile_tex_to_pdf
-from mathbank.question_types import normalize_section_order, paper_type_order
-from mathbank.word_export_helper import build_word_document
+from starhope.paper_helper import build_latex_document, compile_tex_to_pdf
+from starhope.question_types import normalize_section_order, paper_type_order
+from starhope.word_export_helper import build_word_document
 
 
 TYPES = [
@@ -56,7 +56,7 @@ def test_custom_questions_labels_order_scores_and_answers(paper_type, mixed, ans
         if paper_type == "exam":
             assert "共 12 分" in output
     assert r"\begin{problem}[points = 7]" in tex
-    assert (r"\mathbanksolutionspace{1.5cm}" in tex) is (not answers)
+    assert (r"\starhopesolutionspace{1.5cm}" in tex) is (not answers)
     assert [int(n) for n in re.findall(r"^(\d+)\. STEM", text, re.M)] == list(range(1, len(data) + 1))
     assert diagnostics["failed_formulas"] == 0
     assert any(not p.text and p.paragraph_format.line_spacing
@@ -107,7 +107,7 @@ if (getPaperTypeOrder(present, 'exam_19').length !== 4) throw new Error('exam19'
 @pytest.mark.parametrize("endpoint", ["tex", "word", "pdf", "bundle"])
 def test_export_endpoints_pass_server_custom_labels(client, db_session, monkeypatch, paper_type, endpoint):
     import main
-    from mathbank.database import Question
+    from starhope.database import Question
 
     q = Question(content="ENDPOINTSTEM", question_type="calculation", difficulty="easy")
     choice = Question(content="CHOICESTEM", question_type="single_choice", difficulty="easy")
@@ -159,7 +159,7 @@ def test_manual_section_order_controls_body_and_answer_numbering(paper_type):
 
 def test_saved_section_order_roundtrip_and_legacy_default(client, db_session):
     import main
-    from mathbank.database import Paper, Question
+    from starhope.database import Paper, Question
 
     q = Question(content="顺序保存测试", question_type="calculation", difficulty="easy")
     db_session.add(q)
@@ -228,7 +228,7 @@ assert(window.PaperStore.meta.section_order.indexOf('single_choice')<window.Pape
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_CUSTOM_TYPES_NATIVE") != "1" or not shutil.which("xelatex"), reason="Opt-in native PDF regression")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_CUSTOM_TYPES_NATIVE") != "1" or not shutil.which("xelatex"), reason="Opt-in native PDF regression")
 @pytest.mark.parametrize("paper_type", ["quiz", "exam"])
 def test_native_pdf_custom_questions_are_visible(paper_type):
     import pymupdf as fitz

@@ -2,8 +2,8 @@
 
 from PIL import Image, ImageDraw
 
-from mathbank.ocr_raster_layout import raster_ink_components, compatible_ink_hint, context_bbox, source_pixel_bbox
-from mathbank.ocr_figure_review import _safe_box
+from starhope.ocr_raster_layout import raster_ink_components, compatible_ink_hint, context_bbox, source_pixel_bbox
+from starhope.ocr_figure_review import _safe_box
 
 
 def ultrawide_image():

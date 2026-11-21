@@ -1,8 +1,8 @@
 """Real browser regressions for compatible, versioned curriculum refinements.
 
 The imported fixture starts a source-only disposable app: no real database,
-uploads, token, or user settings. Run with MATHBANK_TEST_BROWSER=1 and
---noconftest. Evidence goes to MATHBANK_QA_ARTIFACTS or ../artifacts/qa.
+uploads, token, or user settings. Run with STARHOPE_TEST_BROWSER=1 and
+--noconftest. Evidence goes to STARHOPE_QA_ARTIFACTS or ../artifacts/qa.
 """
 
 import json
@@ -25,7 +25,7 @@ PROBABILITY = {
 OLD_KNOWLEDGE = "8. 立体几何初步"
 OLD_TAGS = "旧标签,高掌"
 EVIDENCE = Path(os.environ.get(
-    "MATHBANK_QA_ARTIFACTS", str(Path(__file__).resolve().parents[2] / "artifacts" / "qa")
+    "STARHOPE_QA_ARTIFACTS", str(Path(__file__).resolve().parents[2] / "artifacts" / "qa")
 ))
 
 

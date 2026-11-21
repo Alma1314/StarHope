@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from mathbank.word_lists import LatexList, LatexListItem, find_latex_lists
+from starhope.word_lists import LatexList, LatexListItem, find_latex_lists
 
 
 SIMPLE = r"\begin{enumerate}\item 求 $E$ 的方程；\item 求 $k$.\end{enumerate}"
@@ -104,7 +104,7 @@ def test_balanced_optional_labels_are_preserved_exactly(label):
     lambda source: "![" + source + "](/static/uploads/a.png)",
     lambda source: "[链接](https://example.test/" + source + ")",
     lambda source: "https://example.test/" + source.replace(" ", ""),
-    lambda source: '<mathbank-math id="MBM_0001">' + source + '</mathbank-math>',
+    lambda source: '<starhope-math id="MBM_0001">' + source + '</starhope-math>',
     lambda source: "{" + source + "}",
     lambda source: r"\textbf{" + source + "}",
 ])

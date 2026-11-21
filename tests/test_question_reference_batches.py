@@ -6,11 +6,11 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 
-from mathbank.database import Base, Question, QuestionReference, QuestionSourceLabel
-from mathbank.question_references import (
+from starhope.database import Base, Question, QuestionReference, QuestionSourceLabel
+from starhope.question_references import (
     reference_payloads, serialize_question_reference_data, text_sha256,
 )
-from mathbank.sync_helper import serialize_exchange_questions
+from starhope.sync_helper import serialize_exchange_questions
 
 
 @pytest.fixture

@@ -29,8 +29,8 @@ MATCH = section("function knowledgePointMatchesQuery", "// Curriculum paths are 
 
 
 def test_real_resource_all_points_remain_reachable_in_curriculum_order():
-    points = json.loads((ROOT / "mathbank/resources/knowledge_points.json").read_text(encoding="utf-8"))["points"]
-    curriculum = json.loads((ROOT / "mathbank/resources/curriculums/A.json").read_text(encoding="utf-8"))
+    points = json.loads((ROOT / "starhope/resources/knowledge_points.json").read_text(encoding="utf-8"))["points"]
+    curriculum = json.loads((ROOT / "starhope/resources/curriculums/A.json").read_text(encoding="utf-8"))
     run_js("const points=" + json.dumps(points, ensure_ascii=False) + ";\nconst curriculum="
            + json.dumps(curriculum, ensure_ascii=False) + r""";
       const tree=buildKnowledgePointTree(points,'A',curriculum),found=[];
@@ -52,9 +52,9 @@ def test_real_resource_all_points_remain_reachable_in_curriculum_order():
 
 
 def test_real_multitextbook_hierarchies_render_only_declared_source_paths():
-    resource = json.loads((ROOT / "mathbank/resources/knowledge_points.json").read_text(encoding="utf-8"))
+    resource = json.loads((ROOT / "starhope/resources/knowledge_points.json").read_text(encoding="utf-8"))
     hierarchies = resource.get("curriculum_hierarchies", {})
-    curriculums = {version: json.loads((ROOT / f"mathbank/resources/curriculums/{version}.json").read_text(encoding="utf-8"))
+    curriculums = {version: json.loads((ROOT / f"starhope/resources/curriculums/{version}.json").read_text(encoding="utf-8"))
                    for version in hierarchies}
     run_js("const points=" + json.dumps(resource["points"], ensure_ascii=False) + ";\nconst hierarchies="
            + json.dumps(hierarchies, ensure_ascii=False) + ";\nconst curriculums="

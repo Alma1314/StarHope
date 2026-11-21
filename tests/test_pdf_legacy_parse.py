@@ -9,13 +9,13 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank import pdf_legacy_parse as module
-from mathbank.ai_providers import apply_model_thinking_policy
-from mathbank.content_locks import lock_visible_math, reconcile_visible_math
-from mathbank.import_classification import normalize_import_classifications
-from mathbank.paper_parse import request_pdf_paper_completion, parse_paper_completion, finalize_source_answers
-from mathbank.pdf_hybrid_request import request_pdf_hybrid
-from mathbank.prompts import build_pdf_parse_system_prompt
+from starhope import pdf_legacy_parse as module
+from starhope.ai_providers import apply_model_thinking_policy
+from starhope.content_locks import lock_visible_math, reconcile_visible_math
+from starhope.import_classification import normalize_import_classifications
+from starhope.paper_parse import request_pdf_paper_completion, parse_paper_completion, finalize_source_answers
+from starhope.pdf_hybrid_request import request_pdf_hybrid
+from starhope.prompts import build_pdf_parse_system_prompt
 
 _spec=importlib.util.spec_from_file_location('legacy_pdf_private_fixtures',Path(__file__).with_name('test_pdf_hybrid_safety.py'))
 _fixture=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(_fixture)
@@ -25,7 +25,7 @@ CURRICULUM,PROVIDER=_fixture.CURRICULUM,_fixture.PROVIDER
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(requests.sessions.Session,'request',lambda *_a,**_kw:pytest.fail('No real model calls'))
-    monkeypatch.setattr('mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS',0)
+    monkeypatch.setattr('starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS',0)
 
 
 def response(questions):
@@ -139,7 +139,7 @@ def test_unproved_whole_paper_parse_uses_the_same_shared_request_gate(monkeypatc
     @contextmanager
     def gate(provider,**kwargs):
         entered.append(provider);yield
-    monkeypatch.setattr('mathbank.pdf_split_parallel.pdf_split_request_slot',gate)
+    monkeypatch.setattr('starhope.pdf_split_parallel.pdf_split_request_slot',gate)
     monkeypatch.setattr(module,'prepare_pdf_task_plan',lambda *_a,**_kw:{'mode':'original','groups':[]})
     packet=response([{'content':'完整题干',**_fixture.FIELDS}])
     result=execute('1. 完整题干',{'pages':[]},{},lambda *_a,**_kw:SimpleNamespace(status_code=200,json=lambda:deepcopy(packet)))

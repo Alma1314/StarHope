@@ -5,13 +5,13 @@ import pytest
 
 from test_preview_browser import browser  # noqa: F401
 
-pytestmark = pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in isolated browser")
+pytestmark = pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in isolated browser")
 
 
 def test_delete_progress_immediate_removal_and_late_list_does_not_restore_row(browser):
     browser.command("network", "route", "**/api/ai/**", "--abort")
     assert browser.evaluate(r"""(()=>{
-        window.MathBankDocumentImportSession.clear();
+        window.StarHopeDocumentImportSession.clear();
         const original=window.fetch;
         const id='delete-browser-only',now=Date.now()/1000;
         const row={project_id:id,title:'删除回归临时工程',status:'completed',question_count:1,
@@ -34,11 +34,11 @@ def test_delete_progress_immediate_removal_and_late_list_does_not_restore_row(br
             return original(input,options);
         };
         selectWorkspace('import','导入中心');document.getElementById('documentProjectsPanel').open=true;
-        window.MathBankDocumentImportSession.refreshProjects();return true;
+        window.StarHopeDocumentImportSession.refreshProjects();return true;
     })()""")
     browser.command("wait", "--fn", "!!document.querySelector('#documentProjectsList [data-project-id=\"delete-browser-only\"]')")
     # Keep a stale list GET pending while the DELETE is submitted and confirmed.
-    browser.evaluate("window.__deleteBrowser.phase='late';window.MathBankDocumentImportSession.refreshProjects();true")
+    browser.evaluate("window.__deleteBrowser.phase='late';window.StarHopeDocumentImportSession.refreshProjects();true")
     browser.command("wait", "--fn", "typeof window.__deleteBrowser.resolveList==='function'")
     browser.evaluate("document.querySelector('#documentProjectsList [data-project-id=\"delete-browser-only\"] button:last-child').click();true")
     browser.command("wait", "--fn", "window.__deleteBrowser.deletes===1")

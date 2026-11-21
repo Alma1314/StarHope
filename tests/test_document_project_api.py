@@ -9,9 +9,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 import pytest
 
-from mathbank.document_project_api import register_document_project_routes
-from mathbank.document_project_service import DocumentProjectService
-from mathbank.document_projects import DocumentProjectStore
+from starhope.document_project_api import register_document_project_routes
+from starhope.document_project_service import DocumentProjectService
+from starhope.document_projects import DocumentProjectStore
 
 
 class FakeTasks:

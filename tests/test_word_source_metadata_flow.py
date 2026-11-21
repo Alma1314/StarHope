@@ -6,8 +6,8 @@ import uuid
 import pytest
 
 import main
-from mathbank import docx_helper
-from mathbank.task_manager import TaskCancelled
+from starhope import docx_helper
+from starhope.task_manager import TaskCancelled
 
 
 SOURCE = "1. 已知 $x=1$，求 $x+1$ 的值。"
@@ -188,7 +188,7 @@ def test_source_body_postprocessing_keeps_literal_escape_bytes(monkeypatch, tmp_
 
 @pytest.mark.parametrize("literal", ["`[EXTRACTED_ORIGINAL]`", r"\texttt{[EXTRACTED_ORIGINAL]}"])
 def test_final_answer_prefix_does_not_erase_literal_original_markers(literal):
-    from mathbank.paper_parse import finalize_source_answers
+    from starhope.paper_parse import finalize_source_answers
     original = "原始代码 " + literal + "。"
     questions = [{"content": "解释代码。", "answer_markdown": "[EXTRACTED_ORIGINAL]" + original}]
     finalize_source_answers(questions, original)
@@ -197,7 +197,7 @@ def test_final_answer_prefix_does_not_erase_literal_original_markers(literal):
 
 
 def test_literal_origin_marker_does_not_certify_an_unmarked_model_answer():
-    from mathbank.paper_parse import finalize_source_answers
+    from starhope.paper_parse import finalize_source_answers
     original = "阅读 `[EXTRACTED_ORIGINAL]` 标记。"
     questions = [{"content": "解释标记。", "answer_markdown": original}]
     finalize_source_answers(questions, original)

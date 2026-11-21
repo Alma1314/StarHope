@@ -25,12 +25,12 @@ INTERNAL_TOOL_MODULE_NAMES = (
 )
 INTERNAL_TOOL_MODULE_PATHS = tuple(
     f"{package}/{name}.py"
-    for package in ("mathbank", "scripts")
+    for package in ("starhope", "scripts")
     for name in INTERNAL_TOOL_MODULE_NAMES
 ) + (
     "scripts/difficulty_classify.py",
     "scripts/backfill_question_references.py",
-    "mathbank/zhixue_archive_conversion.py",
+    "starhope/zhixue_archive_conversion.py",
     "scripts/zhixue_archive_preview.py",
     "scripts/zhixue_formula_check.js",
 )
@@ -44,15 +44,15 @@ INTERNAL_TOOL_FORBIDDEN_MEMBERS = (
     "scripts/resources/classification_proposal.example.json",
     "scripts/resources/nested/protocol.json",
     "scripts/resources/",
-    "MathBank/Knowledge_Backfill.py",
+    "StarHope/Knowledge_Backfill.py",
     "Scripts/Resources/protocol.json",
     "Scripts/Resources/",
     "Scripts/Migrate_Word_Math_Private_Chars.py",
     "Scripts/Build_Release.py",
-    "MathBank/Difficulty_Batch.py",
+    "StarHope/Difficulty_Batch.py",
     "Scripts/Difficulty_Batch.py",
     "Scripts/Difficulty_Classify.py",
-    "mathbank/difficulty_batch.py/",
+    "starhope/difficulty_batch.py/",
     "scripts/difficulty_batch.py/",
     "scripts/difficulty_classify.py/",
     "scripts/backfill_question_references.py/",
@@ -62,7 +62,7 @@ INTERNAL_TOOL_FORBIDDEN_MEMBERS = (
     "tests/test_zhixue_archive_preview.py",
     "tests/test_zhixue_archive_conversion.py",
     "tests/test_zhixue_render_contract.py",
-    "MathBank/Zhixue_Archive_Conversion.py",
+    "StarHope/Zhixue_Archive_Conversion.py",
     "Scripts/Zhixue_Archive_Preview.py",
     "Scripts/Zhixue_Formula_Check.js",
     "scripts/zhixue_formula_check.js/",
@@ -527,7 +527,7 @@ import sys
 import types
 from pathlib import Path
 
-import mathbank
+import starhope
 
 sys.stdout.reconfigure(encoding="cp936", errors="strict")
 sys.stderr.reconfigure(encoding="cp936", errors="strict")
@@ -540,30 +540,30 @@ sqlalchemy.orm = orm
 sys.modules["sqlalchemy"] = sqlalchemy
 sys.modules["sqlalchemy.orm"] = orm
 
-database = types.ModuleType("mathbank.database")
+database = types.ModuleType("starhope.database")
 for name in ("Question", "Paper", "PaperQuestion", "QuestionCurriculum"):
     setattr(database, name, dummy)
-sys.modules["mathbank.database"] = database
+sys.modules["starhope.database"] = database
 
-paths = types.ModuleType("mathbank.paths")
+paths = types.ModuleType("starhope.paths")
 paths.TEMPLATES_DIR = Path(".")
 paths.PROJECT_ROOT = Path(".")
 paths.EXPORT_PREFLIGHTS_DIR = Path(".system_generated/export_preflights")
 paths.LOCAL_CONTENT_SOURCES_PATH = Path(".system_generated/content_sources.local.json")
-sys.modules["mathbank.paths"] = paths
+sys.modules["starhope.paths"] = paths
 
-diagnostics = types.ModuleType("mathbank.latex_diagnostics")
+diagnostics = types.ModuleType("starhope.latex_diagnostics")
 diagnostics.build_local_latex_diagnostic = lambda *_args, **_kwargs: {}
 diagnostics.extract_missing_glyphs = lambda *_args, **_kwargs: []
-sys.modules["mathbank.latex_diagnostics"] = diagnostics
+sys.modules["starhope.latex_diagnostics"] = diagnostics
 
-security = types.ModuleType("mathbank.asset_security")
+security = types.ModuleType("starhope.asset_security")
 security.AssetSecurityError = RuntimeError
 security.SAFE_IMAGE_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp"})
 security.resolve_upload_asset = lambda *_args, **_kwargs: None
-sys.modules["mathbank.asset_security"] = security
+sys.modules["starhope.asset_security"] = security
 
-import mathbank.paper_helper
+import starhope.paper_helper
 """
     result = subprocess.run(
         [sys.executable, "-c", code],
@@ -580,7 +580,7 @@ def _make_minimal_windows_tree(root, *, include_launcher_helper=True):
         "main.py",
         "requirements.txt",
         "覆盖升级说明.txt",
-        "mathbank/__init__.py",
+        "starhope/__init__.py",
         "scripts/release_overlay.py",
         "scripts/local_launcher.py",
         "static/index.html",
@@ -606,7 +606,7 @@ def test_finished_windows_archive_revalidates_crlf_launcher(tmp_path):
 
     archive_path = build_release._build_archive(
         staging,
-        str(tmp_path / "MathBank-Windows-x64"),
+        str(tmp_path / "StarHope-Windows-x64"),
         "windows-x64",
         build_release.WINDOWS_LAUNCHER_NAME,
     )
@@ -641,7 +641,7 @@ def _make_minimal_macos_tree(root):
         "main.py",
         "requirements.txt",
         "覆盖升级说明.txt",
-        "mathbank/__init__.py",
+        "starhope/__init__.py",
         "scripts/release_overlay.py",
         "scripts/local_launcher.py",
         "static/index.html",
@@ -666,28 +666,28 @@ def test_release_copy_excludes_internal_tools_and_preserves_runtime_imports(
         "scripts/backup.py",
         "scripts/restore.py",
         "scripts/search_questions.py",
-        "mathbank/backup.py",
-        "mathbank/db_migrations.py",
-        "mathbank/database.py",
-        "mathbank/sync_helper.py",
-        "mathbank/ocr_illustrations.py",
-        "mathbank/ocr_figure_review.py",
-        "mathbank/ocr_raster_layout.py",
+        "starhope/backup.py",
+        "starhope/db_migrations.py",
+        "starhope/database.py",
+        "starhope/sync_helper.py",
+        "starhope/ocr_illustrations.py",
+        "starhope/ocr_figure_review.py",
+        "starhope/ocr_raster_layout.py",
         *INTERNAL_TOOL_MODULE_PATHS,
         *NON_RUNTIME_RELEASE_SCRIPT_PATHS,
         "scripts/resources/classification_proposal.schema.json",
         "scripts/resources/classification_proposal.example.json",
         "scripts/resources/nested/protocol.json",
-        "MathBank/Knowledge_Backfill.py",
+        "StarHope/Knowledge_Backfill.py",
         "Scripts/Resources/protocol.json",
         # These names belong to other package paths and must survive.
-        "mathbank/resources/classification_proposal.example.json",
-        "mathbank/vendor/knowledge_backfill.py",
-        "mathbank/vendor/difficulty_batch.py",
+        "starhope/resources/classification_proposal.example.json",
+        "starhope/vendor/knowledge_backfill.py",
+        "starhope/vendor/difficulty_batch.py",
         "scripts/vendor/question_exchange.py",
         "scripts/vendor/difficulty_classify.py",
         "scripts/vendor/backfill_question_references.py",
-        "mathbank/vendor/zhixue_archive_conversion.py",
+        "starhope/vendor/zhixue_archive_conversion.py",
         "scripts/vendor/zhixue_formula_check.js",
         "templates/template.tex",
     ):
@@ -704,13 +704,13 @@ def test_release_copy_excludes_internal_tools_and_preserves_runtime_imports(
             path.write_bytes(b"runtime asset\n")
 
     safe_modules = (
-        "mathbank.paths",
+        "starhope.paths",
         # A release branch may precede the optional product module. Test it
         # only when this branch contains it; never borrow uncommitted sources.
-        *(("mathbank.sub_knowledge",) if (PROJECT_ROOT / "mathbank/sub_knowledge.py").is_file() else ()),
-        "mathbank.question_assets",
-        "mathbank.curriculums",
-        "mathbank.storage_access",
+        *(("starhope.sub_knowledge",) if (PROJECT_ROOT / "starhope/sub_knowledge.py").is_file() else ()),
+        "starhope.question_assets",
+        "starhope.curriculums",
+        "starhope.storage_access",
         "scripts.local_launcher",
         "scripts.windows_launcher",
         "scripts.release_overlay",
@@ -718,7 +718,7 @@ def test_release_copy_excludes_internal_tools_and_preserves_runtime_imports(
     # Real, standard-library-only runtime sources make the import smoke useful
     # even in the release-guard CI job, which installs only pytest.
     for relative_path in (
-        "mathbank/__init__.py",
+        "starhope/__init__.py",
         *(name.replace(".", "/") + ".py" for name in safe_modules),
     ):
         path = source / relative_path
@@ -726,7 +726,7 @@ def test_release_copy_excludes_internal_tools_and_preserves_runtime_imports(
         shutil.copy2(PROJECT_ROOT / relative_path, path)
     curriculum = {"必修一": {"1. 集合": ["1.1 集合的概念"]}}
     for version in ("A", "B", "S", "H"):
-        path = source / "mathbank/resources/curriculums" / f"{version}.json"
+        path = source / "starhope/resources/curriculums" / f"{version}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(curriculum, ensure_ascii=False), encoding="utf-8")
 
@@ -737,30 +737,30 @@ def test_release_copy_excludes_internal_tools_and_preserves_runtime_imports(
         assert not (staged / relative_path).exists(), relative_path
     assert not (staged / "scripts/resources").exists()
     # Case-insensitive source files may alias these paths on macOS/Windows.
-    assert not (staged / "MathBank/Knowledge_Backfill.py").exists()
+    assert not (staged / "StarHope/Knowledge_Backfill.py").exists()
     assert not (staged / "Scripts/Resources").exists()
     for relative_path in (
         "main.py",
         "scripts/backup.py",
         "scripts/restore.py",
         "scripts/search_questions.py",
-        "mathbank/backup.py",
-        "mathbank/db_migrations.py",
-        "mathbank/database.py",
-        "mathbank/sync_helper.py",
-        "mathbank/ocr_illustrations.py",
-        "mathbank/ocr_figure_review.py",
-        "mathbank/ocr_raster_layout.py",
-        "mathbank/resources/classification_proposal.example.json",
-        "mathbank/vendor/knowledge_backfill.py",
-        "mathbank/vendor/difficulty_batch.py",
+        "starhope/backup.py",
+        "starhope/db_migrations.py",
+        "starhope/database.py",
+        "starhope/sync_helper.py",
+        "starhope/ocr_illustrations.py",
+        "starhope/ocr_figure_review.py",
+        "starhope/ocr_raster_layout.py",
+        "starhope/resources/classification_proposal.example.json",
+        "starhope/vendor/knowledge_backfill.py",
+        "starhope/vendor/difficulty_batch.py",
         "scripts/vendor/question_exchange.py",
         "scripts/vendor/difficulty_classify.py",
         "scripts/vendor/backfill_question_references.py",
-        "mathbank/vendor/zhixue_archive_conversion.py",
+        "starhope/vendor/zhixue_archive_conversion.py",
         "scripts/vendor/zhixue_formula_check.js",
         "templates/template.tex",
-        *("mathbank/resources/curriculums/" + version + ".json" for version in ("A", "B", "S", "H")),
+        *("starhope/resources/curriculums/" + version + ".json" for version in ("A", "B", "S", "H")),
         *(name.replace(".", "/") + ".py" for name in safe_modules),
     ):
         assert (staged / relative_path).read_bytes() == (source / relative_path).read_bytes()
@@ -789,7 +789,7 @@ sys.path.insert(0, str(root))
 for name in sys.argv[2:]:
     module = importlib.import_module(name)
     assert Path(module.__file__).resolve().is_relative_to(root), name
-from mathbank.curriculums import load_curriculum
+from starhope.curriculums import load_curriculum
 assert load_curriculum("A")["必修一"]["1. 集合"] == ["1.1 集合的概念"]
 """
     result = subprocess.run(
@@ -820,14 +820,14 @@ def test_git_ignores_only_local_batch_tools_and_their_dedicated_tests(tmp_path):
         )),
     ]
     runtime_paths = [
-        "mathbank/sub_knowledge.py", "mathbank/ocr_illustrations.py",
-        "mathbank/ocr_figure_review.py", "mathbank/ocr_raster_layout.py",
-        "mathbank/resources/curriculums/A.json", "scripts/build_release.py",
+        "starhope/sub_knowledge.py", "starhope/ocr_illustrations.py",
+        "starhope/ocr_figure_review.py", "starhope/ocr_raster_layout.py",
+        "starhope/resources/curriculums/A.json", "scripts/build_release.py",
         "scripts/local_launcher.py", "scripts/backup.py", "scripts/restore.py",
         "tests/test_release_hardening.py", "tests/test_sub_knowledge.py",
         "tests/test_single_ocr_illustrations.py",
-        "mathbank/vendor/difficulty_batch.py", "scripts/vendor/difficulty_classify.py",
-        "scripts/vendor/backfill_question_references.py", "mathbank/question_references.py",
+        "starhope/vendor/difficulty_batch.py", "scripts/vendor/difficulty_classify.py",
+        "scripts/vendor/backfill_question_references.py", "starhope/question_references.py",
         "tests/test_question_references.py", "tests/test_question_references_api.py",
     ]
     result = subprocess.run(
@@ -863,9 +863,9 @@ def test_release_tree_rejects_internal_tool_files_and_directories(
         "tests/test_release.py",
         "tests/artifacts/capture.png",
         ".pytest_cache/v/cache/nodeids",
-        "mathbank/__pycache__/module.pyc",
+        "starhope/__pycache__/module.pyc",
         ".env",
-        "math_question_bank.db",
+        "starhope.db",
         "data_backup/custom_metadata.json",
         ".system_generated/local_token",
         "static/uploads/user.png",
@@ -959,7 +959,7 @@ def test_finished_archive_crc_manifest_and_sidecar(tmp_path):
     _make_minimal_macos_tree(staging)
     archive_path = build_release._build_archive(
         staging,
-        str(tmp_path / "MathBank-macOS"),
+        str(tmp_path / "StarHope-macOS"),
         "macos",
         "启动题库系统.command",
     )
@@ -972,7 +972,7 @@ def test_finished_archive_crc_manifest_and_sidecar(tmp_path):
         names = {info.filename.rstrip("/") for info in archive.infolist()}
         launcher = archive.getinfo("启动题库系统.command")
     assert {"main.py", "覆盖升级说明.txt", "RELEASE-MANIFEST.json"}.issubset(names)
-    assert not any(name.startswith("MathBank-") for name in names)
+    assert not any(name.startswith("StarHope-") for name in names)
     if launcher.create_system == 3:
         assert launcher.external_attr >> 16 & 0o111
 
@@ -993,7 +993,7 @@ def test_finished_archive_rejects_documentation_and_test_artifacts(
     _make_minimal_macos_tree(staging)
     archive_path = build_release._build_archive(
         staging,
-        str(tmp_path / "MathBank-macOS"),
+        str(tmp_path / "StarHope-macOS"),
         "macos",
         "启动题库系统.command",
     )
@@ -1015,7 +1015,7 @@ def test_finished_archive_rejects_internal_tool_files_and_directories(
     _make_minimal_macos_tree(staging)
     archive_path = build_release._build_archive(
         staging,
-        str(tmp_path / "MathBank-macOS"),
+        str(tmp_path / "StarHope-macOS"),
         "macos",
         "启动题库系统.command",
     )
@@ -1035,8 +1035,8 @@ def test_failed_final_verification_removes_archive_and_checksum(
 ):
     staging = tmp_path / "staging"
     _make_minimal_macos_tree(staging)
-    archive_stem = tmp_path / "MathBank-macOS"
-    checksum = tmp_path / "MathBank-macOS.zip.sha256"
+    archive_stem = tmp_path / "StarHope-macOS"
+    checksum = tmp_path / "StarHope-macOS.zip.sha256"
     checksum.write_text("stale\n", encoding="utf-8")
     monkeypatch.setattr(
         build_release,
@@ -1059,9 +1059,9 @@ def test_failed_final_verification_removes_archive_and_checksum(
 def test_failed_release_preflight_also_removes_stale_outputs(tmp_path):
     staging = tmp_path / "invalid-staging"
     staging.mkdir()
-    archive_stem = tmp_path / "MathBank-macOS"
+    archive_stem = tmp_path / "StarHope-macOS"
     archive = archive_stem.with_suffix(".zip")
-    checksum = tmp_path / "MathBank-macOS.zip.sha256"
+    checksum = tmp_path / "StarHope-macOS.zip.sha256"
     archive.write_bytes(b"stale")
     checksum.write_text("stale\n", encoding="utf-8")
 
@@ -1087,8 +1087,8 @@ def test_main_failure_removes_stale_and_partial_cross_platform_outputs(
     monkeypatch.setattr(build_release, "DIST_DIR", str(dist))
 
     def write_windows_output():
-        (dist / "MathBank-Windows-x64.zip").write_bytes(b"partial")
-        (dist / "MathBank-Windows-x64.zip.sha256").write_text(
+        (dist / "StarHope-Windows-x64.zip").write_bytes(b"partial")
+        (dist / "StarHope-Windows-x64.zip.sha256").write_text(
             "partial\n", encoding="utf-8"
         )
 
@@ -1136,13 +1136,13 @@ def test_clean_directories_preserves_unrelated_dist_artifacts(tmp_path, monkeypa
     unrelated = dist / "teacher-notes.txt"
     unrelated.parent.mkdir()
     unrelated.write_text("keep", encoding="utf-8")
-    build_dir = dist / "mathbank-windows"
+    build_dir = dist / "starhope-windows"
     wheels_dir = dist / "wheels"
-    macos_dir = dist / "mathbank-macos"
+    macos_dir = dist / "starhope-macos"
     for directory in (build_dir, wheels_dir, macos_dir):
         directory.mkdir()
         (directory / "old").write_text("remove", encoding="utf-8")
-    (dist / "MathBank-macOS.zip").write_bytes(b"old")
+    (dist / "StarHope-macOS.zip").write_bytes(b"old")
 
     monkeypatch.setattr(build_release, "DIST_DIR", str(dist))
     monkeypatch.setattr(build_release, "BUILD_DIR", str(build_dir))
@@ -1158,7 +1158,7 @@ def test_clean_directories_preserves_unrelated_dist_artifacts(tmp_path, monkeypa
     build_release.clean_directories()
 
     assert unrelated.read_text(encoding="utf-8") == "keep"
-    assert not (dist / "MathBank-macOS.zip").exists()
+    assert not (dist / "StarHope-macOS.zip").exists()
     assert (build_dir / "python" / "site-packages").is_dir()
 
 
@@ -1168,7 +1168,7 @@ def test_finished_archive_rejects_crc_valid_member_tampering(tmp_path):
     archive_path = Path(
         build_release._build_archive(
             staging,
-            str(tmp_path / "MathBank-macOS"),
+            str(tmp_path / "StarHope-macOS"),
             "macos",
             "启动题库系统.command",
         )
@@ -1200,7 +1200,7 @@ def test_finished_macos_archive_rejects_non_executable_launcher(tmp_path):
     archive_path = Path(
         build_release._build_archive(
             staging,
-            str(tmp_path / "MathBank-macOS"),
+            str(tmp_path / "StarHope-macOS"),
             "macos",
             "启动题库系统.command",
         )
@@ -1242,11 +1242,11 @@ def test_launchers_use_shared_environment_and_startup_flow():
     assert "scripts.windows_launcher" in windows
     assert "sys.version_info >= (3, 10)" in mac
     assert "find_supported_python" in mac
-    assert "MATHBANK_NO_PAUSE" in windows
-    assert "MATHBANK_NO_PAUSE" in mac
-    assert "from mathbank.paths import PROJECT_ROOT" in shared
+    assert "STARHOPE_NO_PAUSE" in windows
+    assert "STARHOPE_NO_PAUSE" in mac
+    assert "from starhope.paths import PROJECT_ROOT" in shared
     assert "ProxyHandler({})" in shared
-    assert "MATHBANK_LAUNCH_ID" in shared
+    assert "STARHOPE_LAUNCH_ID" in shared
     for source in (mac, windows, shared):
         assert "--reload" not in source
         assert "taskkill" not in source.lower()
@@ -1275,7 +1275,7 @@ def test_windows_ci_builds_and_import_smokes_embedded_runtime():
     assert "invalid old state" in workflow
     assert "Start and reopen the packaged Windows service" in workflow
     assert "server_instance_id" in workflow
-    assert "X-MathBank-Launch-ID" in workflow
+    assert "X-StarHope-Launch-ID" in workflow
     assert "tests/test_windows_launcher.py" in workflow
 
 

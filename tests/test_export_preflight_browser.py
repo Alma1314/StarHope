@@ -26,14 +26,14 @@ def test_missing_image_blocks_bundle_and_report_survives_workspace_redraw(browse
         PaperStore.cart=[{id:q.id,score:5,solution_space:0}];
         PaperStore.questionsMap[q.id]=q;
         Object.assign(PaperStore.meta,{paper_type:'exam',show_secret:false,show_notice:false});
-        localStorage.removeItem('mathbank_paper_export_preflights');
+        localStorage.removeItem('starhope_paper_export_preflights');
         renderPaperCanvas();
         return true;
     })()""" % json.dumps(question))
     browser.settle()
     browser.evaluate('exportPaperBundle().then(()=>true)')
     result = browser.evaluate("""(() => {
-        const history=JSON.parse(localStorage.getItem('mathbank_paper_export_preflights')||'[]');
+        const history=JSON.parse(localStorage.getItem('starhope_paper_export_preflights')||'[]');
         return {history,text:document.getElementById('paperExportPreflightStatus')?.textContent,
           cart:PaperStore.cart.map(q=>q.id)};
     })()""")

@@ -11,10 +11,10 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.docx_source_scopes import verify_source_review_evidence
-from mathbank.omml_helper import omml_element_to_latex, normalize_word_formula_latex
-from mathbank.source_metadata import prepare_word_source_metadata
+from starhope.docx_helper import extract_docx_markdown
+from starhope.docx_source_scopes import verify_source_review_evidence
+from starhope.omml_helper import omml_element_to_latex, normalize_word_formula_latex
+from starhope.source_metadata import prepare_word_source_metadata
 from test_math_preview_regressions import run_preview_script
 
 M = 'http://schemas.openxmlformats.org/officeDocument/2006/math'
@@ -340,7 +340,7 @@ def test_missing_any_native_variable_proof_or_mixed_literal_keeps_review(before,
 
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
 def test_actual_native_word_fraction_roundtrip_keeps_digits_and_proved_variable(tmp_path):
-    from mathbank.word_export_helper import build_word_document
+    from starhope.word_export_helper import build_word_document
     content = r'$\dfrac{1}{2}\le m<\dfrac{3}{4}$'
     data, export = build_word_document('正体数字回读', '', 'exam', [{'question': {
         'id': 1, 'question_type': 'fill_in_blank', 'content': content, 'image_paths': []}, 'score': 5}],

@@ -30,7 +30,7 @@ const deleteScenarios={
   await deleting;
   assert.equal(rowFor('project-a'),undefined,'confirmed deletion hides the row before a list GET completes');
   assert.equal(parsedQuestionsData.length,0);
-  assert.equal(storage.has('mathbank_document_import_session_v1:project-a'),false);
+  assert.equal(storage.has('starhope_document_import_session_v1:project-a'),false);
   assert.equal(requests.length,1);assert.equal(requests[0].url,'/api/document-projects');
   next('/api/document-projects',{detail:'list refresh unavailable'},503);await flush();
   assert.equal(rowFor('project-a'),undefined);assert.ok(!toasts.some(text=>text.includes('删除工程失败')));
@@ -67,7 +67,7 @@ const deleteScenarios={
   assert.equal(await opening,true);assert.equal(session.getProjectId(),'project-b');
   deletion.resolve(good({}));await deleting;
   assert.equal(session.getProjectId(),'project-b');assert.equal(parsedQuestionsData[0].content,'工程原题');
-  assert.equal(stored().projectId,'project-b');assert.ok(storage.has('mathbank_document_import_session_v1:project-b'));
+  assert.equal(stored().projectId,'project-b');assert.ok(storage.has('starhope_document_import_session_v1:project-b'));
   next('/api/document-projects',{projects:[{project_id:'project-b',title:'新工程'}]});await flush();
   assert.equal(rowFor('project-a'),undefined);assert.ok(rowFor('project-b'));session.clear();
  },
@@ -89,9 +89,9 @@ const deleteScenarios={
   next('/api/document-projects/project-a',{});await deleting;
   next('/api/document-projects',{projects:[]});await flush();
   await new Promise(resolve=>setTimeout(resolve,550));
-  assert.equal(requests.length,0);assert.equal(storage.has('mathbank_document_import_session_v1'),false);
-  assert.equal(storage.has('mathbank_document_import_session_v1:project-a'),false);
-  assert.equal(storage.has('mathbank_document_import_session_v1:unsynced:project-a'),false);
+  assert.equal(requests.length,0);assert.equal(storage.has('starhope_document_import_session_v1'),false);
+  assert.equal(storage.has('starhope_document_import_session_v1:project-a'),false);
+  assert.equal(storage.has('starhope_document_import_session_v1:unsynced:project-a'),false);
  },
  async failure_keeps_row_and_manual_edits_without_optimistic_removal(){
   await listProjects();const card=await open();editProject(card,'删除请求中的最后人工修改');

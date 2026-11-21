@@ -5,9 +5,9 @@ import threading
 
 import pytest
 
-from mathbank.pdf_request_pipeline import iter_pdf_page_requests
-from mathbank.pdf_ocr_capacity import DEFAULT_PDF_OCR_CONCURRENCY
-from mathbank.task_manager import TaskCancelled
+from starhope.pdf_request_pipeline import iter_pdf_page_requests
+from starhope.pdf_ocr_capacity import DEFAULT_PDF_OCR_CONCURRENCY
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(autouse=True)

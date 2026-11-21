@@ -1,6 +1,6 @@
 """Opt-in equation-number geometry checks in a source-only isolated app.
 
-Run with MATHBANK_TEST_BROWSER=1 python3 -m pytest --noconftest
+Run with STARHOPE_TEST_BROWSER=1 python3 -m pytest --noconftest
 tests/test_equation_tag_browser.py. The reused fixture owns a disposable
 database, server, uploads directory, and Chromium session.
 """
@@ -192,7 +192,7 @@ def test_tagged_displays_keep_glyphs_separate_and_reachable_during_resize(browse
 
 def test_tag_layout_in_real_detail_editor_import_and_paper_previews(browser, tmp_path):
     question_id = None
-    original_cart = browser.evaluate("localStorage.getItem('mathbank_paper_cart')")
+    original_cart = browser.evaluate("localStorage.getItem('starhope_paper_cart')")
     try:
         browser.evaluate(INSTALL_MEASUREMENTS)
         question_id = browser.evaluate("""
@@ -271,8 +271,8 @@ def test_tag_layout_in_real_detail_editor_import_and_paper_previews(browser, tmp
             replaceParsedQuestions([]);
             PaperStore.cart=[];
             if (%s !== null) await fetch('/api/questions/'+%s,{method:'DELETE'});
-            if (%s === null) localStorage.removeItem('mathbank_paper_cart');
-            else localStorage.setItem('mathbank_paper_cart',%s);
+            if (%s === null) localStorage.removeItem('starhope_paper_cart');
+            else localStorage.setItem('starhope_paper_cart',%s);
             delete window.__equationTagMeasure;
             return true;
         })()

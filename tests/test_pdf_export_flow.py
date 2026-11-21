@@ -3,15 +3,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank.database import Question
+from starhope.database import Question
 
 
 def test_no_ai_configuration_still_returns_actionable_local_error(monkeypatch):
     import main
     monkeypatch.setattr(main, "resolve_text_provider", lambda *_: SimpleNamespace(api_key=""))
     monkeypatch.setattr(main, "post_chat_completion", lambda *_a, **_k: pytest.fail("No paid request"))
-    tex = "\n".join(["% MathBank-Question-ID: 41", "% MathBank-Question-Number: 2",
-        "% MathBank-Field: content", r"求 $\badformula{x}$。", "% MathBank-Question-End"])
+    tex = "\n".join(["% StarHope-Question-ID: 41", "% StarHope-Question-Number: 2",
+        "% StarHope-Field: content", r"求 $\badformula{x}$。", "% StarHope-Question-End"])
     diagnostic = main.explain_latex_compile_error(
         "./paper.tex:4: Undefined control sequence.\n<recently read> \\badformula\nl.4 求 $\\badformula", tex)
     assert diagnostic["question_id"] == "41"

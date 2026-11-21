@@ -1,6 +1,6 @@
 """Classification returns usable tags independently of textbook placement."""
 
-from mathbank.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS
+from starhope.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS
 from copy import deepcopy
 import io
 import json
@@ -9,11 +9,11 @@ from types import SimpleNamespace
 from PIL import Image
 import pytest
 
-from mathbank.ai_classification import (
+from starhope.ai_classification import (
     CLASSIFICATION_TIMEOUT_SECONDS, build_classification_user_message, parse_classification_response,
 )
-from mathbank.ai_knowledge_points import annotate_ai_knowledge_points, bind_ai_knowledge_catalog
-from mathbank.ai_providers import resolve_text_provider
+from starhope.ai_knowledge_points import annotate_ai_knowledge_points, bind_ai_knowledge_catalog
+from starhope.ai_providers import resolve_text_provider
 
 
 CATALOG = [{"code": "demo:function", "name": "函数", "original_name": "函数", "aliases": []}]

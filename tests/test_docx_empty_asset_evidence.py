@@ -6,8 +6,8 @@ import zipfile
 from PIL import Image, PngImagePlugin
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.docx_source_assets import (
+from starhope.docx_helper import extract_docx_markdown
+from starhope.docx_source_assets import (
     _uniform_empty_png, _declared_image_description, verified_empty_asset_urls,
 )
 

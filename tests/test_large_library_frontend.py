@@ -88,7 +88,7 @@ const fetch = (url, options = {}) => {
 
 PICKER_SETUP = r"""
 const assert = require('node:assert/strict');
-const window = {MathBankSafe: {escapeText: String}};
+const window = {StarHopeSafe: {escapeText: String}};
 const console = {error() {}};
 let originalQuestionState = null, uploadedImages = [];
 const TikzState = {contentAssets: [], answerAssets: []};

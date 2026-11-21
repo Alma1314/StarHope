@@ -10,8 +10,8 @@ from PIL import Image
 
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.docx_source_scopes import verify_source_review_evidence
+from starhope.docx_helper import extract_docx_markdown
+from starhope.docx_source_scopes import verify_source_review_evidence
 
 W='http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 M='http://schemas.openxmlformats.org/officeDocument/2006/math'
@@ -98,8 +98,8 @@ def test_native_snapshot_ignores_only_additional_task_fields(tmp_path):
 
 
 def test_fixed_snapshot_covers_every_native_diagnostic_key():
-    from mathbank.docx_helper import _new_diagnostics
-    from mathbank.docx_source_scopes import _NATIVE_DIAGNOSTIC_KEYS
+    from starhope.docx_helper import _new_diagnostics
+    from starhope.docx_source_scopes import _NATIVE_DIAGNOSTIC_KEYS
     assert set(_new_diagnostics())<=set(_NATIVE_DIAGNOSTIC_KEYS)
 
 
@@ -145,7 +145,7 @@ def test_path_input_is_bound_to_its_original_bytes_and_preserved(tmp_path):
 
 
 def test_pre_body_numbering_or_relationship_warning_cannot_sign_local_cleanliness(tmp_path,monkeypatch):
-    from mathbank import docx_helper
+    from starhope import docx_helper
     original=docx_helper._extract_numbering
     def numbered(z,diag):
         result=original(z,diag);diag['numbering_unavailable']+=1;diag['warnings'].append('未知编号定义');return result
@@ -168,7 +168,7 @@ def test_missing_image_in_an_empty_block_cannot_be_located_by_neighbor_text(tmp_
 
 
 def test_unexpected_after_loop_warning_keeps_the_whole_source_uncertain(tmp_path,monkeypatch):
-    from mathbank import docx_source_assets
+    from starhope import docx_source_assets
     original=docx_source_assets.finalize_word_asset_evidence
     def changed(source,diag):
         diag['warnings'].append('无法归属的最终风险');return original(source,diag)
@@ -179,7 +179,7 @@ def test_unexpected_after_loop_warning_keeps_the_whole_source_uncertain(tmp_path
 
 
 def test_nonlocal_normalization_changes_do_not_create_approximate_ranges(tmp_path,monkeypatch):
-    from mathbank import ai_json
+    from starhope import ai_json
     original=ai_json.normalize_subquestions_double_newlines
     monkeypatch.setattr(ai_json,'normalize_subquestions_double_newlines',lambda s:original(s).replace('甲\n\n乙\n\n丙','甲乙丙'))
     blob,result=native(tmp_path,paragraph('甲')+paragraph('乙')+paragraph('丙'))
@@ -242,7 +242,7 @@ def test_private_fields_or_scope_ranges_cannot_be_forged_with_an_old_signature(t
 
 
 def test_private_proof_from_another_runtime_is_not_portable(tmp_path,monkeypatch):
-    from mathbank import docx_source_scopes
+    from starhope import docx_source_scopes
     blob,result=native(tmp_path)
     monkeypatch.setattr(docx_source_scopes,'_SECRET',b'another-runtime')
     assert verified(blob,result)['status']=='uncertain'
@@ -250,7 +250,7 @@ def test_private_proof_from_another_runtime_is_not_portable(tmp_path,monkeypatch
 
 @pytest.mark.parametrize('function',['_review_snapshot','_finalize_source_review_evidence'])
 def test_optional_journal_failure_preserves_the_normal_native_result(tmp_path,monkeypatch,function):
-    from mathbank import docx_source_scopes
+    from starhope import docx_source_scopes
     blob=package(paragraph('1. 求值。'));baseline=extract_docx_markdown(blob,output_dir=tmp_path)
     def broken(*args,**kwargs):raise ValueError('fixture proof failure')
     monkeypatch.setattr(docx_source_scopes,function,broken)

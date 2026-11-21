@@ -13,8 +13,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank.source_metadata import inspect_source_structure
-from mathbank.pdf_hybrid_plan import (
+from starhope.source_metadata import inspect_source_structure
+from starhope.pdf_hybrid_plan import (
     MAX_GROUPS, PdfHybridPlanError, build_pdf_hybrid_plan,
     build_pdf_snapshot_hybrid_plan, pdf_hybrid_plan_diagnostics, require_pdf_hybrid_plan,
     require_pdf_snapshot_hybrid_plan, pdf_snapshot_hybrid_plan_diagnostics,
@@ -76,9 +76,9 @@ def authorities(monkeypatch):
                 or cert.generation != generation or cert.question_snapshot != digest(local['questions'])):
             raise ValueError('Unowned or modified native PDF group')
 
-    monkeypatch.setitem(sys.modules, 'mathbank.pdf_source_scopes',
+    monkeypatch.setitem(sys.modules, 'starhope.pdf_source_scopes',
         SimpleNamespace(verify_pdf_source_review_evidence=verify))
-    monkeypatch.setitem(sys.modules, 'mathbank.pdf_source_metadata',
+    monkeypatch.setitem(sys.modules, 'starhope.pdf_source_metadata',
         SimpleNamespace(prepare_pdf_source_group=prepare, require_pdf_source_group_certificate=require))
 
 
@@ -333,7 +333,7 @@ def machine_snapshot(tmp_path, parts=None, *, warning_pages=(), missing_witness=
     These fixtures therefore cannot support claims about OCR accuracy.
     """
     from PIL import Image
-    from mathbank.pdf_transcription_scopes import (
+    from starhope.pdf_transcription_scopes import (
         begin_pdf_transcription_witness, finish_pdf_transcription_witness,
         finalize_pdf_transcription_snapshot,
     )
@@ -350,7 +350,7 @@ def machine_snapshot(tmp_path, parts=None, *, warning_pages=(), missing_witness=
         if i not in missing_witness:
             witnesses[number - 1] = finish_pdf_transcription_witness(first, returned)
         public.append({'page_number': number, 'origin': 'joint_vision',
-                       'markdown': f'<!-- MATHBANK_PDF_PAGE:{number} -->\n' + text})
+                       'markdown': f'<!-- STARHOPE_PDF_PAGE:{number} -->\n' + text})
         pages.append({'page_index': number - 1, 'page_number': number, 'figures': [], 'rotation': 0,
                       'status': 'checked', 'warnings': ['局部已有核对提示。'] if i in warning_pages else []})
     source = '\n\n'.join('\n' + text for text in parts)
@@ -461,7 +461,7 @@ def test_transcript_without_full_page_report_and_json_private_snapshot_cannot_au
 def test_native_font_cache_cannot_reuse_previous_pages_same_named_different_font_resource(monkeypatch):
     """Fault injection proves per-page font-ID consistency, not glyph meaning."""
     import pymupdf as fitz
-    from mathbank import pdf_source_scopes
+    from starhope import pdf_source_scopes
     box = (50, 48, 60, 65)
     raw = {'blocks': [{'type': 0, 'lines': [{'dir': (1, 0), 'spans': [
         {'font': 'SameFontName', 'alpha': 255,

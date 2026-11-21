@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def cli(tmp_path):
-    for directory in ("scripts", "mathbank"):
+    for directory in ("scripts", "starhope"):
         shutil.copytree(
             ROOT / directory, tmp_path / directory,
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.db", ".env", "resources" if directory == "scripts" else "never-match"),
@@ -36,7 +36,7 @@ def cli(tmp_path):
     python(r'''
         import base64, json
         from pathlib import Path
-        from mathbank.database import Base, engine, SessionLocal, Question, KnowledgePoint, QuestionKnowledgePoint
+        from starhope.database import Base, engine, SessionLocal, Question, KnowledgePoint, QuestionKnowledgePoint
         Base.metadata.create_all(engine)
         db = SessionLocal()
         point = KnowledgePoint(code='1136', name='判断或证明函数的单调性', original_name='单调性证明', source='custom')
@@ -166,7 +166,7 @@ def test_legacy_python_tuple_group_and_unlimited_are_preserved(cli):
 
 
 def test_cli_never_mutates_database_and_empty_search_is_success(cli):
-    database = cli.root / "math_question_bank.db"
+    database = cli.root / "starhope.db"
     before = hashlib.sha256(database.read_bytes()).hexdigest()
     for arguments in (("--capabilities",), ("--catalog",), ("--ids", "1"),
                       ("--assets", "--ids", "1"), ("-q", "不存在内容")):
@@ -177,7 +177,7 @@ def test_cli_never_mutates_database_and_empty_search_is_success(cli):
 
 def test_large_legacy_limits_and_pages_preserve_order(cli):
     cli.python('''
-        from mathbank.database import Question, SessionLocal
+        from starhope.database import Question, SessionLocal
         db = SessionLocal()
         db.add_all([Question(id=i, content='分页题'+str(i)) for i in range(3, 244)])
         db.commit(); db.close()

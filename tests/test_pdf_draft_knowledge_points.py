@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from mathbank.pdf_draft_metadata import (
+from starhope.pdf_draft_metadata import (
     build_pdf_draft_metadata_messages, request_pdf_local_draft_metadata,
 )
 from test_pdf_draft_metadata import Cache, NORMAL, Response, TREE, plan, response_rows
@@ -17,7 +17,7 @@ CATALOG = [{"code": "1015", "name": "函数概念", "original_name": "函数概�
 
 @pytest.fixture(autouse=True)
 def offline_catalog_and_transport(monkeypatch):
-    monkeypatch.setattr("mathbank.pdf_draft_metadata.load_ai_knowledge_catalog", lambda: deepcopy(CATALOG))
+    monkeypatch.setattr("starhope.pdf_draft_metadata.load_ai_knowledge_catalog", lambda: deepcopy(CATALOG))
     monkeypatch.setattr("requests.sessions.Session.request",
                         lambda *_args, **_kwargs: pytest.fail("No live model or database fixture"))
 
@@ -310,7 +310,7 @@ def test_catalog_snapshot_is_frozen_for_prompt_and_response_validation():
 
 
 def test_annotation_policy_change_cannot_replay_old_point_cache(monkeypatch):
-    from mathbank import pdf_draft_metadata as module
+    from starhope import pdf_draft_metadata as module
     original = module.build_ai_knowledge_prompt
     policy = ["policy-A"]
     monkeypatch.setattr(module, "build_ai_knowledge_prompt", lambda catalog: original(catalog) + policy[0])

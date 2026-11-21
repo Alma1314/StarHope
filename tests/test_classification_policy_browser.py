@@ -9,7 +9,7 @@ from test_preview_browser import browser, pytestmark  # noqa: F401
 
 
 def question_data_snapshot(root):
-    path = root / 'math_question_bank.db'
+    path = root / 'starhope.db'
     assert root.resolve() != Path(__file__).resolve().parents[1]
     with sqlite3.connect(f'file:{path}?mode=ro', uri=True) as connection:
         tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
@@ -22,7 +22,7 @@ def question_data_snapshot(root):
 def test_classification_quality_save_readback_and_unsaved_editor_survive(browser, tmp_path, width, height):
     browser.command('reload')
     browser.command('set', 'viewport', str(width), str(height))
-    browser.command('wait', '--fn', "typeof window.openNewQuestionEditor==='function' && !!window.MathBankLimits")
+    browser.command('wait', '--fn', "typeof window.openNewQuestionEditor==='function' && !!window.StarHopeLimits")
     before = question_data_snapshot(browser.root)
     browser.evaluate(r"""
       window.__policyOriginalFetch=window.fetch.bind(window);window.__policyForbiddenRequests=[];window.__policySavedModes=[];
@@ -60,7 +60,7 @@ def test_classification_quality_save_readback_and_unsaved_editor_survive(browser
     assert readback['policy']['mode'] == 'precise'
     assert readback['policy']['thinking_requested'] is True
     assert browser.evaluate('window.__policySavedModes') == ['precise']
-    assert 'MATHBANK_CLASSIFY_MODE=precise' in (browser.root / '.env').read_text()
+    assert 'STARHOPE_CLASSIFY_MODE=precise' in (browser.root / '.env').read_text()
     assert browser.evaluate("document.getElementById('editSource').value") == draft
     assert browser.evaluate('isEditorModified()') is True
     assert browser.evaluate('({questionId:EditorState.questionId,draftId:EditorState.draftId})') == identity
@@ -69,7 +69,7 @@ def test_classification_quality_save_readback_and_unsaved_editor_survive(browser
     browser.command('click', '#settingsModal button[data-modal-close]')
     browser.command('wait', '--fn', "document.getElementById('settingsModal').classList.contains('hidden')")
     assert browser.evaluate("document.getElementById('editSource').value") == draft
-    limits = browser.evaluate('({...window.MathBankLimits})')
+    limits = browser.evaluate('({...window.StarHopeLimits})')
     injected = browser.evaluate('window.__processingLimits')
     for key, value in limits.items():
         assert value == injected[key] == readback['limits'][key]

@@ -11,7 +11,7 @@ from test_preview_browser import browser  # noqa: F401
 
 ROOT = Path(__file__).resolve().parents[1]
 SCREENSHOTS = ROOT / '.system_generated/pdf-classification-update-20261018/browser'
-pytestmark = pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1',
+pytestmark = pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1',
                                 reason='opt-in isolated actual-browser regression')
 
 
@@ -41,7 +41,7 @@ def test_document_classification_recovery_selection_save_and_restore(browser, wi
         await loadCategories();
         selectWorkspace('import','导入中心');stopCurrentDocumentPoll();
         window.currentPdfTaskId=null;window.currentDocumentClientRequestId=null;
-        window.MathBankDocumentImportSession.clear();
+        window.StarHopeDocumentImportSession.clear();
         window.__classificationBrowserOriginalFetch=window.fetch;
         window.__classificationBrowserBlocked=[];window.__classificationBrowserRequests=[];
         window.fetch=(input,options={})=>{
@@ -130,7 +130,7 @@ def test_document_classification_recovery_selection_save_and_restore(browser, wi
     browser.command('screenshot', str(SCREENSHOTS / f'confirmed-classification-{width}.png'))
     originals = browser.evaluate('JSON.stringify(parsedQuestionsData.map(q=>q.classification_review.original))')
     assert browser.evaluate('window.__classificationBrowserBlocked') == []
-    browser.evaluate('window.MathBankDocumentImportSession.flush();true')
+    browser.evaluate('window.StarHopeDocumentImportSession.flush();true')
     location = browser.evaluate('location.href')
     browser.command('open', location)
     browser.command('wait', '--fn', "typeof window.refreshParsedClassificationReviews==='function'&&parsedQuestionsData.length===3&&Object.keys(categoryTree).length>0")
@@ -214,4 +214,4 @@ def test_document_classification_recovery_selection_save_and_restore(browser, wi
         'viewport': [width, height], 'initial': initial, 'catalog_refresh': refreshed, 'fresh_option_refresh': fresh_options,
         'isolated_root': str(browser.root), 'actual_save_in_fixture': True,
     }, ensure_ascii=False, indent=2))
-    browser.evaluate('window.MathBankDocumentImportSession.clear();true')
+    browser.evaluate('window.StarHopeDocumentImportSession.clear();true')

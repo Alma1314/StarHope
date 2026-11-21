@@ -1,10 +1,10 @@
 /* Curated community answers, not a raw chat export. See AGENTS.md for maintenance rules. */
-window.MathBankQaData = {
+window.StarHopeQaData = {
     period: {start: '2026-09-08', end: '2026-10-03'},
     entries: [
         {
             id: 'download-release', category: '安装与更新',
-            question: '第一次使用 MathBank，应该从哪里下载？',
+            question: '第一次使用 StarHope，应该从哪里下载？',
             answer: ['到项目 GitHub 页面的 Releases（发行版）下载适合自己系统的发布包，再按仓库安装说明操作。源码下载与已打包的发行版不是同一种安装方式。'],
             keywords: ['安装', '下载', 'Windows', 'macOS', 'Release'],
             sources: [{date: '2026-09-13', answerSeqs: [1328]}]
@@ -228,7 +228,7 @@ window.MathBankQaData = {
             id: 'migrate-computer', category: '数据与备份',
             question: '换电脑时可以迁移原题库吗？',
             answer: ['可以。群主在新电脑已具备所需运行及导出环境的前提下，说明可复制完整本地题库文件夹迁移。请先停止旧服务并保留备份，再迁移题库和图片。', '不要只复制数据库而漏掉插图与自定义配置；跨系统时还需要使用适合新系统的程序和依赖，不能直接复用另一系统的运行环境。'],
-            currentNote: '数据路径锚定在程序根目录，包括 math_question_bank.db、static/uploads/ 和 data_backup/。浏览器内未入库的草稿不随文件夹迁移，应先保存入库。恢复完整备份前须停止服务，并按备份恢复说明验证后操作。',
+            currentNote: '数据路径锚定在程序根目录，包括 starhope.db、static/uploads/ 和 data_backup/。浏览器内未入库的草稿不随文件夹迁移，应先保存入库。恢复完整备份前须停止服务，并按备份恢复说明验证后操作。',
             keywords: ['迁移', '换电脑', '数据目录', '恢复', 'Mac', 'Windows'],
             sources: [{date: '2026-09-14', answerSeqs: [1344]}, {date: '2026-09-28', answerSeqs: [2071]}]
         },

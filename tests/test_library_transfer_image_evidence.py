@@ -2,8 +2,8 @@
 from copy import deepcopy
 import pytest
 
-from mathbank.library_transfer import _import_image_evidence
-from mathbank.question_assets import rewrite_question_asset_paths
+from starhope.library_transfer import _import_image_evidence
+from starhope.question_assets import rewrite_question_asset_paths
 
 OLD='/static/uploads/answer.png'
 NEW='/static/uploads/shared_new.png'

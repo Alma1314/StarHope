@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from mathbank.pdf_local_structure import (
+from starhope.pdf_local_structure import (
     PdfLocalStructureError, prepare_pdf_local_structure,
     build_pdf_local_structure_messages, adopt_pdf_local_structure_response,
 )
@@ -298,9 +298,9 @@ def test_actual_d1_ocr_bad_first_page_does_not_block_sound_questions_and_nested_
         pytest.skip('Private diagnostic source is intentionally not distributed')
     original = path.read_bytes()
     task = json.loads(original); pages = task['pdf_source_pages']
-    from mathbank.pdf_inspector_helper import merge_pdf_page_texts
-    from mathbank.pdf_local_structure import _number, _known_notice
-    source = re.sub(r'<!-- MATHBANK_PDF_PAGE:\d+ -->','',merge_pdf_page_texts([page['markdown'] for page in pages]))
+    from starhope.pdf_inspector_helper import merge_pdf_page_texts
+    from starhope.pdf_local_structure import _number, _known_notice
+    source = re.sub(r'<!-- STARHOPE_PDF_PAGE:\d+ -->','',merge_pdf_page_texts([page['markdown'] for page in pages]))
     plan = prepare_pdf_local_structure(source,pages,source_document_sha256=task['document_input']['sha256'])
     assert plan['ready'] and plan['schema'].endswith('.v2')
     assert ''.join(block['text'] for block in plan['blocks']) == source

@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank import paper_helper as paper
-from mathbank.latex_diagnostics import build_local_latex_diagnostic
+from starhope import paper_helper as paper
+from starhope.latex_diagnostics import build_local_latex_diagnostic
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +26,7 @@ def test_missing_glyph_in_full_log_blocks_even_success_and_never_caches(monkeypa
         return SimpleNamespace(returncode=0, stdout="output truncated", stderr="")
     monkeypatch.setattr(paper.subprocess, "run", run)
     tex = "\n".join([r"\documentclass{article}", r"\begin{document}",
-                        "% MathBank-Question-ID: 11", "% MathBank-Field: content", "已知🦄。", r"\end{document}"])
+                        "% StarHope-Question-ID: 11", "% StarHope-Field: content", "已知🦄。", r"\end{document}"])
     for _ in range(2):
         before = len(calls)
         # Each request must recompile. Never retain a failed PDF in cache.

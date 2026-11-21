@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import create_engine, event
 
-from mathbank import database, db_migrations as migrations
+from starhope import database, db_migrations as migrations
 
 
 @pytest.fixture

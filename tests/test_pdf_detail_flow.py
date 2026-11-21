@@ -10,7 +10,7 @@ import pytest
 @pytest.mark.parametrize("mode", ["joint", "native", "regional", "force"])
 def test_details_are_registered_only_for_full_joint_pages(monkeypatch, mode):
     import main
-    from mathbank import pdf_page_vision, pdf_region_vision, pdf_vision_details, pdf_native_regions
+    from starhope import pdf_page_vision, pdf_region_vision, pdf_vision_details, pdf_native_regions
     with fitz.open() as document:
         document.new_page(width=595, height=842).insert_text((30, 40), "PDF fixture")
         raw_pdf = document.tobytes()
@@ -68,7 +68,7 @@ def test_details_are_registered_only_for_full_joint_pages(monkeypatch, mode):
 @pytest.mark.parametrize("verify", [False, True])
 def test_first_ocr_symbol_risk_respects_existing_verification_switch(monkeypatch, verify):
     import main
-    from mathbank import pdf_page_vision, pdf_native_regions, pdf_source_verify
+    from starhope import pdf_page_vision, pdf_native_regions, pdf_source_verify
     with fitz.open() as document:
         document.new_page(width=595, height=842)
         raw_pdf = document.tobytes()
@@ -108,7 +108,7 @@ def test_first_ocr_symbol_risk_respects_existing_verification_switch(monkeypatch
 
 
 def test_review_refresh_preserves_cloned_image_and_never_invents_source_number():
-    from mathbank.pdf_figures import refresh_pdf_review_items
+    from starhope.pdf_figures import refresh_pdf_review_items
     questions = [{"content": "圆弧$AB$的长度。", "source_review": {"required": True,
                   "reasons": ["圆弧语境中的点名可能缺顶线，请按原图核对。"]},
                   "pdf_source_figures": [{"page_index": 1, "image_path": "/static/test_uploads/tmp/cloned.png"}]}]

@@ -10,8 +10,8 @@ import pytest
 import requests
 
 from pdf_feature_contract import experimental_pdf_only
-from mathbank.pdf_blank_pages import is_confirmed_blank_page
-from mathbank.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
+from starhope.pdf_blank_pages import is_confirmed_blank_page
+from starhope.pdf_task_resume import prepare_pdf_checkpoint, seal_pdf_checkpoint
 
 
 @pytest.fixture(autouse=True)
@@ -48,7 +48,7 @@ def test_empty_sheet_requires_exact_local_white_render_and_no_text():
 
 @experimental_pdf_only
 def test_native_inspector_recognizes_real_blank_page():
-    from mathbank.pdf_inspector_helper import inspect_and_extract_pdf
+    from starhope.pdf_inspector_helper import inspect_and_extract_pdf
     result = inspect_and_extract_pdf(pdf_bytes(count=1, blank_indices=(0,)))
     assert result["pages"][0]["confirmed_blank"] is True
     assert result["pages"][0]["markdown"] == ""

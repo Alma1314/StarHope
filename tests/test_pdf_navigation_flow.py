@@ -25,11 +25,11 @@ def _base():
 
 
 SCENARIO = r'''
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
-from mathbank import pdf_page_vision, pdf_vision_details, pdf_native_regions
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.pdf_navigation_cache import bind_pdf_navigation
-from mathbank.pdf_task_resume import prepare_pdf_checkpoint
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope import pdf_page_vision, pdf_vision_details, pdf_native_regions
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.pdf_navigation_cache import bind_pdf_navigation
+from starhope.pdf_task_resume import prepare_pdf_checkpoint
 
 OPTIONS={"generate_answers":False,"page_range":None,"pdf_strategy":"layout_aware",
          "pdf_verify_suspicions":False,"paper_title":"navigation identity fixture"}
@@ -50,7 +50,7 @@ with fitz.open(stream=raw,filetype="pdf") as pdf:
 state=prepare_pdf_checkpoint(None,task_id=old_id,document_sha256=project["source_sha256"],
     page_indices=[0,1],strategy="layout_aware",verify_suspicions=False,
     resolve_asset=main._document_project_service().asset_resolver)
-first_page="<!-- MATHBANK_PDF_PAGE:1 -->\n一、解答题\n1. 已知数据$1,2,3$，求极差。"
+first_page="<!-- STARHOPE_PDF_PAGE:1 -->\n一、解答题\n1. 已知数据$1,2,3$，求极差。"
 state["pages"]={"0":{"markdown":first_page,"joint":{"markdown":first_page,
     "layout":{"figures":[],"page_complete":True,"ignored_candidates":[],"notes":[]},
     "usage":{},"visual_calls":1}}}
@@ -150,7 +150,7 @@ def test_project_resume_keeps_cached_navigation_identity_for_pending_page_detail
     workspace = tmp_path / "source-only-workspace"
     workspace.mkdir()
     shutil.copy2(root / "main.py", workspace / "main.py")
-    shutil.copytree(root / "mathbank", workspace / "mathbank",
+    shutil.copytree(root / "starhope", workspace / "starhope",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if (root / "templates").is_dir():
         shutil.copytree(root / "templates", workspace / "templates")

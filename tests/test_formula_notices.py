@@ -1,5 +1,5 @@
 """Import review text is metadata, never part of the mathematical expression."""
-from mathbank.formula_notices import separate_formula_notices
+from starhope.formula_notices import separate_formula_notices
 
 
 def test_notice_moves_out_of_formula_and_keeps_actual_expression():

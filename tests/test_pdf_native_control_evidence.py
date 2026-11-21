@@ -2,7 +2,7 @@
 import pytest
 from types import SimpleNamespace
 
-from mathbank.pdf_inspector_helper import native_text_quality_reasons
+from starhope.pdf_inspector_helper import native_text_quality_reasons
 
 
 @pytest.mark.parametrize("code", [*range(9), 11, 12, *range(14, 32), *range(127, 160)])
@@ -25,7 +25,7 @@ def test_visible_code_escape_is_not_an_actual_control_character():
 
 
 def test_actual_page_result_retains_control_evidence_and_uses_existing_ocr_route(monkeypatch):
-    from mathbank import pdf_inspector_helper as helper
+    from starhope import pdf_inspector_helper as helper
     clean = "1. 已知 $x=1$，求 $x+1$。"
     damaged = "2. 已知 $x=\x071$，求 $x+2$。"
     inspector = SimpleNamespace(extract_pages_markdown=lambda *_a, **_k: SimpleNamespace(pages=[

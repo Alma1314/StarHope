@@ -15,7 +15,7 @@ from test_paper_selection_full_reading import body, long_stem, mock_stages
 def capture_context(monkeypatch):
     """Observe the actual request builder, without substituting prompt behavior."""
     import main
-    import mathbank.paper_standards as standards
+    import starhope.paper_standards as standards
     built, supplied = [], []
     build = standards.build_paper_standard_context
     prompts = main.build_paper_selection_prompts
@@ -67,7 +67,7 @@ def test_no_credentials_builds_context_without_any_model_request(client, db_sess
 
 
 def test_unavailable_standard_context_does_not_fail_or_add_a_request(client, db_session, monkeypatch):
-    import mathbank.paper_standards as standards
+    import starhope.paper_standards as standards
     original_build = standards.build_paper_standard_context
     unavailable = deepcopy(original_build('函数专题'))
     unavailable.update(enabled=False, references=[], requirements=[], warnings=['课标资料不可用，未进行课标对应判断。'])
@@ -179,7 +179,7 @@ def test_local_completion_does_not_inherit_model_alignment(client, db_session, m
 @pytest.mark.parametrize('raw', [None, {}, [None] * 61])
 def test_optional_alignment_invalid_envelopes_keep_question(raw):
     from types import SimpleNamespace
-    from mathbank.paper_standard_alignment import validate_standard_alignment
+    from starhope.paper_standard_alignment import validate_standard_alignment
     q = SimpleNamespace(id=7, content='甲题求函数定义域。')
     alignment, warnings = validate_standard_alignment(raw, selected=[q], ai_question_ids={7},
         context={'enabled': True, 'references': [{'id': 'real:1'}]})
@@ -189,7 +189,7 @@ def test_optional_alignment_invalid_envelopes_keep_question(raw):
 
 def test_evidence_from_another_question_cannot_support_selected_question():
     from types import SimpleNamespace
-    from mathbank.paper_standard_alignment import validate_standard_alignment
+    from starhope.paper_standard_alignment import validate_standard_alignment
     selected = SimpleNamespace(id=7, content='甲题求函数值。')
     raw = [alignment_item(7, 'real:1', evidence='乙题求函数定义域')]
     alignment, warnings = validate_standard_alignment(raw, selected=[selected], ai_question_ids={7},

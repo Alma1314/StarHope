@@ -18,11 +18,11 @@ if defined MISSING_DLL goto missing_dll
 set "PYTHON_EXE=%CD%\python\python.exe"
 "%PYTHON_EXE%" -c "import sys;raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
 if errorlevel 1 goto unsupported_portable_python
-set "MATHBANK_PORTABLE_RUNTIME=1"
+set "STARHOPE_PORTABLE_RUNTIME=1"
 goto launch
 
 :use_source
-set "MATHBANK_PORTABLE_RUNTIME="
+set "STARHOPE_PORTABLE_RUNTIME="
 if exist "venv\Scripts\python.exe" goto use_source_venv
 if not exist "python\python.exe" goto find_source_python
 set "MISSING_DLL="
@@ -69,7 +69,7 @@ if errorlevel 1 goto unsupported_source_python
 "%PYTHON_EXE%" -B -m scripts.windows_launcher %*
 set "LAUNCHER_EXIT=%ERRORLEVEL%"
 if "%LAUNCHER_EXIT%"=="0" goto launcher_done
-if "%MATHBANK_NO_PAUSE%"=="1" goto launcher_done
+if "%STARHOPE_NO_PAUSE%"=="1" goto launcher_done
 pause
 
 :launcher_done
@@ -77,12 +77,12 @@ exit /b %LAUNCHER_EXIT%
 
 :missing_main
 echo [E_PROJECT_ROOT] main.py was not found beside this launcher.
-echo Extract or clone the complete MathBank project before running this file.
+echo Extract or clone the complete StarHope project before running this file.
 goto bootstrap_error
 
 :missing_runtime
 echo [E_RUNTIME] The embedded python\python.exe runtime is missing.
-echo Use the complete MathBank-Windows-x64.zip package.
+echo Use the complete StarHope-Windows-x64.zip package.
 goto bootstrap_error
 
 :missing_dll
@@ -108,6 +108,6 @@ echo [E_SOURCE_PYTHON_VERSION] The project venv requires Python 3.10 or newer.
 echo Remove the venv folder and run this launcher again to rebuild it.
 
 :bootstrap_error
-if "%MATHBANK_NO_PAUSE%"=="1" exit /b 1
+if "%STARHOPE_NO_PAUSE%"=="1" exit /b 1
 pause
 exit /b 1

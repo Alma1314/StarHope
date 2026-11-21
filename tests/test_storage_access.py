@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank import storage_access as storage
+from starhope import storage_access as storage
 
 
 def _failure(*, number=errno.EACCES, winerror=None):
@@ -33,7 +33,7 @@ def _os_proxy(**overrides):
 
 
 def _clear_probes(directory):
-    for path in directory.glob(".mathbank-write-check-*"):
+    for path in directory.glob(".starhope-write-check-*"):
         if path.is_dir():
             path.rmdir()
         else:
@@ -149,7 +149,7 @@ def test_replace_and_delete_denial_report_failure_without_touching_existing_file
     cause = _failure()
     original_unlink = Path.unlink
     def unlink(path, *args, **kwargs):
-        if path.parent == directory and path.name.startswith(".mathbank-write-check-"):
+        if path.parent == directory and path.name.startswith(".starhope-write-check-"):
             raise cause
         return original_unlink(path, *args, **kwargs)
     try:
@@ -261,8 +261,8 @@ def test_startup_checks_disposable_directories_without_creating_database_or_runt
     storage.check_startup_storage(root)
     for relative in (".system_generated", "static/uploads", "data_backup", "data_backup/snapshots"):
         assert (root / relative).is_dir()
-    assert not list(root.rglob(".mathbank-write-check-*"))
-    assert not (root / "math_question_bank.db").exists()
+    assert not list(root.rglob(".starhope-write-check-*"))
+    assert not (root / "starhope.db").exists()
     assert not list((root / ".system_generated").iterdir())
 
 
@@ -280,11 +280,11 @@ def test_startup_refuses_each_unwritable_directory(tmp_path, monkeypatch, relati
         storage.check_startup_storage(root)
     assert caught.value.path == denied
     assert caught.value.stage == "create" and caught.value.code == "permission"
-    assert not (root / "math_question_bank.db").exists()
+    assert not (root / "starhope.db").exists()
 
 
 @pytest.mark.parametrize("relative", [
-    "math_question_bank.db", "math_question_bank.db-wal", "math_question_bank.db-shm",
+    "starhope.db", "starhope.db-wal", "starhope.db-shm",
     ".system_generated/launcher.lock", ".system_generated/runtime.lock", ".system_generated/server.log",
 ])
 def test_startup_checks_file_permissions_independently_of_writable_directory(tmp_path, monkeypatch, relative):
@@ -306,4 +306,4 @@ def test_startup_checks_file_permissions_independently_of_writable_directory(tmp
     assert caught.value.__cause__ is cause
     assert target.read_bytes() == b"existing original"
     assert "/private/user/secret.db" not in caught.value.safe_message
-    assert not list(root.rglob(".mathbank-write-check-*"))
+    assert not list(root.rglob(".starhope-write-check-*"))

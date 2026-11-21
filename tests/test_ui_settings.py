@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from starlette.responses import HTMLResponse, JSONResponse
 
-from mathbank.processing_limits import public_processing_limits
-from mathbank.ui_settings import community_qa_enabled, render_qa_visibility
+from starhope.processing_limits import public_processing_limits
+from starhope.ui_settings import community_qa_enabled, render_qa_visibility
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,15 +17,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.mark.parametrize("value", [None, "1", "true", "yes", "on"])
 def test_qa_ships_enabled_by_default(monkeypatch, value):
-    monkeypatch.delenv("MATHBANK_QA_ENABLED", raising=False)
+    monkeypatch.delenv("STARHOPE_QA_ENABLED", raising=False)
     if value is not None:
-        monkeypatch.setenv("MATHBANK_QA_ENABLED", value)
+        monkeypatch.setenv("STARHOPE_QA_ENABLED", value)
     assert community_qa_enabled()
 
 
 @pytest.mark.parametrize("value", ["0", "FALSE", " no ", "off"])
 def test_qa_local_opt_out(monkeypatch, value):
-    monkeypatch.setenv("MATHBANK_QA_ENABLED", value)
+    monkeypatch.setenv("STARHOPE_QA_ENABLED", value)
     assert not community_qa_enabled()
 
 
@@ -44,7 +44,7 @@ def test_index_route_serves_visibility_and_keeps_other_workspaces(monkeypatch, e
         "public_processing_limits": public_processing_limits,
     }
     exec(compile(ast.Module(body=[route], type_ignores=[]), "index-route", "exec"), namespace)
-    monkeypatch.setenv("MATHBANK_QA_ENABLED", "1" if enabled else "0")
+    monkeypatch.setenv("STARHOPE_QA_ENABLED", "1" if enabled else "0")
     response = namespace["read_index"]()
     html = response.body.decode()
     assert response.status_code == 200

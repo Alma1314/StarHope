@@ -10,14 +10,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank.pdf_split_parallel import (
+from starhope.pdf_split_parallel import (
     PdfParallelPersistenceError, pdf_split_request_slot, request_pdf_parallel_split,
 )
-from mathbank.pdf_hybrid_plan import PdfHybridPlanError
-from mathbank.pdf_hybrid_plan import build_pdf_snapshot_hybrid_plan
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.source_hybrid_request import build_source_hybrid_messages, _adopt_parts
-from mathbank.task_manager import TaskCancelled
+from starhope.pdf_hybrid_plan import PdfHybridPlanError
+from starhope.pdf_hybrid_plan import build_pdf_snapshot_hybrid_plan
+from starhope.ai_providers import resolve_text_provider
+from starhope.source_hybrid_request import build_source_hybrid_messages, _adopt_parts
+from starhope.task_manager import TaskCancelled
 
 
 _spec = importlib.util.spec_from_file_location("parallel_pdf_witness_fixture",
@@ -281,7 +281,7 @@ def test_changed_pixels_with_fresh_valid_proof_cannot_reuse_old_group_result(tmp
     witnesses = {}
     for index, page in enumerate(plan["_source_pages"]):
         before = _fixtures.begin_pdf_transcription_witness(images[index], {"page_index": index, "width": 8, "height": 8})
-        original = re.sub(r"<!-- MATHBANK_PDF_PAGE:\d+ -->\n", "", page["markdown"])
+        original = re.sub(r"<!-- STARHOPE_PDF_PAGE:\d+ -->\n", "", page["markdown"])
         witnesses[index] = _fixtures.finish_pdf_transcription_witness(before,
             {"markdown": original, "layout": {"page_complete": index != 1, "figures": []}})
     evidence = _fixtures.finalize_pdf_transcription_snapshot(plan["source"], plan["_source_diagnostics"],

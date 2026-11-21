@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from mathbank.import_review import (
+from starhope.import_review import (
     make_source_review_advisory, prepare_word_extraction_reviews, finalize_word_extraction_reviews,
     WORD_FORMULA_EXTRACTION_REASON,
 )
@@ -109,9 +109,9 @@ def test_advisory_policy_is_not_a_claim_that_uncertain_or_changed_content_is_cor
     assert (questions, report) == repeat
 
 
-@pytest.mark.skipif(not os.environ.get('MATHBANK_BEIJING_TASK'), reason='opt-in cached private task, no model call')
+@pytest.mark.skipif(not os.environ.get('STARHOPE_BEIJING_TASK'), reason='opt-in cached private task, no model call')
 def test_beijing_28_questions_are_importable_without_claiming_21_suspicions_were_verified():
-    task = json.loads(Path(os.environ['MATHBANK_BEIJING_TASK']).read_text())
+    task = json.loads(Path(os.environ['STARHOPE_BEIJING_TASK']).read_text())
     assert len(task['data']) == 28
     original = deepcopy(task)
     make_source_review_advisory(task['data'], task['diagnostics'])

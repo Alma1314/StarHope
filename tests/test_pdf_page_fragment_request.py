@@ -8,8 +8,8 @@ import pytest
 from pdf_feature_contract import experimental_pdf_only
 
 from test_pdf_page_vision import setup  # noqa: F401
-from mathbank import pdf_page_vision as vision
-from mathbank.pdf_page_fragments import SCHEMA
+from starhope import pdf_page_vision as vision
+from starhope.pdf_page_fragments import SCHEMA
 
 
 def packet():
@@ -23,7 +23,7 @@ def packet():
 def test_structured_request_archives_one_text_and_never_creates_v1_witness(setup,monkeypatch):
     config=replace(setup.provider,model_name="Qwen/Qwen3.8-27B")
     monkeypatch.setattr(vision,"resolve_ocr_provider",lambda *_a:config)
-    monkeypatch.setattr("mathbank.pdf_transcription_scopes.begin_pdf_transcription_witness",
+    monkeypatch.setattr("starhope.pdf_transcription_scopes.begin_pdf_transcription_witness",
         lambda *_a,**_k:pytest.fail("v2 must not obtain a v1 integrity witness"))
     data=packet();body=json.dumps(data,ensure_ascii=False)
     setup.response["choices"][0]["message"]["content"]=body

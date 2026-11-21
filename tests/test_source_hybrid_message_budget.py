@@ -3,11 +3,11 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank import source_hybrid_request, source_metadata
-from mathbank.pdf_hybrid_request import PdfHybridMessageBudgetError, request_pdf_hybrid
-from mathbank.source_metadata import SourceMetadataContractError, SourceMetadataMessageBudgetError
-from mathbank.task_manager import TaskCancelled
-from mathbank.word_hybrid_request import WordHybridMessageBudgetError, request_word_hybrid
+from starhope import source_hybrid_request, source_metadata
+from starhope.pdf_hybrid_request import PdfHybridMessageBudgetError, request_pdf_hybrid
+from starhope.source_metadata import SourceMetadataContractError, SourceMetadataMessageBudgetError
+from starhope.task_manager import TaskCancelled
+from starhope.word_hybrid_request import WordHybridMessageBudgetError, request_word_hybrid
 from test_pdf_hybrid_safety import prepared, CURRICULUM as PDF_CURRICULUM, PROVIDER as PDF_PROVIDER
 from test_word_hybrid_safety import native_plan, CURRICULUM as WORD_CURRICULUM, PROVIDER as WORD_PROVIDER
 

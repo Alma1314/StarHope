@@ -12,8 +12,8 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.testclient import TestClient
 
-from mathbank import asset_lifecycle as lifecycle
-from mathbank.asset_security import AssetSecurityError, resolve_upload_asset
+from starhope import asset_lifecycle as lifecycle
+from starhope.asset_security import AssetSecurityError, resolve_upload_asset
 
 
 @pytest.fixture

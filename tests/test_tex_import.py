@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 from PIL import Image
 
 from main import LOCAL_TOKEN
-from mathbank.content_locks import lock_visible_math, restore_visible_math
-from mathbank.tex_helper import (
+from starhope.content_locks import lock_visible_math, restore_visible_math
+from starhope.tex_helper import (
     decode_tex_bytes,
     prepare_tex_source,
     tex_asset_basename,
@@ -54,7 +54,7 @@ def test_tex_preprocessor_extracts_body_title_macros_choices_and_diagnostics():
     assert "ordinary comment" not in model_source
     assert r"$x\in\mathbb{R}$" in model_source
     assert r"$\left|x\right|$" in model_source
-    assert r"\item [MATHBANK_ORIGINAL_CORRECT]" in model_source
+    assert r"\item [STARHOPE_ORIGINAL_CORRECT]" in model_source
     assert diagnostics["document_body_extracted"] is True
     assert diagnostics["comments_removed"] == 1
     assert diagnostics["macros_found"] == 3
@@ -72,7 +72,7 @@ def test_content_locks_cover_all_common_tex_math_delimiters():
     )
     locked, locks = lock_visible_math(source, "tex-case")
     assert len(locks) == 3
-    assert all(f'<mathbank-math id="{lock.lock_id}">' in locked for lock in locks)
+    assert all(f'<starhope-math id="{lock.lock_id}">' in locked for lock in locks)
 
     questions = [{
         "content": "、".join(f"[[{lock.lock_id}]]" for lock in locks),
@@ -209,7 +209,7 @@ def test_tex_parse_route_preprocesses_and_restores_original_formulas(client):
         "ALI_BAILIAN_API_BASE": "https://bailian.example/v1/",
     }
     with patch.dict(os.environ, provider_env):
-        with patch("mathbank.ai_http.robust_request_post", side_effect=fake_post):
+        with patch("starhope.ai_http.robust_request_post", side_effect=fake_post):
             response = client.post(
                 "/api/ai/parse-paper",
                 data={
@@ -263,7 +263,7 @@ def test_tex_parse_route_maps_includegraphics_by_stable_basename(client):
         "ALI_BAILIAN_API_BASE": "https://bailian.example/v1/",
     }
     with patch.dict(os.environ, provider_env):
-        with patch("mathbank.ai_http.robust_request_post", return_value=mock_response):
+        with patch("starhope.ai_http.robust_request_post", return_value=mock_response):
             response = client.post(
                 "/api/ai/parse-paper",
                 data={

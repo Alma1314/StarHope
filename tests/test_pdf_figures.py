@@ -1,6 +1,6 @@
 """Real PDF crops and stubbed model responses: no network or production data."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 import io
 import json
@@ -13,13 +13,13 @@ import pymupdf as fitz
 import pytest
 from PIL import Image
 
-from mathbank import pdf_figures
-from mathbank.task_manager import TaskCancelled
+from starhope import pdf_figures
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
     def fail(*args, **kwargs):
         raise AssertionError("Tests must not contact a model")
     monkeypatch.setattr("requests.sessions.Session.request", fail)
@@ -218,7 +218,7 @@ def test_containment_requires_nearly_all_of_meaningfully_smaller_crop(first, sec
 
 
 def test_local_guard_created_group_child_overlap_keeps_both_assets_and_source(tmp_path, monkeypatch):
-    from mathbank import pdf_raster_guard
+    from starhope import pdf_raster_guard
     original_inspection = pdf_figures.inspect_pdf_page
     def inspection(page, index):
         return {**original_inspection(page, index), "full_page_image": True}
@@ -245,7 +245,7 @@ def test_local_guard_created_group_child_overlap_keeps_both_assets_and_source(tm
 
 @pytest.mark.parametrize("completed_left", [90, 100])
 def test_component_completion_expands_only_its_proven_side_and_keeps_review(tmp_path, monkeypatch, completed_left):
-    from mathbank import pdf_raster_guard
+    from starhope import pdf_raster_guard
     original_inspection = pdf_figures.inspect_pdf_page
     def inspection(page, index):
         return {**original_inspection(page, index), "full_page_image": True,
@@ -309,7 +309,7 @@ def test_cancel_after_vision_stops_before_crop(tmp_path, monkeypatch):
 
 
 def test_vision_request_uses_selected_provider_and_tracks_usage(tmp_path, monkeypatch):
-    from mathbank.ai_providers import resolve_ocr_provider
+    from starhope.ai_providers import resolve_ocr_provider
     provider = resolve_ocr_provider("siliconflow", {"SILICONFLOW_API_KEY": "unused-test-key",
         "SILICONFLOW_OCR_MODEL": "Qwen/Qwen3-VL-8B-Instruct"})
     monkeypatch.setattr(pdf_figures, "resolve_ocr_provider", lambda _: provider)
@@ -335,7 +335,7 @@ def test_vision_request_uses_selected_provider_and_tracks_usage(tmp_path, monkey
 
 
 def test_verified_qwen38_layout_uses_json_mode_and_no_implicit_reasoning(tmp_path, monkeypatch):
-    from mathbank.ai_providers import resolve_ocr_provider
+    from starhope.ai_providers import resolve_ocr_provider
     provider = resolve_ocr_provider("siliconflow", {"SILICONFLOW_API_KEY": "unused",
                                                   "SILICONFLOW_OCR_MODEL": "Qwen/Qwen3.8-27B"})
     monkeypatch.setattr(pdf_figures, "resolve_ocr_provider", lambda _: provider)
@@ -354,7 +354,7 @@ def test_verified_qwen38_layout_uses_json_mode_and_no_implicit_reasoning(tmp_pat
 
 
 def test_truncated_layout_response_is_rejected_even_if_json_valid(tmp_path, monkeypatch):
-    from mathbank.ai_providers import resolve_ocr_provider
+    from starhope.ai_providers import resolve_ocr_provider
     provider = resolve_ocr_provider("siliconflow", {"SILICONFLOW_API_KEY": "unused"})
     monkeypatch.setattr(pdf_figures, "resolve_ocr_provider", lambda _: provider)
     path = tmp_path / "page.png"
@@ -369,7 +369,7 @@ def test_truncated_layout_response_is_rejected_even_if_json_valid(tmp_path, monk
 
 
 def test_layout_timeout_retries_once_with_exact_http_budget(tmp_path, monkeypatch):
-    from mathbank.ai_providers import resolve_ocr_provider
+    from starhope.ai_providers import resolve_ocr_provider
     import requests
     provider = resolve_ocr_provider("siliconflow", {"SILICONFLOW_API_KEY": "unused"})
     monkeypatch.setattr(pdf_figures, "resolve_ocr_provider", lambda _: provider)
@@ -392,7 +392,7 @@ def test_layout_timeout_retries_once_with_exact_http_budget(tmp_path, monkeypatc
 
 
 def test_native_layout_bad_geometry_does_not_repeat_paid_call(tmp_path, monkeypatch):
-    from mathbank.ai_providers import resolve_ocr_provider
+    from starhope.ai_providers import resolve_ocr_provider
     provider = resolve_ocr_provider("siliconflow", {"SILICONFLOW_API_KEY": "unused"})
     monkeypatch.setattr(pdf_figures, "resolve_ocr_provider", lambda _: provider)
     path = tmp_path / "page.png"
@@ -470,7 +470,7 @@ def test_parallel_image_list_cannot_add_another_questions_figure(tmp_path):
     source = "1. First question.\n![figure](" + path + ")\n\n2. Second question."
     questions = [{"content": "First question.\n![figure](" + path + ")", "answer_markdown": ""},
                  {"content": "Second question.", "answer_markdown": "", "referenced_images": [path]}]
-    from mathbank.content_locks import reconcile_visible_math
+    from starhope.content_locks import reconcile_visible_math
     assert reconcile_visible_math(questions, [], source)["source_review_count"] == 0
     result = {"pages": [{"figures": [{"image_path": path}]}]}
     pdf_figures.isolate_shared_pdf_figures(questions, result, output_dir=tmp_path,
@@ -498,7 +498,7 @@ def test_shared_figure_cards_receive_independent_equal_files(tmp_path, template)
 
 def test_cancel_after_crop_cleans_registered_files_and_never_splits(monkeypatch, tmp_path, db_session):
     import main
-    from mathbank import asset_lifecycle
+    from starhope import asset_lifecycle
     uploads, retained = tmp_path / 'uploads', tmp_path / 'retained'
     (uploads / 'tmp').mkdir(parents=True)
     monkeypatch.setattr(main, 'UPLOAD_DIR', str(uploads))
@@ -619,7 +619,7 @@ def test_review_report_identifies_question_and_hides_internal_geometry():
 
 def test_layout_aware_ocr_reuses_joint_layout_without_second_vision_request(monkeypatch):
     import main
-    from mathbank import pdf_page_vision
+    from starhope import pdf_page_vision
     task_id = str(uuid.uuid4())
     source = "1. Refer to the diagram.\n[插图待补: 图1]\nFind the answer."
     calls = []

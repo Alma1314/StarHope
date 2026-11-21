@@ -8,8 +8,8 @@ from xml.etree import ElementTree
 
 import pytest
 
-from mathbank import content_sources as sources
-from mathbank import paths
+from starhope import content_sources as sources
+from starhope import paths
 
 
 @pytest.fixture(autouse=True)
@@ -181,7 +181,7 @@ def test_merged_export_snapshot_preserves_private_credits_and_input_files(catalo
 
 
 def test_local_credits_reach_docx_metadata_without_entering_question_body(catalog_files):
-    from mathbank.word_export_helper import build_word_document
+    from starhope.word_export_helper import build_word_document
 
     public_path, local_path = catalog_files
     _write_catalog(public_path, _example_catalog("public-example"))
@@ -193,7 +193,7 @@ def test_local_credits_reach_docx_metadata_without_entering_question_body(catalo
     assert not diagnostics["failed_formulas"]
     with zipfile.ZipFile(BytesIO(data)) as package:
         metadata = ElementTree.fromstring(package.read("docProps/custom.xml"))
-        own = [item for item in metadata if item.get("name") == "MathBankContentSources"]
+        own = [item for item in metadata if item.get("name") == "StarHopeContentSources"]
         assert len(own) == 1 and own[0][0].text == sources.content_sources_notice()
         assert local["sources"][0]["name"] in own[0][0].text
         assert local["sources"][0]["name"] not in package.read("word/document.xml").decode("utf-8")

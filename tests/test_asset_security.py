@@ -11,7 +11,7 @@ import pytest
 from PIL import Image
 
 from main import LOCAL_TOKEN, compile_tikz_to_png
-from mathbank.asset_security import (
+from starhope.asset_security import (
     AssetSecurityError,
     fsync_writable_file,
     normalize_answer_tikz_assets,
@@ -22,8 +22,8 @@ from mathbank.asset_security import (
     replace_file_atomic,
     write_private_text_atomic,
 )
-from mathbank.database import Question
-from mathbank.paper_helper import compile_tex_to_pdf
+from starhope.database import Question
+from starhope.paper_helper import compile_tex_to_pdf
 
 
 def _png_bytes(size=(8, 8)) -> bytes:
@@ -33,7 +33,7 @@ def _png_bytes(size=(8, 8)) -> bytes:
 
 
 def test_private_atomic_write_works_without_unix_fchmod(tmp_path, monkeypatch):
-    monkeypatch.delattr("mathbank.asset_security.os.fchmod", raising=False)
+    monkeypatch.delattr("starhope.asset_security.os.fchmod", raising=False)
     target = tmp_path / "private-token"
 
     write_private_text_atomic(target, "persistent-value")
@@ -51,7 +51,7 @@ def test_completed_file_fsync_retains_write_access_and_original_bytes(tmp_path, 
         os.write(descriptor, b"")
         descriptors.append(descriptor)
         real_fsync(descriptor)
-    monkeypatch.setattr("mathbank.asset_security.os.fsync", require_write_access)
+    monkeypatch.setattr("starhope.asset_security.os.fsync", require_write_access)
     fsync_writable_file(target)
     assert target.read_bytes() == b"completed archive" and len(descriptors) == 1
     with pytest.raises(OSError):
@@ -59,7 +59,7 @@ def test_completed_file_fsync_retains_write_access_and_original_bytes(tmp_path, 
 
 
 def _replace_platform(monkeypatch, platform, replacement):
-    from mathbank import asset_security
+    from starhope import asset_security
     monkeypatch.setattr(asset_security, "os", SimpleNamespace(**{
         **vars(os), "name": platform, "replace": replacement,
     }))
@@ -358,7 +358,7 @@ def test_xelatex_commands_disable_shell_escape_and_restrict_kpathsea(tmp_path):
         paper_calls.append((cmd, cwd, kwargs))
         return SimpleNamespace(returncode=1, stdout="failure", stderr="")
 
-    with patch("mathbank.paper_helper.subprocess.run", side_effect=fail_paper):
+    with patch("starhope.paper_helper.subprocess.run", side_effect=fail_paper):
         pdf_bytes, _ = compile_tex_to_pdf("unique shell escape security test")
     assert pdf_bytes is None
     paper_cmd, paper_cwd, paper_kwargs = paper_calls[0]
@@ -508,7 +508,7 @@ def test_cancel_endpoint_does_not_delete_assets_when_worker_wins_race(
 @pytest.mark.parametrize("route", ["/api/upload", "/api/ocr"])
 def test_pillow_syntax_error_is_an_invalid_image_response(client, route):
     # Cover decoder exception normalization on both supported Pillow pins.
-    with patch("mathbank.asset_security.ImageOps.exif_transpose", side_effect=SyntaxError("bad EXIF")):
+    with patch("starhope.asset_security.ImageOps.exif_transpose", side_effect=SyntaxError("bad EXIF")):
         response = client.post(
             route, files={"file": ("bad.png", _png_bytes(), "image/png")},
             headers={"X-Local-Token": LOCAL_TOKEN},

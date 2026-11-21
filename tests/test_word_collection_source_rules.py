@@ -2,8 +2,8 @@
 import json
 import pytest
 
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.source_metadata import prepare_word_source_metadata, build_source_metadata_messages, normalize_source_fillin
+from starhope.docx_helper import _new_diagnostics
+from starhope.source_metadata import prepare_word_source_metadata, build_source_metadata_messages, normalize_source_fillin
 
 
 def plan(source):

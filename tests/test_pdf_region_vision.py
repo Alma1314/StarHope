@@ -1,6 +1,6 @@
 """Local PDF crop transcription protocol, with network and paid calls blocked."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 import base64
 from copy import deepcopy
@@ -12,10 +12,10 @@ from PIL import Image
 import pytest
 import requests
 
-from mathbank import pdf_region_vision as vision
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.pdf_figures import _validate_layout, describe_figure_slots
-from mathbank.task_manager import TaskCancelled
+from starhope import pdf_region_vision as vision
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.pdf_figures import _validate_layout, describe_figure_slots
+from starhope.task_manager import TaskCancelled
 
 
 def region_result(identifier, *, candidate="p3_raster_001", bbox=None):
@@ -27,7 +27,7 @@ def region_result(identifier, *, candidate="p3_raster_001", bbox=None):
 
 @pytest.fixture
 def setup(tmp_path, monkeypatch):
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
     def no_network(*args, **kwargs):
         raise AssertionError("Unit tests must not contact a provider")
     monkeypatch.setattr(requests.sessions.Session, "request", no_network)

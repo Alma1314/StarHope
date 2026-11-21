@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from mathbank.knowledge_annotation_guidance import (
+from starhope.knowledge_annotation_guidance import (
     KNOWLEDGE_ANNOTATION_GUIDANCE_VERSION, build_knowledge_annotation_guidance,
 )
 
@@ -25,7 +25,7 @@ def row(code, name, *, original_name="", aliases=None):
 
 
 def test_full_shipped_catalogue_exposes_only_verified_narrow_boundaries():
-    data = json.loads((Path(__file__).parents[1] / "mathbank/resources/knowledge_points.json").read_text())
+    data = json.loads((Path(__file__).parents[1] / "starhope/resources/knowledge_points.json").read_text())
     catalog = data["points"]
     frozen = deepcopy(catalog)
     result = notes(build_knowledge_annotation_guidance(catalog))
@@ -77,7 +77,7 @@ def test_catalogue_order_does_not_change_guidance_and_no_global_catalogue_is_req
 
 
 def test_ai_directory_keeps_all_identities_without_broad_search_aliases():
-    from mathbank.ai_knowledge_points import build_ai_knowledge_prompt
+    from starhope.ai_knowledge_points import build_ai_knowledge_prompt
     catalog = [row("1932", "利用二项分布求分布列", original_name="二项分布", aliases=["二项分布"]),
                row("local:custom", "老师定义的函数目标", original_name="来源旧名", aliases=["函数"])]
     frozen = deepcopy(catalog)

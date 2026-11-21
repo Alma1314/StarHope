@@ -11,9 +11,9 @@ from PIL import Image, ImageDraw
 import pytest
 import requests
 
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.ocr_figure_review import review_single_ocr_figures, review_tikz_previews
-from mathbank.ocr_illustrations import materialize_ocr_illustrations, parse_single_ocr_response
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.ocr_figure_review import review_single_ocr_figures, review_tikz_previews
+from starhope.ocr_illustrations import materialize_ocr_illustrations, parse_single_ocr_response
 
 
 BOX = {"left": 100, "top": 100, "right": 500, "bottom": 700}
@@ -241,7 +241,7 @@ def test_changed_file_during_preview_review_cannot_be_returned_as_verified(setup
 
 def test_preflight_pixel_limit_counts_no_actual_post(setup, monkeypatch):
     _root, path, _image, provider = setup
-    monkeypatch.setattr("mathbank.ocr_figure_review.MAX_REVIEW_PIXELS", 1)
+    monkeypatch.setattr("starhope.ocr_figure_review.MAX_REVIEW_PIXELS", 1)
     reviewed = review_single_ocr_figures(result(), path, provider, post=lambda *_args, **_kwargs: pytest.fail("no POST"))
     assert reviewed["illustration_review"]["calls"] == 0 and reviewed["_verified_crops"] == {}
 

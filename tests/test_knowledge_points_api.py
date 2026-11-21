@@ -3,9 +3,9 @@ import json
 
 import pytest
 
-from mathbank import knowledge_points
-from mathbank.database import KnowledgePoint, KnowledgePointCurriculum, Question
-from mathbank.knowledge_points import CATALOG_FILE, seed_catalog, normalize_question_points, replace_question_points
+from starhope import knowledge_points
+from starhope.database import KnowledgePoint, KnowledgePointCurriculum, Question
+from starhope.knowledge_points import CATALOG_FILE, seed_catalog, normalize_question_points, replace_question_points
 
 
 def form(content="知识点测试题", **extra):

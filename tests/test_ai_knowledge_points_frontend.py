@@ -31,7 +31,7 @@ const setTimeout=callback=>{timers.push(callback);};
 const categoryTree={};
 function populateCategoryDropdowns(){}
 function saveQuestion(skip){saves.push({skip,points:KnowledgePointState.snapshot()});}
-window.MathBankModal={open(){},close(){}};
+window.StarHopeModal={open(){},close(){}};
 window.activeCurriculumVersion='A';
 document.getElementById('editContent').value='求数列的和';
 document.getElementById('editAnswerMarkdown').value='裂项求和';

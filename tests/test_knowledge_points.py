@@ -10,9 +10,9 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
-from mathbank import database, db_migrations, knowledge_points
-from mathbank.database import KnowledgePoint, KnowledgePointCurriculum, Question, QuestionCurriculum, QuestionKnowledgePoint
-from mathbank.knowledge_points import (
+from starhope import database, db_migrations, knowledge_points
+from starhope.database import KnowledgePoint, KnowledgePointCurriculum, Question, QuestionCurriculum, QuestionKnowledgePoint
+from starhope.knowledge_points import (
     CATALOG_FILE, apply_knowledge_point_filters, create_local_point, list_catalog,
     normalize_question_points, replace_question_points, seed_catalog,
 )
@@ -73,7 +73,7 @@ def test_reviewed_cross_textbook_references_keep_source_identity_and_real_A_loca
 
 
 def test_every_shipped_catalogue_definition_can_be_carried_by_a_sharing_point_record():
-    from mathbank.library_transfer import _validate_point
+    from starhope.library_transfer import _validate_point
 
     for point in knowledge_points._resource_points():
         _validate_point({**point, "role": "main", "status": "confirmed", "position": 0})
@@ -143,7 +143,7 @@ def test_resource_rejects_inconsistent_counts_identities_and_paths(tmp_path, mon
 
 def test_resource_rejects_duplicate_json_keys(tmp_path, monkeypatch):
     target = tmp_path / "catalog.json"
-    target.write_text('{"schema_version":"mathbank-knowledge-points-v1","points":[],"points":[]}', encoding="utf-8")
+    target.write_text('{"schema_version":"starhope-knowledge-points-v1","points":[],"points":[]}', encoding="utf-8")
     monkeypatch.setattr(knowledge_points, "CATALOG_FILE", target)
     knowledge_points._resource_points.cache_clear()
     try:

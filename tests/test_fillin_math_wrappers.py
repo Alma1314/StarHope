@@ -9,9 +9,9 @@ import subprocess
 
 import pytest
 
-from mathbank.fillin import normalize_fillin_math_wrappers
-from mathbank.paper_helper import build_latex_document, clean_content_for_latex
-from mathbank.paths import PROJECT_ROOT, TEMPLATES_DIR
+from starhope.fillin import normalize_fillin_math_wrappers
+from starhope.paper_helper import build_latex_document, clean_content_for_latex
+from starhope.paths import PROJECT_ROOT, TEMPLATES_DIR
 
 
 SHELLS = [("$", "$"), ("$$", "$$"), (r"\(", r"\)"), (r"\[", r"\]")]
@@ -48,7 +48,7 @@ def test_only_complete_fillin_shells_are_unwrapped_without_changing_arguments(op
     r'<img title="$\fillin$" src="/static/uploads/a.png">',
     r'![图](/static/uploads/$\fillin$.png)', r'[链接](https://example.test/$\fillin$)',
     r'https://example.test/$\fillin$', r'\includegraphics{图$\fillin$.png}',
-    r'<mathbank-math id="MBM_0001">$\fillin$</mathbank-math>',
+    r'<starhope-math id="MBM_0001">$\fillin$</starhope-math>',
 ])
 def test_mixed_math_malformed_source_and_literal_examples_stay_exact(source):
     assert normalize_fillin_math_wrappers(source) == source
@@ -96,7 +96,7 @@ def test_pdf_export_repairs_legacy_copy_and_keeps_mixed_formula_source():
     assert "____" in clean_content_for_latex("原文 ____")
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_FILLIN_NATIVE") != "1"
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_FILLIN_NATIVE") != "1"
                     or not shutil.which("xelatex"), reason="Opt-in native XeLaTeX fill-in validation")
 @pytest.mark.parametrize("include_answers", [False, True])
 def test_real_examzh_compiles_cleaned_and_mixed_fillins_with_visible_lines(tmp_path, include_answers):

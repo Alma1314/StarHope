@@ -114,7 +114,7 @@ def test_independent_oracle_key_keeps_math_critical_differences(original, change
 
 
 def _repair(page):
-    from mathbank.pdf_native_math import repair_native_page
+    from starhope.pdf_native_math import repair_native_page
     result = repair_native_page(page)
     assert result['status'] in {'repaired', 'unsupported'}
     assert isinstance(result['markdown'], str)
@@ -320,11 +320,11 @@ def test_raised_dot_is_not_automatically_a_degree_sign():
         assert '.' in result['markdown']
 
 
-@pytest.mark.skipif(not (os.environ.get('MATHBANK_NATIVE_MATH_PDF') and os.environ.get('MATHBANK_NATIVE_MATH_ORACLE')),
+@pytest.mark.skipif(not (os.environ.get('STARHOPE_NATIVE_MATH_PDF') and os.environ.get('STARHOPE_NATIVE_MATH_ORACLE')),
                     reason='real native PDF plus independent oracle validation is opt-in')
 def test_real_pdf_repair_consumes_glyphs_and_preserves_every_oracle_formula(monkeypatch):
-    pdf = Path(os.environ['MATHBANK_NATIVE_MATH_PDF'])
-    oracle = Path(os.environ['MATHBANK_NATIVE_MATH_ORACLE'])
+    pdf = Path(os.environ['STARHOPE_NATIVE_MATH_PDF'])
+    oracle = Path(os.environ['STARHOPE_NATIVE_MATH_ORACLE'])
     before = hashlib.sha256(pdf.read_bytes()).hexdigest()
     with fitz.open(pdf) as document:
         assert len(document) == 1
@@ -370,7 +370,7 @@ def test_real_pdf_repair_consumes_glyphs_and_preserves_every_oracle_formula(monk
     assert not any('\ue000' <= char <= '\uf8ff' for char in result['markdown'])
     assert {name: result['stats'][name] for name in ('cases', 'superscripts', 'subscripts', 'negations', 'fillins')} == {
         'cases': 1, 'superscripts': 4, 'subscripts': 30, 'negations': 2, 'fillins': 2}
-    from mathbank.content_locks import lock_visible_math, _source_parts
+    from starhope.content_locks import lock_visible_math, _source_parts
     _, locks = lock_visible_math(result['markdown'], 'native-layout-validation')
     parts = _source_parts(result['markdown'], locks)
     contents = {part.number: part for part in parts if part.field == 'content'}
@@ -389,9 +389,9 @@ def test_real_pdf_repair_consumes_glyphs_and_preserves_every_oracle_formula(monk
 
 
 @pytest.mark.parametrize('rotation', [90, 180, 270])
-@pytest.mark.skipif(not os.environ.get('MATHBANK_NATIVE_MATH_PDF'), reason='real PDF rotation audit is opt-in')
+@pytest.mark.skipif(not os.environ.get('STARHOPE_NATIVE_MATH_PDF'), reason='real PDF rotation audit is opt-in')
 def test_real_rotated_pdf_uses_fallback_without_mutating_original(rotation):
-    pdf = Path(os.environ['MATHBANK_NATIVE_MATH_PDF'])
+    pdf = Path(os.environ['STARHOPE_NATIVE_MATH_PDF'])
     original = pdf.read_bytes()
     with fitz.open(stream=original, filetype='pdf') as document:
         document[0].set_rotation(rotation)

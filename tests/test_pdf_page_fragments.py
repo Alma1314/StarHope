@@ -7,15 +7,15 @@ import pytest
 import requests
 
 from pdf_feature_contract import experimental_pdf_only
-from mathbank.pdf_page_fragments import (
+from starhope.pdf_page_fragments import (
     MAX_BLOCKS, SCHEMA, number_prefix, validate_pdf_page_fragments,
 )
-from mathbank.prompts import (
+from starhope.prompts import (
     COMMON_OCR_PROMPT, PDF_ORIGINAL_COMMON_OCR_PROMPT,
     build_pdf_page_fragments_prompt, build_pdf_page_vision_prompt,
     build_pdf_region_vision_prompt,
 )
-from mathbank.source_review_results import parse_review_response
+from starhope.source_review_results import parse_review_response
 
 
 @pytest.fixture(autouse=True)
@@ -115,7 +115,7 @@ def test_answer_key_full_table_and_unknown_roles_remain_available_without_guessi
     ("13. 原题\\begin{choices}\\item 1\\item\\item 3\\item 4\\end{choices}\n", "fragment_choices_review"),
 ])
 def test_broken_formula_or_choices_is_an_advisory_on_one_block_without_page_retry(bad, code, monkeypatch):
-    import mathbank.pdf_page_vision as v1
+    import starhope.pdf_page_vision as v1
     original = v1._validated_page
     def metadata_only(value, page_info):
         assert value["markdown"] == "page diagnostics", "Never put source through v1 whole-page retry gate"
@@ -179,7 +179,7 @@ def test_ambiguous_slots_and_model_asset_identity_are_rejected(kind):
 
 @pytest.mark.parametrize("text", ["16. ![模型图](https://example.invalid/a.png)",
     "16. /static/uploads/arbitrary.png", "16. <img src='x'>", "16. \\includegraphics{x}",
-    "16. <!-- MATHBANK_PDF_PAGE:3 -->", "16. [[MBM_fake_0001]]"])
+    "16. <!-- STARHOPE_PDF_PAGE:3 -->", "16. [[MBM_fake_0001]]"])
 def test_model_text_never_injects_assets_or_server_source_markers(text):
     with pytest.raises(ValueError):validate_pdf_page_fragments(packet(block(text)),info())
 

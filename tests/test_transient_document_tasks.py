@@ -5,8 +5,8 @@ import threading
 
 import pytest
 
-from mathbank.document_task_store import DocumentTaskStore, DurableDocumentTasks
-from mathbank.task_manager import TaskCancelled
+from starhope.document_task_store import DocumentTaskStore, DurableDocumentTasks
+from starhope.task_manager import TaskCancelled
 
 
 def manager(store, **kwargs):

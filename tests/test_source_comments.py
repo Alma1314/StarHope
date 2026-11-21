@@ -9,14 +9,14 @@ from lxml import etree
 from PIL import Image
 import pytest
 
-from mathbank.paper_helper import clean_content_for_latex
-from mathbank.question_duplicates import QuestionDuplicateInput, build_question_fingerprint
-from mathbank.source_comments import (
+from starhope.paper_helper import clean_content_for_latex
+from starhope.question_duplicates import QuestionDuplicateInput, build_question_fingerprint
+from starhope.source_comments import (
     SOURCE_ATTRIBUTION_PREFIX,
     SOURCE_ATTRIBUTION_SUFFIX,
     strip_source_attribution_comment,
 )
-from mathbank import word_export_helper as word
+from starhope import word_export_helper as word
 from test_math_preview_regressions import run_preview_script
 
 
@@ -41,7 +41,7 @@ NON_PROTOCOL = (
     "\ufeff" + BLOCK + STEM,
     "```html\n" + BLOCK + "```\n" + STEM,
     "`" + BLOCK + "`\n" + STEM,
-    BLOCK.replace("MathBank", "Mathbank", 1) + STEM,
+    BLOCK.replace("StarHope", "Mathbank", 1) + STEM,
     BLOCK.replace("attribution:\n", "attribution: ", 1) + STEM,
     BLOCK.replace("\n", "\r\n") + STEM,
     SOURCE_ATTRIBUTION_PREFIX + "来源未闭合\n" + STEM,

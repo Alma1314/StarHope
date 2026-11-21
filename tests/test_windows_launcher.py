@@ -16,7 +16,7 @@ from scripts import local_launcher as launcher
 
 @pytest.fixture(autouse=True)
 def isolated_launcher_address(monkeypatch, tmp_path):
-    monkeypatch.delenv("MATHBANK_PORT", raising=False)
+    monkeypatch.delenv("STARHOPE_PORT", raising=False)
     monkeypatch.setattr(launcher, "ACTIVE_ROOT", tmp_path)
     monkeypatch.setattr(launcher, "PORT", 8000)
     monkeypatch.setattr(launcher, "BASE_URL", "http://127.0.0.1:8000")
@@ -80,7 +80,7 @@ def test_preflight_mode_only_checks_fixed_project_root(tmp_path, monkeypatch):
     monkeypatch.setattr(launcher, "existing_service_ready", lambda: pytest.fail("contacted service"))
     assert launcher.main(["--check-write-access"]) == 0
     assert checked == [root]
-    assert not (root / "math_question_bank.db").exists()
+    assert not (root / "starhope.db").exists()
     assert not (root / "venv").exists()
 
 
@@ -117,19 +117,19 @@ def test_bootstrap_preflight_runs_without_application_or_database_imports(tmp_pa
     source_root = Path(launcher.__file__).resolve().parents[1]
     for relative in (
         "scripts/local_launcher.py", "scripts/windows_launcher.py",
-        "mathbank/__init__.py", "mathbank/paths.py", "mathbank/storage_access.py",
+        "starhope/__init__.py", "starhope/paths.py", "starhope/storage_access.py",
     ):
         target = root / relative
         target.parent.mkdir(exist_ok=True)
         shutil.copy2(source_root / relative, target)
-    for relative in ("main.py", "mathbank/database.py"):
+    for relative in ("main.py", "starhope/database.py"):
         (root / relative).write_text("raise AssertionError('application imported during write preflight')\n", encoding="utf-8")
     result = subprocess.run(
         [sys.executable, "-B", "-m", "scripts.windows_launcher", "--check-write-access"],
         cwd=root, capture_output=True, text=True, encoding="utf-8", timeout=10,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert not (root / "math_question_bank.db").exists()
+    assert not (root / "starhope.db").exists()
     assert not (root / "venv").exists()
     assert not (root / ".system_generated" / "launcher.lock").exists()
     assert not (root / ".system_generated" / "server.log").exists()
@@ -145,7 +145,7 @@ def test_bootstrap_preflight_runs_without_application_or_database_imports(tmp_pa
     (True, launcher.REPOSITORY, True), (False, launcher.REPOSITORY, False),
     (True, "other/app", False),
 ])
-def test_existing_service_requires_usable_mathbank_page(monkeypatch, ready, repo, expected):
+def test_existing_service_requires_usable_starhope_page(monkeypatch, ready, repo, expected):
     identity = {"project_instance_id": launcher.project_instance_id(launcher.ACTIVE_ROOT),
                 "server_instance_id": "synthetic-instance"}
     monkeypatch.setattr(launcher, "read_json", lambda route:
@@ -207,7 +207,7 @@ def test_lock_file_is_reusable_after_exception(tmp_path):
     (False, True, False), (True, True, True), (False, False, True),
 ])
 def test_dependencies_install_only_when_needed(tmp_path, monkeypatch, changed, imports_ok, installs):
-    monkeypatch.delenv("MATHBANK_PORTABLE_RUNTIME", raising=False)
+    monkeypatch.delenv("STARHOPE_PORTABLE_RUNTIME", raising=False)
     requirements = b"fastapi==1.0\n"
     (tmp_path / "requirements.txt").write_bytes(requirements)
     state = tmp_path / ".system_generated"
@@ -225,7 +225,7 @@ def test_dependencies_install_only_when_needed(tmp_path, monkeypatch, changed, i
 
 
 def test_portable_missing_dependency_shows_import_error_without_pip(tmp_path, monkeypatch):
-    monkeypatch.setenv("MATHBANK_PORTABLE_RUNTIME", "1")
+    monkeypatch.setenv("STARHOPE_PORTABLE_RUNTIME", "1")
     monkeypatch.setattr(launcher, "environment_works", lambda *_: False)
     commands = []
     def fail(command, root, message):

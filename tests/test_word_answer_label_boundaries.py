@@ -2,7 +2,7 @@
 
 import pytest
 
-from mathbank.content_locks import (
+from starhope.content_locks import (
     _source_parts, find_source_answer_start, lock_visible_math,
     reconcile_visible_math, strip_source_answer_label,
 )

@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.content_locks import (
+from starhope.content_locks import (
     ContentLockIntegrityError, lock_visible_math, reconcile_visible_math, restore_visible_math,
 )
 
@@ -27,7 +27,7 @@ def test_sole_known_reference_shell_restores_the_exact_fragment(fragment, shell,
     assert len(locks) == 1
     lock = locks[0]
     reference = (f'[[{lock.lock_id}]]' if kind == 'token' else lock.lock_id if kind == 'bare'
-                 else f'<mathbank-math id="{lock.lock_id}">{lock.original}</mathbank-math>')
+                 else f'<starhope-math id="{lock.lock_id}">{lock.original}</starhope-math>')
     model = '已知 ' + shell[0] + ' \t' + reference + '\r\n ' + shell[1] + '，求值。'
     questions = [{'content': model, 'answer_markdown': ''}]
     if kind != 'bare':  # The strict API historically accepts tokens/XML only.
@@ -50,7 +50,7 @@ def test_sole_known_reference_shell_restores_the_exact_fragment(fragment, shell,
 def test_wrapped_modified_xml_keeps_the_existing_overwrite_rule(shell, body):
     source = '1. 已知 $x+1$，求值。'
     _, locks = lock_visible_math(source, 'xml-source')
-    xml = f'<mathbank-math id="{locks[0].lock_id}">{body}</mathbank-math>'
+    xml = f'<starhope-math id="{locks[0].lock_id}">{body}</starhope-math>'
     questions = [{'content': '已知 ' + shell[0] + xml + shell[1] + '，求值。', 'answer_markdown': ''}]
     strict = deepcopy(questions)
     assert restore_visible_math(strict, locks)['math_locks_overwritten'] == 1
@@ -104,7 +104,7 @@ def test_multiple_references_in_one_shell_are_not_collapsed():
     'https://model.invalid/{shell}',
 ])
 def test_literal_examples_keep_the_old_reference_span(literal):
-    from mathbank.content_locks import _formulas
+    from starhope.content_locks import _formulas
     _, locks = lock_visible_math('$AB$', 'literal-source')
     lock = locks[0]
     token = f'[[{lock.lock_id}]]'

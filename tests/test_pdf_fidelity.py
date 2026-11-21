@@ -1,9 +1,9 @@
 
 import pymupdf as fitz
 
-from mathbank.pdf_fidelity import clean_empty_fraction_wrappers, enforce_source_fields, protect_choice_grids
-from mathbank.pdf_inspector_helper import _has_math_formula_loss
-from mathbank.pdf_raster_guard import _clean_local_graph_frame
+from starhope.pdf_fidelity import clean_empty_fraction_wrappers, enforce_source_fields, protect_choice_grids
+from starhope.pdf_inspector_helper import _has_math_formula_loss
+from starhope.pdf_raster_guard import _clean_local_graph_frame
 
 
 def test_nested_empty_fraction_unwraps_only_complete_operand():
@@ -68,7 +68,7 @@ def test_unique_scanned_graph_reframes_only_with_no_neighbor_content_loss():
 
 
 def test_number_only_page_requires_ink_free_body_outside_owned_footer():
-    from mathbank.pdf_blank_pages import is_confirmed_number_only_page
+    from starhope.pdf_blank_pages import is_confirmed_number_only_page
 
     with fitz.open() as document:
         page = document.new_page(width=595, height=800)
@@ -80,7 +80,7 @@ def test_number_only_page_requires_ink_free_body_outside_owned_footer():
 
 
 def test_right_axis_unit_keeps_adjacent_glyph_but_not_prose_below():
-    from mathbank.pdf_raster_guard import _right_label_continuation
+    from starhope.pdf_raster_guard import _right_label_continuation
 
     core = (360, 260, 542, 354)
     near = [(551, 316, 567, 331)]
@@ -92,7 +92,7 @@ def test_right_axis_unit_keeps_adjacent_glyph_but_not_prose_below():
 
 
 def test_proven_graph_unit_can_extend_the_side_without_consuming_prose():
-    from mathbank.pdf_raster_guard import _clean_local_graph_frame
+    from starhope.pdf_raster_guard import _clean_local_graph_frame
 
     graph = {"bbox": (389, 194, 635, 274), "labels": 6, "core_bbox": (391, 200, 589, 272)}
     old = (393, 206, 598, 313)

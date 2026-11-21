@@ -5,15 +5,15 @@ import json
 from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session
 
-from mathbank.database import (
+from starhope.database import (
     Base,
     KnowledgePoint,
     Question,
     QuestionFingerprint,
     QuestionKnowledgePoint,
 )
-from mathbank.question_duplicate_service import backfill_missing_fingerprints
-from mathbank.question_duplicates import QuestionDuplicateInput, build_question_fingerprint
+from starhope.question_duplicate_service import backfill_missing_fingerprints
+from starhope.question_duplicates import QuestionDuplicateInput, build_question_fingerprint
 
 
 def test_fingerprint_backfill_skips_annotation_evidence_and_preserves_hashes(tmp_path):

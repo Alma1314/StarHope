@@ -109,7 +109,7 @@ const document = {
     : root.querySelectorAll(selector)
 };
 const asString = value => value == null ? '' : String(value);
-const window = { location: {href:'http://localhost:8000/', origin:'http://localhost:8000'}, MathBankSafe: {
+const window = { location: {href:'http://localhost:8000/', origin:'http://localhost:8000'}, StarHopeSafe: {
   escapeAttribute: String, escapeText: String, sanitizePlainText: String, safeImageUrl
 }};
 let parsedQuestionsData = [];
@@ -260,7 +260,7 @@ const scenarios = {
   },
   async generated_answers_reopen_saved_cards_and_persist_session() {
     let writes=0;
-    window.MathBankDocumentImportSession={saveSoon(){writes++;}};
+    window.StarHopeDocumentImportSession={saveSoon(){writes++;}};
     for(const mode of ['single','batch']) {
       const q=verifiedQuestion();const card=show([q]);
       q.savedSnapshot=captureParsedQuestionSaveSnapshot(0,q,card);q.saved=true;
@@ -276,7 +276,7 @@ const scenarios = {
   },
   async generated_answers_on_new_cards_persist_without_saved_baseline() {
     let writes=0;
-    window.MathBankDocumentImportSession={saveSoon(){writes++;}};
+    window.StarHopeDocumentImportSession={saveSoon(){writes++;}};
     for(const mode of ['single','batch']) {
       const q=verifiedQuestion();const card=show([q]);writes=0;
       assert.equal(q.savedSnapshot,undefined);
@@ -288,7 +288,7 @@ const scenarios = {
   },
   async source_clear_reopens_saved_card_and_persists_session() {
     let writes=0;
-    window.MathBankDocumentImportSession={saveSoon(){writes++;}};
+    window.StarHopeDocumentImportSession={saveSoon(){writes++;}};
     const q={...verifiedQuestion(),source:'已入库的来源'};const card=show([q]);
     q.savedSnapshot=captureParsedQuestionSaveSnapshot(0,q,card);q.saved=true;
     const checkbox=card.querySelector('.card-select-checkbox');
@@ -375,9 +375,9 @@ def test_import_source_review_in_shipped_js(review_script, scenario):
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.skipif(not os.environ.get('MATHBANK_TEST_PDF_BEIJING_TASK'), reason='opt-in captured 28-question task; no network')
+@pytest.mark.skipif(not os.environ.get('STARHOPE_TEST_PDF_BEIJING_TASK'), reason='opt-in captured 28-question task; no network')
 def test_captured_beijing_21_pending_reviews_leave_all_28_questions_selectable(review_script):
-    task = json.loads(Path(os.environ['MATHBANK_TEST_PDF_BEIJING_TASK']).read_text())
+    task = json.loads(Path(os.environ['STARHOPE_TEST_PDF_BEIJING_TASK']).read_text())
     assert len(task['data']) == 28
     assert sum(q.get('source_review', {}).get('required') is True for q in task['data']) == 21
     script = review_script.rsplit('scenarios[process.argv[1]]', 1)[0]

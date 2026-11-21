@@ -7,8 +7,8 @@ from docx import Document
 from lxml import etree
 from PIL import Image
 
-from mathbank import word_export_helper as word
-from mathbank.content_sources import content_sources_notice
+from starhope import word_export_helper as word
+from starhope.content_sources import content_sources_notice
 
 
 CUSTOM = "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"
@@ -44,7 +44,7 @@ def sample_docx():
 
 def owned_property(package):
     root = etree.fromstring(package["docProps/custom.xml"])
-    owned = [node for node in root if node.get("name") == "MathBankContentSources"]
+    owned = [node for node in root if node.get("name") == "StarHopeContentSources"]
     assert len(owned) == 1
     assert len(owned[0]) == 1
     assert owned[0][0].tag == f"{{{VT}}}lpwstr"

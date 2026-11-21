@@ -1,7 +1,7 @@
 """Mixed numbering and separate products remain literal diagnostic anchors."""
 import pytest
 
-from mathbank.knowledge_annotation_targets import (
+from starhope.knowledge_annotation_targets import (
     MAX_SCAN_MARKERS, MAX_DIAGNOSTIC_TARGETS, MAX_TARGET_QUOTES,
     extract_knowledge_annotation_targets, diagnose_knowledge_target_coverage, validate_target_evidence,
 )

@@ -2,7 +2,7 @@
 
 import pytest
 
-from mathbank.question_search import (
+from starhope.question_search import (
     apply_question_search,
     searchable_question_text,
     SQLITE_SEARCH_FUNCTION,
@@ -63,7 +63,7 @@ def test_visible_text_formulas_and_literal_code_keep_their_original_text(source)
 def search_db(tmp_path):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
-    from mathbank.database import Base, Question
+    from starhope.database import Base, Question
 
     engine = create_engine(f"sqlite:///{tmp_path / 'search.db'}")
     Base.metadata.create_all(engine)
@@ -82,7 +82,7 @@ def search_db(tmp_path):
 
 
 def ids(db, keyword):
-    from mathbank.database import Question
+    from starhope.database import Question
     return {item.id for item in apply_question_search(db.query(Question), keyword).all()}
 
 

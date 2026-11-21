@@ -10,7 +10,7 @@ from test_preview_browser import browser
 
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1",
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1",
     reason="opt-in real Markdown table layout",
 )
 
@@ -108,7 +108,7 @@ def test_markdown_tables_keep_cells_math_and_wide_scroll(browser, tmp_path):
 
 
 def test_readonly_audit_copies_keep_all_table_dimensions(browser, tmp_path):
-    fixture_path = os.environ.get("MATHBANK_FORMAT_AUDIT_FIXTURES")
+    fixture_path = os.environ.get("STARHOPE_FORMAT_AUDIT_FIXTURES")
     if not fixture_path:
         pytest.skip("optional copies from a prior read-only audit")
     fixtures = json.loads(Path(fixture_path).read_text())

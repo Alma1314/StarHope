@@ -6,13 +6,13 @@ import re
 
 from docx import Document
 
-from mathbank.content_locks import lock_visible_math, reconcile_visible_math
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.fillin_placeholders import normalize_fillin_placeholder_clusters
-from mathbank.paper_helper import clean_content_for_latex
-from mathbank.paths import PROJECT_ROOT
-from mathbank.source_metadata import normalize_source_fillin
-from mathbank.word_export_helper import BlankToken, tokenize_mixed_content
+from starhope.content_locks import lock_visible_math, reconcile_visible_math
+from starhope.docx_helper import extract_docx_markdown
+from starhope.fillin_placeholders import normalize_fillin_placeholder_clusters
+from starhope.paper_helper import clean_content_for_latex
+from starhope.paths import PROJECT_ROOT
+from starhope.source_metadata import normalize_source_fillin
+from starhope.word_export_helper import BlankToken, tokenize_mixed_content
 
 
 CLUSTER = r"\fillin\underline{▲}\fillin"

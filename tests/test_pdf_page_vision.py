@@ -1,6 +1,6 @@
 """Joint OCR/figure protocol checks without network, model fees or app state."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 from copy import deepcopy
 from pathlib import Path
@@ -11,10 +11,10 @@ import pytest
 from PIL import Image
 import requests
 
-from mathbank import pdf_page_vision as vision
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.pdf_figures import _validate_layout, describe_figure_slots
-from mathbank.task_manager import TaskCancelled
+from starhope import pdf_page_vision as vision
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.pdf_figures import _validate_layout, describe_figure_slots
+from starhope.task_manager import TaskCancelled
 
 
 def page_result():
@@ -29,7 +29,7 @@ def page_result():
 
 @pytest.fixture
 def setup(tmp_path, monkeypatch):
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
     def no_network(*args, **kwargs):
         raise AssertionError("Unit tests must not contact any model")
     monkeypatch.setattr(requests.sessions.Session, "request", no_network)
@@ -69,7 +69,7 @@ def call(setup, result=None, **kwargs):
 
 def _detail_views_for_page(setup):
     import pymupdf as fitz
-    from mathbank.pdf_vision_details import render_pdf_detail_views
+    from starhope.pdf_vision_details import render_pdf_detail_views
     navigation = Path(setup.image).with_name("pdf_page_detailtest_2.png")
     navigation.write_bytes(Path(setup.image).read_bytes())
     setup.image = str(navigation)
@@ -141,11 +141,11 @@ def test_retry_reuses_all_detail_bytes_and_does_not_rerender(setup, monkeypatch)
 
 
 def test_cancellation_while_preparing_details_never_posts(setup, monkeypatch):
-    from mathbank.task_manager import TaskCancelled
+    from starhope.task_manager import TaskCancelled
     views = _detail_views_for_page(setup)
     def cancel(*_args, **_kwargs):
         raise TaskCancelled("cancelled")
-    monkeypatch.setattr("mathbank.pdf_vision_details.prepare_detail_messages", cancel)
+    monkeypatch.setattr("starhope.pdf_vision_details.prepare_detail_messages", cancel)
     with pytest.raises(TaskCancelled):
         call(setup, detail_views=views)
     assert setup.calls == []
@@ -221,7 +221,7 @@ def test_bad_named_bbox_keeps_transcript_for_review_without_retry(setup, box):
 
 
 def test_all_figure_prompts_name_axes_with_a_nonsquare_example():
-    from mathbank import prompts
+    from starhope import prompts
     info = {"page_index": 0, "candidates": []}
     values = [prompts.build_pdf_page_vision_prompt(info), prompts.build_pdf_layout_prompt("题干", info),
               prompts.build_pdf_region_vision_prompt([{"id": "r1", "page_info": info}])]

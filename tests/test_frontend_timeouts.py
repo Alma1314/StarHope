@@ -48,12 +48,12 @@ def run(source, checks):
 
 
 def test_policy_is_frozen_and_document_status_waits_for_sixty_seconds():
-    assert API.index("const MathBankTimeouts =") < API.index("const MathBankSafe ="), "policy must be shared across cascade modules"
+    assert API.index("const StarHopeTimeouts =") < API.index("const StarHopeSafe ="), "policy must be shared across cascade modules"
     source = "const fetch=(url,options)=>new Promise(resolve=>requests.push({url,options,resolve}));\n"
     source += section(IMPORT, "async function fetchDocumentImportJson(", "async function requestDocumentTaskCancellation(")
     run(source, r"""
-      assert.ok(Object.isFrozen(MathBankTimeouts));
-      assert.deepEqual(Object.values(MathBankTimeouts),[30000,60000,600000,1800000]);
+      assert.ok(Object.isFrozen(StarHopeTimeouts));
+      assert.deepEqual(Object.values(StarHopeTimeouts),[30000,60000,600000,1800000]);
       const task=fetchDocumentImportJson('/api/tasks/original/status');
       const failed=assert.rejects(task,error=>error.isConnectionTimeout===true);
       advance(59999);await flush();assert.equal(requests[0].options.signal.aborted,false);
@@ -175,9 +175,9 @@ def test_pandoc_total_wait_passes_fifteen_minutes_and_ends_at_thirty_minutes():
 
 def test_upload_and_ai_waits_keep_their_respective_contracts():
     source_upload = section(IMPORT, "const readToken =", "// 旧版独立配图区")
-    assert "controller.abort(), MathBankTimeouts.UPLOAD_MS" in source_upload
+    assert "controller.abort(), StarHopeTimeouts.UPLOAD_MS" in source_upload
     for source in ((ROOT / "static/js/ocr.js").read_text(encoding="utf-8"),
                    section(IMPORT, "function runAIClassify()", "function canApplyClassifyRecommendation()")):
-        assert "MathBankTimeouts" not in source  # Existing cancellation has no short wall-clock cutoff.
+        assert "StarHopeTimeouts" not in source  # Existing cancellation has no short wall-clock cutoff.
     assert "}, 1500);" in IMPORT
     assert "setTimeout(resolve, 750)" in PAPER

@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from mathbank.content_locks import lock_visible_math, reconcile_visible_math
+from starhope.content_locks import lock_visible_math, reconcile_visible_math
 
 
 def reconcile(source, content, answer=''):
@@ -32,7 +32,7 @@ def test_word_bare_variables_and_conditions_accept_added_math_delimiters():
 
 @pytest.mark.parametrize('space', ['\u00a0', '\u1680', '\u2000', '\u2002', '\u2003', '\u2007', '\u2009', '\u2028', '\u2029', '\u202f', '\u205f', '\u3000'])
 def test_word_unicode_whitespace_does_not_abort_format_comparison(space):
-    from mathbank.content_locks import _delimited_plain_key
+    from starhope.content_locks import _delimited_plain_key
     assert _delimited_plain_key('已知a' + space + '+b>0') == _delimited_plain_key('已知a +b>0')
     _, report = reconcile('1.设a' + space + '+b>0，求值。', '设 $a+b>0$，求值。')
     assert report['source_review_count'] == 0
@@ -349,7 +349,7 @@ def test_word_single_cell_answer_table_does_not_hide_changed_formula():
 
 @pytest.mark.parametrize('columns', ['cc', 'c'])
 def test_word_nested_one_cell_answer_table_keeps_all_wrappers(columns):
-    from mathbank.content_locks import _answer_table_comparison_layout
+    from starhope.content_locks import _answer_table_comparison_layout
     source = '1.求x的值。\n\\begin{tabular}{' + columns + '}\n说明 & ' + r'\begin{tabular}{c}' + '\n【解析】由x=1得到结果。\n' + r'\end{tabular}\end{tabular}'
     assert _answer_table_comparison_layout(source) == source
     _, report = reconcile(source, '求 $x$ 的值。\n\\begin{tabular}{' + columns + '}说明 &', r'由 $x=1$ 得到结果。\end{tabular}')
@@ -357,14 +357,14 @@ def test_word_nested_one_cell_answer_table_keeps_all_wrappers(columns):
 
 
 def test_word_one_cell_answer_table_containing_another_stem_keeps_its_wrapper():
-    from mathbank.content_locks import _answer_table_comparison_layout
+    from starhope.content_locks import _answer_table_comparison_layout
     source = '1.求x的值。\n' + r'\begin{tabular}{c}' + '\n【解析】由x=1得到结果。\n2.已知y=2，求y。\n' + r'\end{tabular}'
     assert _answer_table_comparison_layout(source) == source
 
 
-@pytest.mark.skipif(not os.environ.get('MATHBANK_WORD_SOURCE_AUDIT'), reason='local Word audit fixture is opt-in')
+@pytest.mark.skipif(not os.environ.get('STARHOPE_WORD_SOURCE_AUDIT'), reason='local Word audit fixture is opt-in')
 def test_word_xuejun_full_cached_result_replay_keeps_unproven_changes():
-    base = Path(os.environ['MATHBANK_WORD_SOURCE_AUDIT'])
+    base = Path(os.environ['STARHOPE_WORD_SOURCE_AUDIT'])
     extracted = json.loads((base / 'native-extract.json').read_text())
     task = json.loads((base / 'task.json').read_text())
     source = extracted['markdown']
@@ -389,11 +389,11 @@ def test_word_xuejun_full_cached_result_replay_keeps_unproven_changes():
     ('task.json', [1, 3, 5, 8, 10, 14, 15, 17, 18]),
     ('6fc9bbd2-ac99-4267-b588-be1f6c95cfe5.json', [3, 5, 8, 10, 14, 15, 17, 18]),
 ])
-@pytest.mark.skipif(not (os.environ.get('MATHBANK_WORD_SOURCE_AUDIT') and os.environ.get('MATHBANK_WORD_RECHECK_AUDIT')),
+@pytest.mark.skipif(not (os.environ.get('STARHOPE_WORD_SOURCE_AUDIT') and os.environ.get('STARHOPE_WORD_RECHECK_AUDIT')),
                     reason='both local Word audit fixtures are opt-in')
 def test_word_new_cached_result_uses_hash_bound_assets_and_retains_actual_edits(task_name, remaining):
-    native = Path(os.environ['MATHBANK_WORD_SOURCE_AUDIT'])
-    latest = Path(os.environ['MATHBANK_WORD_RECHECK_AUDIT'])
+    native = Path(os.environ['STARHOPE_WORD_SOURCE_AUDIT'])
+    latest = Path(os.environ['STARHOPE_WORD_RECHECK_AUDIT'])
     extracted = json.loads((native / 'native-extract.json').read_text())
     task = json.loads((latest / task_name).read_text())
     identities = {}

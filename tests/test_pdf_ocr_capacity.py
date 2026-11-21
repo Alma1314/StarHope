@@ -5,14 +5,14 @@ import threading
 
 import pytest
 
-from mathbank.pdf_ocr_capacity import (
+from starhope.pdf_ocr_capacity import (
     DEFAULT_PDF_OCR_CONCURRENCY,
     MAX_PDF_OCR_CONCURRENCY,
     PDF_OCR_PAGE_INPUT_BUDGET,
     PdfOcrCapacity,
     configured_pdf_ocr_concurrency,
 )
-from mathbank.task_manager import TaskCancelled
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.mark.parametrize("value, expected", [

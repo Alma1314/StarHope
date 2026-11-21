@@ -1,4 +1,4 @@
-"""Build verified Windows and macOS release archives for MathBank.
+"""Build verified Windows and macOS release archives for StarHope.
 
 The release builder deliberately fails closed: downloaded runtimes must match
 their pinned SHA-256 values, cached downloads are rechecked on every build, and
@@ -19,20 +19,20 @@ import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
 
-from mathbank import __version__
-from mathbank.paths import BUILD_CACHE_DIR, DIST_DIR as PROJECT_DIST_DIR, PROJECT_ROOT
+from starhope import __version__
+from starhope.paths import BUILD_CACHE_DIR, DIST_DIR as PROJECT_DIST_DIR, PROJECT_ROOT
 
 
 # Paths
 BASE_DIR = str(PROJECT_ROOT)
 DIST_DIR = str(PROJECT_DIST_DIR)
-BUILD_DIR = os.path.join(DIST_DIR, "mathbank-windows")
+BUILD_DIR = os.path.join(DIST_DIR, "starhope-windows")
 PYTHON_DIR = os.path.join(BUILD_DIR, "python")
 WHEELS_DIR = os.path.join(DIST_DIR, "wheels")
 SITE_PACKAGES = os.path.join(PYTHON_DIR, "site-packages")
 CACHE_DIR = str(BUILD_CACHE_DIR)
 CACHE_WHEELS_DIR = os.path.join(CACHE_DIR, "wheels")
-MACOS_BUILD_DIR = os.path.join(DIST_DIR, "mathbank-macos")
+MACOS_BUILD_DIR = os.path.join(DIST_DIR, "starhope-macos")
 
 PYTHON_ZIP_URL = (
     "https://www.python.org/ftp/python/3.10.11/"
@@ -86,7 +86,7 @@ Package: {MSVC_REDIST_PACKAGE_ID} {MSVC_REDIST_PACKAGE_VERSION}
 Source: {MSVC_REDIST_VSIX_URL}
 Archive SHA-256: {MSVC_REDIST_VSIX_SHA256}
 Files: {', '.join(MSVC_RUNTIME_DLLS)}
-Supported MathBank target: Windows 10/11 x64
+Supported StarHope target: Windows 10/11 x64
 
 The DLLs are copied unmodified from the production VC\\Redist directory.
 Redistribution is subject to the Microsoft Visual Studio license terms:
@@ -116,13 +116,13 @@ HIDDEN_FILE_ALLOWLIST = {".env.example", ".gitkeep", ".rels"}
 # Reviewed local-only maintenance tools and the source-only release builder.
 # Match project-relative paths so runtime resources and dependency names survive.
 INTERNAL_TOOL_RELEASE_PATHS = frozenset({
-    "mathbank/association_batch.py",
-    "mathbank/classification_proposals.py",
-    "mathbank/difficulty_batch.py",
-    "mathbank/knowledge_backfill.py",
-    "mathbank/knowledge_backfill_apply.py",
-    "mathbank/question_exchange.py",
-    "mathbank/zhixue_archive_conversion.py",
+    "starhope/association_batch.py",
+    "starhope/classification_proposals.py",
+    "starhope/difficulty_batch.py",
+    "starhope/knowledge_backfill.py",
+    "starhope/knowledge_backfill_apply.py",
+    "starhope/question_exchange.py",
+    "starhope/zhixue_archive_conversion.py",
     "scripts/association_batch.py",
     "scripts/audit_subquestion_numbering.py",
     "scripts/backfill_question_references.py",
@@ -168,10 +168,10 @@ FORBIDDEN_RELEASE_SUFFIXES = {
 }
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 RELEASE_OUTPUT_NAMES = (
-    "MathBank-Windows-x64.zip",
-    "MathBank-Windows-x64.zip.sha256",
-    "MathBank-macOS.zip",
-    "MathBank-macOS.zip.sha256",
+    "StarHope-Windows-x64.zip",
+    "StarHope-Windows-x64.zip.sha256",
+    "StarHope-macOS.zip",
+    "StarHope-macOS.zip.sha256",
 )
 # These directories are shipped by pinned wheels but are not needed at runtime.
 # Keep the list explicit so a newly introduced package payload still fails the
@@ -186,9 +186,9 @@ OVERLAY_PROTECTED_PATHS = (
     ".env",
     ".system_generated",
     "data_backup",
-    "math_question_bank.db",
-    "math_question_bank.db-wal",
-    "math_question_bank.db-shm",
+    "starhope.db",
+    "starhope.db-wal",
+    "starhope.db-shm",
     "static/uploads",
     "venv",
 )
@@ -200,7 +200,7 @@ OVERLAY_MANAGED_ROOTS = (
     "README.md",
     "README_EN.md",
     "LICENSE",
-    "mathbank",
+    "starhope",
     "scripts",
     "static",
     "templates",
@@ -277,7 +277,7 @@ def download_verified(url, cache_path, expected_sha256, label):
     try:
         request = urllib.request.Request(
             url,
-            headers={"User-Agent": f"MathBank-release-builder/{__version__}"},
+            headers={"User-Agent": f"StarHope-release-builder/{__version__}"},
         )
         with urllib.request.urlopen(request, timeout=60) as response, open(
             temporary_path, "wb"
@@ -342,7 +342,7 @@ def validate_release_source():
     print("[validate] Validating release source imports and type annotations...")
     validation_code = (
         "from typing import get_type_hints; "
-        "from mathbank.ai_json import parse_ai_json; "
+        "from starhope.ai_json import parse_ai_json; "
         "get_type_hints(parse_ai_json)"
     )
     subprocess.check_call([sys.executable, "-c", validation_code], cwd=BASE_DIR)
@@ -351,7 +351,7 @@ def validate_release_source():
         "from pathlib import Path; "
         "from scripts.build_release import _is_internal_tool_release_path; "
         "[compile(p.read_bytes(), str(p), 'exec') "
-        "for root in ('mathbank', 'scripts') "
+        "for root in ('starhope', 'scripts') "
         "for p in Path(root).rglob('*.py') "
         "if not _is_internal_tool_release_path(p)]"
     )
@@ -360,7 +360,7 @@ def validate_release_source():
     python310 = shutil.which("python3.10")
     if python310:
         subprocess.check_call(
-            [python310, "-c", "import mathbank.ai_json"],
+            [python310, "-c", "import starhope.ai_json"],
             cwd=BASE_DIR,
         )
 
@@ -544,7 +544,7 @@ def configure_python_path():
         if line.strip() == ".":
             # Entries in python310._pth are relative to python/python.exe, not
             # to the launcher's working directory.  The application modules
-            # (main.py, mathbank/, scripts/) live one directory above it.
+            # (main.py, starhope/, scripts/) live one directory above it.
             new_lines.append("..")
             application_root_added = True
             new_lines.append("site-packages")
@@ -697,7 +697,7 @@ def copy_app_files(destination, launcher_name):
             Path(BASE_DIR, relative_name), destination / relative_name
         )
     _copy_allowlisted_entry(Path(BASE_DIR, launcher_name), destination / launcher_name)
-    _copy_allowlisted_entry(Path(BASE_DIR, "mathbank"), destination / "mathbank")
+    _copy_allowlisted_entry(Path(BASE_DIR, "starhope"), destination / "starhope")
     _copy_allowlisted_entry(Path(BASE_DIR, "scripts"), destination / "scripts")
 
     static_destination = destination / "static"
@@ -771,7 +771,7 @@ def assert_release_tree_clean(root, platform_name):
         "main.py",
         "requirements.txt",
         "覆盖升级说明.txt",
-        "mathbank/__init__.py",
+        "starhope/__init__.py",
         "scripts/release_overlay.py",
         "scripts/local_launcher.py",
         "static/index.html",
@@ -882,7 +882,7 @@ def validate_staged_python_sources(root):
     """Compile staged Python sources without importing data-bearing modules."""
     smoke_code = (
         "from pathlib import Path; "
-        "files=list(Path('.').joinpath('mathbank').rglob('*.py'))"
+        "files=list(Path('.').joinpath('starhope').rglob('*.py'))"
         "+list(Path('.').joinpath('scripts').rglob('*.py'))+[Path('main.py')]; "
         "[compile(p.read_bytes(), str(p), 'exec') for p in files]"
     )
@@ -935,7 +935,7 @@ def validate_windows_runtime(root):
             "runtime=pathlib.Path(sys.executable).with_name('msvcp140.dll').resolve(); "
             "ctypes.WinDLL(str(runtime)); "
             "import sqlite3, fastapi, uvicorn, sqlalchemy, greenlet, colorama; "
-            "import pymupdf, pdf_inspector, mathbank.ai_json, scripts"
+            "import pymupdf, pdf_inspector, starhope.ai_json, scripts"
         )
         subprocess.check_call(
             [
@@ -1195,7 +1195,7 @@ def zip_release():
     validate_windows_runtime(BUILD_DIR)
     return _build_archive(
         BUILD_DIR,
-        os.path.join(DIST_DIR, "MathBank-Windows-x64"),
+        os.path.join(DIST_DIR, "StarHope-Windows-x64"),
         "windows-x64",
         WINDOWS_LAUNCHER_NAME,
     )
@@ -1210,7 +1210,7 @@ def zip_macos_release():
     try:
         return _build_archive(
             macos_build_dir,
-            os.path.join(DIST_DIR, "MathBank-macOS"),
+            os.path.join(DIST_DIR, "StarHope-macOS"),
             "macos",
             "启动题库系统.command",
         )

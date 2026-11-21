@@ -5,8 +5,8 @@ import uuid
 import zipfile
 import pytest
 import main
-from mathbank.source_metadata import prepare_word_source_metadata
-from mathbank.question_assets import embedded_question_assets
+from starhope.source_metadata import prepare_word_source_metadata
+from starhope.question_assets import embedded_question_assets
 from test_word_hybrid_safety import paragraph, bad_question, W, M, FIELDS, CURRICULUM, Response
 
 

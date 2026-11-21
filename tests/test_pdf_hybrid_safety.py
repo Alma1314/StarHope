@@ -7,20 +7,20 @@ import json,re
 from PIL import Image
 import pytest
 
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.pdf_layout import apply_figure_anchors
-from mathbank.pdf_figures import clear_resolved_figure_placeholders
-from mathbank.pdf_transcription_scopes import (
+from starhope.ai_providers import resolve_text_provider
+from starhope.pdf_layout import apply_figure_anchors
+from starhope.pdf_figures import clear_resolved_figure_placeholders
+from starhope.pdf_transcription_scopes import (
     begin_pdf_transcription_witness, finish_pdf_transcription_witness,
     finalize_pdf_transcription_snapshot, verify_pdf_transcription_snapshot,
 )
-from mathbank.pdf_hybrid_plan import (
+from starhope.pdf_hybrid_plan import (
     PdfHybridPlanError, build_pdf_snapshot_hybrid_plan,
     require_pdf_hybrid_plan, require_pdf_snapshot_hybrid_plan,
 )
-from mathbank.pdf_hybrid_request import request_pdf_hybrid
-from mathbank.source_metadata import SourceMetadataContractError
-from mathbank.task_manager import TaskCancelled
+from starhope.pdf_hybrid_request import request_pdf_hybrid
+from starhope.source_metadata import SourceMetadataContractError
+from starhope.task_manager import TaskCancelled
 
 CURRICULUM={'必修一':{'3. 函数的概念与性质':[]}}
 FIELDS={'question_type':'detailed_answer','category_compulsory':'必修一',
@@ -54,12 +54,12 @@ def prepared(tmp_path,*,risk=True,with_figure=False,shared=False):
                 'anchor_before':'已知$x=99$。','anchor_after':'【答案】$99$。'}]
         result['layout']['figures'] = deepcopy(state['figures'])
         witnesses[index]=finish_pdf_transcription_witness(before,result)
-        marked=f'<!-- MATHBANK_PDF_PAGE:{index+1} -->\n'+text
+        marked=f'<!-- STARHOPE_PDF_PAGE:{index+1} -->\n'+text
         attached=apply_figure_anchors(marked,state['figures'])
         marked=clear_resolved_figure_placeholders(attached['markdown'],state['figures'])
         pages.append({'page_number':index+1,'origin':'joint_vision','markdown':marked})
         layout.append(state)
-    source='\n\n'.join(re.sub(r'<!-- MATHBANK_PDF_PAGE:\d+ -->','',page['markdown']) for page in pages)
+    source='\n\n'.join(re.sub(r'<!-- STARHOPE_PDF_PAGE:\d+ -->','',page['markdown']) for page in pages)
     diagnostics={'pdf_extraction':'joint_vision','pdf_native_quality':[{'reason':'unverified native glyphs remain unverified'}]}
     evidence=finalize_pdf_transcription_snapshot(source,diagnostics,source_document_sha256='a'*64,
         source_pages=pages,layout_result={'pages':layout},witnesses=witnesses,
@@ -116,7 +116,7 @@ def test_snapshot_self_reported_native_math_flags_never_become_native_certificat
 @pytest.mark.parametrize('status', [301, 307, 400, 401, 403, 404, 413, 422])
 def test_permanent_http_error_stops_without_full_source_fallback(tmp_path, status):
     from types import SimpleNamespace
-    from mathbank.source_hybrid_request import SourceHybridPermanentRequestError
+    from starhope.source_hybrid_request import SourceHybridPermanentRequestError
     plan, _, _ = prepared(tmp_path, risk=False)
     calls = []
     def post(*_args, **_kwargs):
@@ -129,7 +129,7 @@ def test_permanent_http_error_stops_without_full_source_fallback(tmp_path, statu
 
 def test_filtered_hybrid_response_never_resubmits_whole_source(tmp_path):
     from types import SimpleNamespace
-    from mathbank.source_hybrid_request import SourceHybridPermanentRequestError
+    from starhope.source_hybrid_request import SourceHybridPermanentRequestError
     plan, _, _ = prepared(tmp_path, risk=False)
     def post(*_args, **_kwargs):
         return SimpleNamespace(status_code=200, json=lambda: {
@@ -170,7 +170,7 @@ def test_unknown_or_duplicate_reply_identity_stops_without_paid_fallback(tmp_pat
         else:reply['splits'][0]['questions'][1]['source_id']=reply['splits'][0]['questions'][0]['source_id']
         return Response(reply)
     old=[{'content':'Original source fallback',**FIELDS}]
-    from mathbank.source_metadata import SourceMetadataNoFallbackError
+    from starhope.source_metadata import SourceMetadataNoFallbackError
     with pytest.raises(SourceMetadataNoFallbackError):
         run(plan,post,fallback=lambda:fallbacks.append(True) or old)
     assert len(posts)==1 and not fallbacks
@@ -182,7 +182,7 @@ def test_original_answer_exchange_in_closed_risk_group_is_a_hard_source_boundary
         posts.append(payload);reply=response_for(plan,payload);rows=reply['splits'][0]['questions']
         rows[0]['answer_markdown'],rows[1]['answer_markdown']=rows[1]['answer_markdown'],rows[0]['answer_markdown']
         return Response(reply)
-    from mathbank.source_metadata import SourceMetadataNoFallbackError
+    from starhope.source_metadata import SourceMetadataNoFallbackError
     with pytest.raises(SourceMetadataNoFallbackError):
         run(plan,post)
     assert len(posts)==1
@@ -218,8 +218,8 @@ def test_public_snapshot_json_cannot_be_replayed_as_private_evidence(tmp_path):
 def test_real_plain_native_proof_and_visual_transcript_proof_cannot_exchange_domains(tmp_path):
     import hashlib
     import pymupdf
-    from mathbank.pdf_source_scopes import _capture_native_source_evidence, finalize_pdf_source_review_evidence
-    from mathbank.pdf_hybrid_plan import build_pdf_hybrid_plan
+    from starhope.pdf_source_scopes import _capture_native_source_evidence, finalize_pdf_source_review_evidence
+    from starhope.pdf_hybrid_plan import build_pdf_hybrid_plan
     document=pymupdf.open();page=document.new_page()
     page.insert_text((70,70),'1. Plain first question.\n2. Independent second question.',fontname='helv',fontsize=12)
     raw=document.tobytes();markdown=page.get_text('text').strip();document.close()
@@ -240,7 +240,7 @@ def test_real_plain_native_proof_and_visual_transcript_proof_cannot_exchange_dom
     with pytest.raises(PdfHybridPlanError):require_pdf_snapshot_hybrid_plan(native,task_id='native-domain',generation=0)
     snapshot,_,_=prepared(tmp_path)
     original_native=native['_source_review_evidence'];original_snapshot=snapshot['_source_review_evidence']
-    from mathbank.pdf_source_scopes import verify_pdf_source_review_evidence
+    from starhope.pdf_source_scopes import verify_pdf_source_review_evidence
     assert verify_pdf_transcription_snapshot(markdown,diagnostics,original_native,
         source_document_sha256=docsha,source_pages=pages,layout_result=layout)['status']=='uncertain'
     assert verify_pdf_source_review_evidence(markdown,diagnostics,original_snapshot,

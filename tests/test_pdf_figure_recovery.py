@@ -3,8 +3,8 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.pdf_figure_recovery import PdfFigureRecoveryError, prepare_recovered_figure_inputs
-from mathbank.pdf_figures import describe_figure_slots
+from starhope.pdf_figure_recovery import PdfFigureRecoveryError, prepare_recovered_figure_inputs
+from starhope.pdf_figures import describe_figure_slots
 
 
 OLD = '/static/uploads/tmp/historical.png'

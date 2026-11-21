@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from sqlalchemy import create_engine, event
 
-from mathbank import database as database_module
-from mathbank import db_migrations
+from starhope import database as database_module
+from starhope import db_migrations
 
 
 @contextmanager
@@ -1016,11 +1016,11 @@ def test_migration_refuses_partially_missing_schema(tmp_path):
 def test_persistence_modules_remain_importable_on_python_310():
     project_root = Path(__file__).resolve().parents[1]
     module_paths = [
-        project_root / "mathbank" / "backup.py",
-        project_root / "mathbank" / "db_migrations.py",
-        project_root / "mathbank" / "database.py",
-        project_root / "mathbank" / "task_manager.py",
-        project_root / "mathbank" / "health.py",
+        project_root / "starhope" / "backup.py",
+        project_root / "starhope" / "db_migrations.py",
+        project_root / "starhope" / "database.py",
+        project_root / "starhope" / "task_manager.py",
+        project_root / "starhope" / "health.py",
         project_root / "scripts" / "backup.py",
         project_root / "scripts" / "restore.py",
     ]

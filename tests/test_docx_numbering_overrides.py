@@ -4,7 +4,7 @@ import zipfile
 
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown
+from starhope.docx_helper import extract_docx_markdown
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 

@@ -2,8 +2,8 @@
 from io import BytesIO
 from zipfile import ZipFile
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.content_locks import lock_visible_math, _source_parts
+from starhope.docx_helper import extract_docx_markdown
+from starhope.content_locks import lock_visible_math, _source_parts
 
 
 def docx(texts):

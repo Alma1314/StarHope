@@ -5,7 +5,7 @@ import zipfile
 
 import pytest
 
-from mathbank import library_transfer as transfer
+from starhope import library_transfer as transfer
 
 
 def _records(count=3):

@@ -6,8 +6,8 @@ from PIL import Image
 import pymupdf as fitz
 import pytest
 
-from mathbank.pdf_layout import inspect_pdf_page, refine_figure_bbox
-from mathbank.pdf_page_vision import _prompt_page_info
+from starhope.pdf_layout import inspect_pdf_page, refine_figure_bbox
+from starhope.pdf_page_vision import _prompt_page_info
 
 
 def triangle(document, *, flat=False, label="A", label_y=None, invisible=False, broken=False):

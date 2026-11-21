@@ -17,7 +17,7 @@ def run_preview_script(assertions):
     katex_path = str(PROJECT_ROOT / "static/lib/katex/katex.min.js")
     script = (
         "process.on('uncaughtException', error => { console.error(error.stack); process.exit(1); });\n"
-        + "global.window = {MathBankSafe: {safeImageUrl(v) { return v; }, escapeAttribute(v) { return v; }}};\n"
+        + "global.window = {StarHopeSafe: {safeImageUrl(v) { return v; }, escapeAttribute(v) { return v; }}};\n"
         + "const katex = require(" + json.dumps(katex_path) + ");\n"
         + source[start:end]
         + r'''
@@ -76,7 +76,7 @@ assert.equal(normalizePreviewDollarSigns(protectedText), protectedText);
 
 
 def test_dynamic_markdown_storage_fences_keep_examples_inert_in_preview():
-    from mathbank.markdown_helper import prepare_markdown_question_for_storage
+    from starhope.markdown_helper import prepare_markdown_question_for_storage
 
     literal_path = "/static/uploads/tmp/literal-fence.png"
     visible_path = "/static/uploads/tmp/visible-fence.png"
@@ -159,7 +159,7 @@ const protectedExamples = [
     '\\verb|\\fillin|', '\\detokenize{\\fillin}',
     '\\begin{tikzpicture}\\node{\\fillin};\\end{tikzpicture}',
     '![](/static/uploads/fillin.png)', '[[MBM_scope_0001]]',
-    '<mathbank-math id="MBM_scope_0001">\\fillin</mathbank-math>',
+    '<starhope-math id="MBM_scope_0001">\\fillin</starhope-math>',
     '\\\\fillin',
 ];
 for (const literal of protectedExamples) assert.equal(transformFillinMacro(literal), literal);
@@ -231,7 +231,7 @@ for (const source of [
     String.raw`\begin{tikzpicture}\node {$5 and $10};\end{tikzpicture}`,
     '![](/static/uploads/$5.png)', '[price](https://example.test/$5)',
     'https://example.test/$5?total=10', '[[MBM_scope-1_0001]]',
-    '<mathbank-math id="MBM_scope_0001">$5 and $10</mathbank-math>',
+    '<starhope-math id="MBM_scope_0001">$5 and $10</starhope-math>',
     String.raw`\($2 xy+3$\)`, String.raw`\[$5 and $10\]`, '$$2 xy+3$$',
 ]) assert.equal(normalizePreviewDollarSigns(source), source, source);
 for (const literal of [

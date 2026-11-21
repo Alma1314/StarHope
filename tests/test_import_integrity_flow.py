@@ -1,6 +1,6 @@
 """Word/TeX import boundaries with fake model responses and the isolated test DB."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 import json
 import uuid
@@ -122,7 +122,7 @@ def test_import_accepts_unchanged_formulas_when_model_omits_all_ids(import_flow,
     result = import_flow(channel, "1. " + content, [_question(content)])
 
     assert result.success, result.error
-    assert '<mathbank-math id="' in result.payload["messages"][1]["content"]
+    assert '<starhope-math id="' in result.payload["messages"][1]["content"]
     assert result.questions[0]["content"] == content
     assert not result.questions[0].get("source_review", {}).get("required")
     assert result.diagnostics["math_locks_by_content"] == 1

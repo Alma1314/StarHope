@@ -1,6 +1,6 @@
 import pytest
 
-from mathbank.fraction_style import normalize_fraction_style
+from starhope.fraction_style import normalize_fraction_style
 
 
 @pytest.mark.parametrize("opening,closing", [("$", "$"), ("$$", "$$"), (r"\(", r"\)"), (r"\[", r"\]")])
@@ -47,7 +47,7 @@ def test_examzh_constants_in_protected_sources_are_preserved():
         r"`$\eu+\frac12$` "
         r"\begin{tikzpicture}\node {$\iu+\frac12$};\end{tikzpicture} "
         r"\text{示例 $\upe+\frac12$} "
-        '<mathbank-math id="MBM_DOCX_0001">$\\upi+\\frac12$</mathbank-math>'
+        '<starhope-math id="MBM_DOCX_0001">$\\upi+\\frac12$</starhope-math>'
     )
     assert normalize_fraction_style(protected + r" $\eu+\frac12$") == protected + r" $\eu+\dfrac12$"
 
@@ -80,7 +80,7 @@ def test_standalone_environments_and_nested_cases(environment):
     r"\begin{tikzpicture}\node {$\frac12$};\end{tikzpicture}",
     r"\begin{axis}\node {$\frac12$};\end{axis}",
     r"\begin{verbatim}$\frac12$\end{verbatim}",
-    '<mathbank-math id="MBM_DOCX_0001">$\\frac12$</mathbank-math>',
+    '<starhope-math id="MBM_DOCX_0001">$\\frac12$</starhope-math>',
     r"[[MBM_DOCX_0001]]",
     r"![图 $\frac12$](/static/uploads/a.png)",
     r"\text{使用 $\frac12$ 作为示例}",

@@ -9,12 +9,12 @@ import pytest
 from pdf_feature_contract import experimental_pdf_only
 import requests
 
-from mathbank import pdf_source_verify as verify
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.pdf_figures import apply_pdf_layout_reviews, refresh_pdf_review_items
-from mathbank.pdf_fragment_draft import prepare_pdf_fragment_draft
-from mathbank.pdf_fragment_sources import prepare_pdf_fragment_sources
-from mathbank.pdf_page_fragments import SCHEMA, validate_pdf_page_fragments
+from starhope import pdf_source_verify as verify
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.pdf_figures import apply_pdf_layout_reviews, refresh_pdf_review_items
+from starhope.pdf_fragment_draft import prepare_pdf_fragment_draft
+from starhope.pdf_fragment_sources import prepare_pdf_fragment_sources
+from starhope.pdf_page_fragments import SCHEMA, validate_pdf_page_fragments
 
 
 @pytest.fixture

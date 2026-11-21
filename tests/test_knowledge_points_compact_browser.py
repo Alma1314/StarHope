@@ -1,6 +1,6 @@
 """Compact filter and knowledge tree UX in a disposable, source-only app.
 
-Opt in with MATHBANK_TEST_BROWSER=1. The shared browser fixture copies source
+Opt in with STARHOPE_TEST_BROWSER=1. The shared browser fixture copies source
 assets only, creates an empty SQLite database, and never contacts a real model.
 """
 import json

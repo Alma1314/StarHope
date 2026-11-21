@@ -1,6 +1,6 @@
 import pytest
 
-from mathbank.ai_providers import (
+from starhope.ai_providers import (
     apply_bailian_thinking_policy,
     build_chat_completions_url,
     inject_reasoning_effort,

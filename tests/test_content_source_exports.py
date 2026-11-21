@@ -14,9 +14,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from mathbank import content_sources, paper_helper as paper, sync_helper as sync, word_export_helper as word
-from mathbank.database import Base, Question
-from mathbank.paths import PROJECT_ROOT
+from starhope import content_sources, paper_helper as paper, sync_helper as sync, word_export_helper as word
+from starhope.database import Base, Question
+from starhope.paths import PROJECT_ROOT
 
 
 QUESTION = {"id": 77, "question_type": "single_choice", "source": "教师自编",
@@ -110,7 +110,7 @@ def test_sync_keeps_top_level_array_with_once_only_sibling_notices(export_sessio
     assert markdown.count(content_sources.content_sources_notice()) == 1
     assert markdown.count("教师自编 $x=1$。") == 1
     assert export_session.connection().exec_driver_sql("SELECT * FROM questions").all() == before
-    assert not list(tmp_path.glob(".mathbank-export-*"))
+    assert not list(tmp_path.glob(".starhope-export-*"))
 
 
 def test_failed_sidecar_preparation_keeps_all_last_good_exports(export_session, tmp_path, monkeypatch):
@@ -126,7 +126,7 @@ def test_failed_sidecar_preparation_keeps_all_last_good_exports(export_session, 
     with pytest.raises(RuntimeError, match="source-notice output failure"):
         sync.export_database_to_files(export_session, quiet=True)
     assert all((tmp_path / name).read_text() == "last-good:" + name for name in names)
-    assert not list(tmp_path.glob(".mathbank-export-*"))
+    assert not list(tmp_path.glob(".starhope-export-*"))
 
 
 def sample_pdf():
@@ -181,7 +181,7 @@ def test_compiler_adds_metadata_and_cache_tracks_the_notice(monkeypatch):
 
 
 def test_existing_bundle_api_uses_catalog_aware_packager_without_duplicate_files(tmp_path, monkeypatch):
-    from mathbank import export_preflight
+    from starhope import export_preflight
     monkeypatch.setattr(export_preflight, "EXPORT_PREFLIGHTS_DIR", tmp_path / "reports")
     module = ast.parse((PROJECT_ROOT / "main.py").read_text())
     node = next(n for n in module.body if isinstance(n, ast.FunctionDef) and n.name == "export_paper_bundle")

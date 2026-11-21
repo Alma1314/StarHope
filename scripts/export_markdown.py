@@ -1,7 +1,7 @@
 """Export the question bank as one human-readable Markdown file per question.
 
 Read-only: opens the existing SQLite database in ``mode=ro`` through
-``mathbank.agent_reads.AgentReader`` and never creates, migrates or writes it.
+``starhope.agent_reads.AgentReader`` and never creates, migrates or writes it.
 The question text is already Markdown + LaTeX, so the output keeps it verbatim;
 only metadata, answer/review sections, image links and an index are added.
 
@@ -17,8 +17,8 @@ import re
 import sys
 from pathlib import Path
 
-from mathbank.agent_reads import AgentReader
-from mathbank.paths import DATABASE_FILE, PROJECT_ROOT
+from starhope.agent_reads import AgentReader
+from starhope.paths import DATABASE_FILE, PROJECT_ROOT
 
 DEFAULT_OUTPUT = PROJECT_ROOT / "data_backup" / "questions_md"
 _QUESTION_FILE = re.compile(r"q\d+\.md")

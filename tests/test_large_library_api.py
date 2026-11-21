@@ -28,7 +28,7 @@ requests.sessions.Session.request = no_network
 
 import main
 from fastapi.testclient import TestClient
-from mathbank.database import (
+from starhope.database import (
     Question, QuestionCurriculum, QuestionKnowledgePoint, SessionLocal, engine,
 )
 
@@ -68,7 +68,7 @@ def attach_audit(question):
 @pytest.fixture
 def isolated_app(tmp_path):
     shutil.copy2(ROOT / "main.py", tmp_path / "main.py")
-    for directory in ("mathbank", "templates", "static"):
+    for directory in ("starhope", "templates", "static"):
         shutil.copytree(
             ROOT / directory, tmp_path / directory,
             ignore=shutil.ignore_patterns(
@@ -76,7 +76,7 @@ def isolated_app(tmp_path):
                 "*.db", "*.db-*", ".env", ".system_generated",
             ),
         )
-    assert not (tmp_path / "math_question_bank.db").exists()
+    assert not (tmp_path / "starhope.db").exists()
     assert not (tmp_path / ".env").exists()
     environment = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     environment.pop("PYTHONPATH", None)

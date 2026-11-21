@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pymupdf as fitz
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
+from starhope import pdf_inspector_helper as helper
 
 
 def prose(number):

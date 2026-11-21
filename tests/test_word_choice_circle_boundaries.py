@@ -4,12 +4,12 @@ import zipfile
 
 import pytest
 
-from mathbank.ai_json import (
+from starhope.ai_json import (
     _complete_choice_circle_ranges, _subquestion_literal_ranges,
     normalize_subquestions_double_newlines,
 )
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.source_metadata import _canonical_body
+from starhope.docx_helper import extract_docx_markdown
+from starhope.source_metadata import _canonical_body
 
 
 @pytest.mark.parametrize("separator", ["\t", "    ", "\n", "\n\n"])

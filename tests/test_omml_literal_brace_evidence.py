@@ -6,9 +6,9 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.omml_helper import omml_element_to_latex
-from mathbank.source_metadata import prepare_word_source_metadata
+from starhope.docx_helper import extract_docx_markdown
+from starhope.omml_helper import omml_element_to_latex
+from starhope.source_metadata import prepare_word_source_metadata
 
 
 M = "http://schemas.openxmlformats.org/officeDocument/2006/math"

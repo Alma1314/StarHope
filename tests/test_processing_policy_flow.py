@@ -4,22 +4,22 @@ import os
 from types import SimpleNamespace
 
 import pytest
-from mathbank.database import Question
+from starhope.database import Question
 
 
 def test_settings_quality_round_trip_preserves_legacy_client_mode(client, monkeypatch, tmp_path, db_session):
     import main
     monkeypatch.setattr(os, 'environ', dict(os.environ))
-    monkeypatch.setenv('MATHBANK_CLASSIFY_MODE', 'quick')
+    monkeypatch.setenv('STARHOPE_CLASSIFY_MODE', 'quick')
     path = tmp_path / '.env'
-    path.write_text('UNRELATED_SETTING=keep\nMATHBANK_CLASSIFY_MODE=quick\n')
+    path.write_text('UNRELATED_SETTING=keep\nSTARHOPE_CLASSIFY_MODE=quick\n')
     monkeypatch.setattr(main, 'ENV_FILE', path)
     monkeypatch.setattr(main, 'post_chat_completion', lambda *a, **k: pytest.fail('Settings must not call AI'))
     headers = {'X-Local-Token':main.LOCAL_TOKEN}
     reply = client.post('/api/settings/save', data={'classify_quality':'precise'}, headers=headers)
     assert reply.status_code == 200
     assert client.get('/api/settings').json()['classification_policy']['mode'] == 'precise'
-    assert 'MATHBANK_CLASSIFY_MODE=precise\n' in path.read_text()
+    assert 'STARHOPE_CLASSIFY_MODE=precise\n' in path.read_text()
     assert 'UNRELATED_SETTING=keep\n' in path.read_text()
     # A client without the new control does not reset an existing preference.
     assert client.post('/api/settings/save', data={}, headers=headers).status_code == 200
@@ -33,7 +33,7 @@ def test_settings_quality_round_trip_preserves_legacy_client_mode(client, monkey
 @pytest.mark.parametrize('quality,expected', [(None,4096),('quick',4096),('precise',8192)])
 def test_single_question_profile_reaches_real_request_without_database_writes(client, monkeypatch, db_session, quality, expected):
     import main
-    monkeypatch.setenv('MATHBANK_CLASSIFY_MODE', 'quick')
+    monkeypatch.setenv('STARHOPE_CLASSIFY_MODE', 'quick')
     monkeypatch.setenv('PREFER_CLASSIFY_MODEL', 'SILICONFLOW/deepseek-ai/DeepSeek-V4.1-Flash')
     monkeypatch.setenv('SILICONFLOW_API_KEY', 'test-only')
     monkeypatch.setattr(main, 'get_current_curriculum', lambda: {'必修一': {'函数': ['函数值']}})

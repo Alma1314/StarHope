@@ -12,13 +12,13 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
-from mathbank.backup import create_full_backup, verify_full_backup
-from mathbank.database import Base, DocumentImportReceipt, Question
-from mathbank import db_migrations
-from mathbank.document_project_import import (
+from starhope.backup import create_full_backup, verify_full_backup
+from starhope.database import Base, DocumentImportReceipt, Question
+from starhope import db_migrations
+from starhope.document_project_import import (
     import_payload_hash, prepare_project_import, record_project_import, project_import_guard,
 )
-from mathbank.document_projects import DocumentProjectStore
+from starhope.document_projects import DocumentProjectStore
 
 
 def _card(**changes):

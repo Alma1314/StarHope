@@ -5,7 +5,7 @@ import os
 import pymupdf as fitz
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
+from starhope import pdf_inspector_helper as helper
 
 
 def pdf_bytes(count=2):
@@ -17,7 +17,7 @@ def pdf_bytes(count=2):
 
 @pytest.fixture
 def repair(monkeypatch):
-    from mathbank import pdf_native_math
+    from starhope import pdf_native_math
     calls = []
     def run(page, inspector_items=None):
         calls.append(page.number)
@@ -59,7 +59,7 @@ def test_selected_page_order_and_unselected_pages_are_preserved(repair):
 @pytest.mark.parametrize('status,markdown', [('unsupported', 'looks complete'), ('repaired', ''),
                                           ('repaired', '残留\uf8f1'), ('repaired', 'A. B. C. D.')])
 def test_incomplete_repair_keeps_its_original_visual_route(monkeypatch, status, markdown):
-    from mathbank import pdf_native_math
+    from starhope import pdf_native_math
     monkeypatch.setattr(pdf_native_math, 'repair_native_page', lambda *a: {'status': status, 'markdown': markdown})
     pages = [{'page_index': 0, 'markdown': 'original unsafe text', 'needs_ocr': True, 'quality_reasons': ['bad']}]
     result = helper._repair_native_pages(pdf_bytes(), pages)[0]
@@ -70,7 +70,7 @@ def test_incomplete_repair_keeps_its_original_visual_route(monkeypatch, status, 
 
 
 def test_repair_exception_is_not_success_or_extraction_failure(monkeypatch):
-    from mathbank import pdf_native_math
+    from starhope import pdf_native_math
     def fail(*a): raise ValueError('a local unsupported shape')
     monkeypatch.setattr(pdf_native_math, 'repair_native_page', fail)
     pages = [{'page_index': 0, 'markdown': 'raw', 'needs_ocr': True}]
@@ -107,7 +107,7 @@ def test_pymupdf_fallback_can_attempt_the_same_local_repair(repair, monkeypatch)
 def test_repaired_native_page_skips_all_visual_calls_and_shares_one_split(monkeypatch, strategy):
     import uuid
     import main
-    from mathbank import pdf_native_regions, pdf_page_vision, pdf_region_vision
+    from starhope import pdf_native_regions, pdf_page_vision, pdf_region_vision
 
     source = '题目 1：已知 $x_i^2=1$，求 $x_i$。'
     monkeypatch.setattr('requests.sessions.Session.request', lambda *a, **k: pytest.fail('No model network'))
@@ -145,7 +145,7 @@ def test_repaired_native_page_skips_all_visual_calls_and_shares_one_split(monkey
             main._delete_task_temp_assets(removed.get('temp_assets', []))
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_LIVE_NATIVE_REPAIR') != '1',
+@pytest.mark.skipif(os.environ.get('STARHOPE_LIVE_NATIVE_REPAIR') != '1',
                     reason='Explicit opt-in: one configured text-model request in an isolated database')
 def test_real_repaired_pdf_splits_once_without_vision(db_session, monkeypatch):
     import hashlib
@@ -154,11 +154,11 @@ def test_real_repaired_pdf_splits_once_without_vision(db_session, monkeypatch):
     import uuid
     from pathlib import Path
     import main
-    from mathbank import pdf_page_vision, pdf_region_vision, pdf_source_verify
-    from mathbank.paths import SYSTEM_GENERATED_DIR
+    from starhope import pdf_page_vision, pdf_region_vision, pdf_source_verify
+    from starhope.paths import SYSTEM_GENERATED_DIR
 
     assert str(main.engine.url) == 'sqlite:///:memory:', 'Live audit must use the test database'
-    path = Path(os.environ['MATHBANK_NATIVE_REPAIR_PDF'])
+    path = Path(os.environ['STARHOPE_NATIVE_REPAIR_PDF'])
     data = path.read_bytes()
     original_hash = hashlib.sha256(data).hexdigest()
     output = SYSTEM_GENERATED_DIR / 'pdf-structure-repair'

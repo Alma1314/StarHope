@@ -90,9 +90,9 @@ assert.equal(preprocessFormulaForKaTeX(String.raw`式(6.9.5)\\与式(6.9.6)`),
 ''')
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in real paragraph layout")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in real paragraph layout")
 def test_word_answer_paragraph_spacing(browser, tmp_path):
-    capture = os.environ.get("MATHBANK_TEST_WORD_SPACING_TASK")
+    capture = os.environ.get("STARHOPE_TEST_WORD_SPACING_TASK")
     if capture:
         question = json.loads(Path(capture).read_text())["data"][0]
     else:
@@ -158,7 +158,7 @@ def test_word_answer_paragraph_spacing(browser, tmp_path):
     print(f'Word answer visual QA: {tmp_path}')
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in real paragraph layout")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in real paragraph layout")
 def test_paragraph_boundaries_preserve_display_tables_choices_and_images(browser, tmp_path):
     from PIL import Image
 

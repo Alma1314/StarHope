@@ -8,7 +8,7 @@ from test_preview_browser import browser
 
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1",
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1",
     reason="opt-in real question-reference browser regression",
 )
 
@@ -155,7 +155,7 @@ def test_paper_reference_refresh_retries_after_an_old_inflight_response(browser)
         return Promise.resolve(new Response(JSON.stringify(fresh),{{status:200}}));
       }};
       togglePaperQuestionAnswer(q.id);
-      window.dispatchEvent(new Event('mathbank-question-mutated'));
+      window.dispatchEvent(new Event('starhope-question-mutated'));
       return true;
     }})()""")
     try:

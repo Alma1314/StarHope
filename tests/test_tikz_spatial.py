@@ -5,9 +5,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from mathbank.prompts import build_tikz_draw_prompt
-from mathbank.tikz_geometry import TikzGeometryError, render_geometry_reply
-from mathbank.tikz_spatial import FrontFace, _stroke_intervals
+from starhope.prompts import build_tikz_draw_prompt
+from starhope.tikz_geometry import TikzGeometryError, render_geometry_reply
+from starhope.tikz_spatial import FrontFace, _stroke_intervals
 
 
 STEM = "正方体 ABCD-A1B1C1D1 的棱长为 2，M 是 A1B1 的中点，N 是 M 到平面 ABCD 的垂足。画出线段 MN。"
@@ -15,7 +15,7 @@ STEM = "正方体 ABCD-A1B1C1D1 的棱长为 2，M 是 A1B1 的中点，N 是 M 
 
 def box_plan():
     return {
-        "mathbank_geometry": 2,
+        "starhope_geometry": 2,
         "view": "front_right",
         "solid": ["box", ["A", "B", "C", "D"], ["A1", "B1", "C1", "D1"], "正方体"],
         "points": [
@@ -154,10 +154,10 @@ def test_complex_planar_figures_require_the_checked_segment_to_be_drawn():
 def test_spatial_protocol_used_in_workbench_and_existing_tikz_uses_original_path(client, monkeypatch):
     import main
 
-    assert '"mathbank_geometry":2' in build_tikz_draw_prompt(STEM, multimodal=False)
-    assert '"mathbank_geometry":1' in build_tikz_draw_prompt("平面等腰三角形", multimodal=False)
+    assert '"starhope_geometry":2' in build_tikz_draw_prompt(STEM, multimodal=False)
+    assert '"starhope_geometry":1' in build_tikz_draw_prompt("平面等腰三角形", multimodal=False)
     old_code = r"\begin{tikzpicture}\draw (0,0)--(1,0);\end{tikzpicture}"
-    assert '"mathbank_geometry":2' not in build_tikz_draw_prompt(STEM, existing_tikz=old_code)
+    assert '"starhope_geometry":2' not in build_tikz_draw_prompt(STEM, existing_tikz=old_code)
     monkeypatch.setenv("PREFER_DRAW_MODEL", "ZHONGZHAN_CLAUDE/gpt-6.1-sol:high")
     monkeypatch.setenv("ZHONGZHAN_CLAUDE_API_KEY", "test-drawing-key")
     provider_reply = Mock(status_code=200)
@@ -171,7 +171,7 @@ def test_spatial_protocol_used_in_workbench_and_existing_tikz_uses_original_path
     assert generated.status_code == 200
     assert "\\coordinate (N)" in generated.json()["tikz_code"]
     assert post.call_count == 1
-    assert '"mathbank_geometry":2' in post.call_args.args[1]["messages"][0]["content"]
+    assert '"starhope_geometry":2' in post.call_args.args[1]["messages"][0]["content"]
 
 
 def test_reference_right_angle_must_be_present_and_match_the_spatial_rays():

@@ -9,8 +9,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank import document_projects as projects
-from mathbank import windows_file_lock as locks
+from starhope import document_projects as projects
+from starhope import windows_file_lock as locks
 
 
 @pytest.mark.parametrize("shared,flags", [(True, 1), (False, 3)])
@@ -123,7 +123,7 @@ def _probe(path, shared):
     # Fresh process + fresh handle: a process-local mutex cannot pass this test.
     script = '''
 import os, sys
-from mathbank.windows_file_lock import lock, unlock
+from starhope.windows_file_lock import lock, unlock
 fd = os.open(sys.argv[1], os.O_RDWR | os.O_CREAT, 0o600)
 try:
     try:
@@ -148,7 +148,7 @@ def test_native_process_exit_releases_outstanding_lock(tmp_path):
     path = tmp_path / 'exit.lock'
     script = '''
 import os, sys
-from mathbank.windows_file_lock import lock
+from starhope.windows_file_lock import lock
 fd = os.open(sys.argv[1], os.O_RDWR | os.O_CREAT, 0o600)
 lock(fd, shared=False)
 print('acquired')

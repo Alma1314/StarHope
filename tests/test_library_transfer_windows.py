@@ -10,9 +10,9 @@ from pathlib import Path
 import uuid
 import zipfile
 
-from mathbank.backup import verify_full_backup
-from mathbank.database import Question
-from mathbank.library_transfer import inspect_library_zip
+from starhope.backup import verify_full_backup
+from starhope.database import Question
+from starhope.library_transfer import inspect_library_zip
 from test_library_transfer_api import _export, _question_count, _seed, transfer_api  # noqa: F401
 from test_library_transfer_tasks_api import _start_import, _wait, tasks_api  # noqa: F401
 

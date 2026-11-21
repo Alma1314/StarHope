@@ -6,7 +6,7 @@ import threading
 
 import pytest
 
-from mathbank.document_task_store import DocumentTaskStore, DurableDocumentTasks
+from starhope.document_task_store import DocumentTaskStore, DurableDocumentTasks
 
 
 def test_restart_keeps_checkpoint_and_requires_explicit_resume(tmp_path):

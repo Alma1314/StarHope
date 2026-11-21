@@ -12,9 +12,9 @@ from PIL import Image
 import pymupdf as fitz
 import pytest
 
-from mathbank.pdf_layout import inspect_pdf_page
-from mathbank.pdf_native_math import repair_native_page
-from mathbank.pdf_native_regions import plan_pdf_regions
+from starhope.pdf_layout import inspect_pdf_page
+from starhope.pdf_native_math import repair_native_page
+from starhope.pdf_native_regions import plan_pdf_regions
 
 
 PROSE = "这是一段能够从原生页面直接保留的中文说明文字用于解释题目的背景和作答要求。"

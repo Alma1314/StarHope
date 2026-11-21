@@ -5,7 +5,7 @@ import io
 import pytest
 from PIL import Image
 
-from mathbank.asset_security import (
+from starhope.asset_security import (
     InvalidImageError,
     normalize_raster_image,
     validate_raster_image,

@@ -9,7 +9,7 @@ from PIL import Image
 import pymupdf as fitz
 import pytest
 
-from mathbank.pdf_layout import (
+from starhope.pdf_layout import (
     MAX_CANDIDATES,
     MAX_CROP_PIXELS,
     MAX_CROP_SIDE,
@@ -344,7 +344,7 @@ def test_real_pdf_many_raster_occurrences_are_limited_with_explicit_warning():
 
 def test_crop_never_overwrites_or_deletes_a_preexisting_destination(tmp_path, monkeypatch):
     from types import SimpleNamespace
-    from mathbank import pdf_layout
+    from starhope import pdf_layout
 
     monkeypatch.setattr(pdf_layout.uuid, "uuid4", lambda: SimpleNamespace(hex="fixed"))
     existing = tmp_path / "collision_fixed.png"

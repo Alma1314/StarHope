@@ -8,7 +8,7 @@ from test_preview_browser import browser, complete_import_fixture_categories  # 
 from test_document_import_resilience_browser import click_stable, show_questions
 
 
-pytestmark = pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1', reason='opt-in isolated browser')
+pytestmark = pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1', reason='opt-in isolated browser')
 
 
 def approve_fixture_duplicates_if_present(browser, success_condition):
@@ -38,7 +38,7 @@ def test_batch_saves_qualified_rows_keeps_errors_and_reports_plain_text(browser,
     ])
     for index in [0, 1]:
         complete_import_fixture_categories(browser, index)
-    browser.evaluate("document.querySelector('#parsed-card-2 .card-select-checkbox').checked=true; MathBankDocumentImportSession.begin({documentType:'tex',phase:'completed'}); true")
+    browser.evaluate("document.querySelector('#parsed-card-2 .card-select-checkbox').checked=true; StarHopeDocumentImportSession.begin({documentType:'tex',phase:'completed'}); true")
     before = browser.evaluate("fetch('/api/stats').then(r=>r.json()).then(d=>d.total_count)")
     browser.evaluate(r"""
       window.__resilienceFetch=window.fetch;window.__questionPosts=[];
@@ -69,7 +69,7 @@ def test_batch_saves_qualified_rows_keeps_errors_and_reports_plain_text(browser,
         browser.command('wait', '--fn', 'parsedQuestionsData.length===3 && !!document.getElementById("parsedBatchImportReport")')
         assert browser.evaluate('parsedQuestionsData.map(q=>q.import_outcome.status)') == ['success', 'failed', 'skipped']
     finally:
-        browser.evaluate('if(window.__resilienceFetch)window.fetch=window.__resilienceFetch;MathBankDocumentImportSession.clear();true')
+        browser.evaluate('if(window.__resilienceFetch)window.fetch=window.__resilienceFetch;StarHopeDocumentImportSession.clear();true')
 
 
 @pytest.mark.parametrize('width', [1440, 375])
@@ -80,7 +80,7 @@ def test_pdf_explicit_failed_page_resume_preserves_edits_saved_card_and_same_tas
         {'content': f'补做保留入库回执 {width}：求圆的面积。', 'question_type': 'detailed_answer', 'pdf_source_card_id': 'source-2'}
     ]
     show_questions(browser, machine)
-    browser.evaluate("MathBankDocumentImportSession.clear();MathBankDocumentImportSession.begin({taskId:'partial-browser-task',documentType:'pdf',phase:'running'});true")
+    browser.evaluate("StarHopeDocumentImportSession.clear();StarHopeDocumentImportSession.begin({taskId:'partial-browser-task',documentType:'pdf',phase:'running'});true")
     for index in range(2):
         complete_import_fixture_categories(browser, index)
     click_stable(browser, '#parsed-card-1 .card-save-btn')
@@ -95,7 +95,7 @@ def test_pdf_explicit_failed_page_resume_preserves_edits_saved_card_and_same_tas
                  'diagnostics': diagnostic, 'data': machine + [{'content': '补做新增完整题', 'question_type': '', 'difficulty': None,
                    'category_compulsory': '', 'category_chapter': '', 'classification_review': {'required': True},
                    'pdf_source_card_id': 'source-3'}]}
-    browser.evaluate('MathBankDocumentImportSession.update({phase:"completed",canResume:true,diagnostics:' + json.dumps(diagnostic) + '});true')
+    browser.evaluate('StarHopeDocumentImportSession.update({phase:"completed",canResume:true,diagnostics:' + json.dumps(diagnostic) + '});true')
     browser.evaluate(r"""
       window.__resilienceFetch=window.fetch;window.__resumeRequests=[];window.__checkpointQuestionPosts=[];
       window.fetch=(url,options={})=>{
@@ -112,7 +112,7 @@ def test_pdf_explicit_failed_page_resume_preserves_edits_saved_card_and_same_tas
     try:
         assert browser.evaluate("document.getElementById('documentImportRecoveryPanel').textContent.includes('补做失败页')")
         click_stable(browser, '#documentImportRecoveryPanel button:last-child')
-        browser.evaluate('MathBankDocumentImportSession.resume();true')
+        browser.evaluate('StarHopeDocumentImportSession.resume();true')
         assert browser.evaluate('window.__resumeRequests') == [{'url': '/api/tasks/partial-browser-task/resume', 'method': 'POST'}]
         browser.evaluate("window.__resumeResolve(new Response(JSON.stringify({status:'success',task_id:'partial-browser-task'}),{headers:{'Content-Type':'application/json'}}));true")
         browser.command('wait', '--fn', 'parsedQuestionsData.length===3 && !activeDocumentPoll')
@@ -123,8 +123,8 @@ def test_pdf_explicit_failed_page_resume_preserves_edits_saved_card_and_same_tas
         assert browser.evaluate("document.querySelector('#parsed-card-1 .card-select-checkbox').disabled") is True
         assert browser.evaluate('new Set(parsedQuestionsData.map(q=>q.pdf_source_card_id)).size') == 3
         assert browser.evaluate('window.__resumeRequests.length') == 1
-        assert browser.evaluate('MathBankDocumentImportSession.isProject()') is False
-        assert browser.evaluate("!localStorage.getItem('mathbank_document_import_session_v1')") is True
+        assert browser.evaluate('StarHopeDocumentImportSession.isProject()') is False
+        assert browser.evaluate("!localStorage.getItem('starhope_document_import_session_v1')") is True
         assert browser.evaluate("document.querySelector('#parsed-card-2 .card-qtype').value") == ''
         assert browser.evaluate("document.querySelector('#parsed-card-2 .card-difficulty').value") == ''
         assert browser.evaluate('window.__checkpointQuestionPosts.length') == 0
@@ -139,14 +139,14 @@ def test_pdf_explicit_failed_page_resume_preserves_edits_saved_card_and_same_tas
         browser.command('scrollintoview', '#documentImportRecoveryPanel')
         browser.command('screenshot', str(tmp_path / f'pdf-same-task-merged-{width}.png'))
     finally:
-        browser.evaluate('window.fetch=window.__resilienceFetch;beginDocumentImportTask({skipCancellation:true});MathBankDocumentImportSession.clear();true')
+        browser.evaluate('window.fetch=window.__resilienceFetch;beginDocumentImportTask({skipCancellation:true});StarHopeDocumentImportSession.clear();true')
 
 
 def test_status_network_failures_keep_polling_original_task_without_posts(browser, tmp_path):
     browser.command('set', 'viewport', '1440', '1000')
     show_questions(browser, [{'content': '断线期间保留的人工校对题', 'question_type': 'detailed_answer'}])
     browser.evaluate(r"""
-      MathBankDocumentImportSession.begin({taskId:'poll-resilience-task',documentType:'docx',phase:'running'});
+      StarHopeDocumentImportSession.begin({taskId:'poll-resilience-task',documentType:'docx',phase:'running'});
       window.__resilienceFetch=window.fetch;window.__nativeNow=Date.now;window.__pollClockOffset=0;
       Date.now=()=>window.__nativeNow()+window.__pollClockOffset;window.__statusRequests=[];
       window.fetch=(url,options={})=>{
@@ -176,4 +176,4 @@ def test_status_network_failures_keep_polling_original_task_without_posts(browse
         assert browser.evaluate("document.querySelector('#parsed-card-0 .card-content-textarea').value") == '断线期间保留的人工校对题'
         assert browser.evaluate("document.getElementById('importLoadingText').textContent") == '恢复读取同一任务'
     finally:
-        browser.evaluate('window.fetch=window.__resilienceFetch;Date.now=window.__nativeNow;beginDocumentImportTask({skipCancellation:true});MathBankDocumentImportSession.clear();true')
+        browser.evaluate('window.fetch=window.__resilienceFetch;Date.now=window.__nativeNow;beginDocumentImportTask({skipCancellation:true});StarHopeDocumentImportSession.clear();true')

@@ -46,7 +46,7 @@ if CASE.startswith("provider_"):
 def metadata_post(config,payload,**kwargs):
     data=json.loads(payload["messages"][1]["content"])
     assert set(data)=={"input_sha256","document_sha256","items"}
-    assert "<mathbank-math" not in payload["messages"][1]["content"]
+    assert "<starhope-math" not in payload["messages"][1]["content"]
     assert all("answer_markdown" not in row for row in data["items"])
     assert payload.get("max_tokens",payload.get("max_completion_tokens"))<=6000
     manifest=json.loads((main.DOCUMENT_PROJECTS.root/pid/"manifest.json").read_text())
@@ -136,7 +136,7 @@ with TestClient(main.app)as client:
     else:
         expected=deepcopy(first["data"])
         if CASE=="old_accepted":
-            from mathbank.document_project_parse import _decode,_encode
+            from starhope.document_project_parse import _decode,_encode
             manifest=json.loads((main.DOCUMENT_PROJECTS.root/pid/"manifest.json").read_text())
             for name,entry in manifest["stages"].items():
                 if name.startswith("legacy-accepted-"):
@@ -172,7 +172,7 @@ main.DOCUMENT_TASKS._executor.shutdown(wait=True)
 def test_local_draft_project_api_preserves_source_before_optional_metadata_and_import(tmp_path, case):
     root=Path(__file__).resolve().parents[1];workspace=tmp_path/"source-only-workspace";workspace.mkdir()
     shutil.copy2(root/"main.py",workspace/"main.py")
-    shutil.copytree(root/"mathbank",workspace/"mathbank",ignore=shutil.ignore_patterns("__pycache__","*.pyc"))
+    shutil.copytree(root/"starhope",workspace/"starhope",ignore=shutil.ignore_patterns("__pycache__","*.pyc"))
     if(root/"templates").is_dir():shutil.copytree(root/"templates",workspace/"templates")
     (workspace/"static").mkdir()
     base=fixture();script=workspace/"local_draft_api.py"

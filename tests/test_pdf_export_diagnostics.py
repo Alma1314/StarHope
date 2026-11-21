@@ -1,23 +1,23 @@
 """Source-bound PDF diagnostics, independent of a database or AI service."""
 
-from mathbank.latex_diagnostics import (
+from starhope.latex_diagnostics import (
     build_local_latex_diagnostic,
     extract_missing_glyphs,
     merge_ai_latex_diagnostic,
 )
-from mathbank.prompts import build_latex_error_explanation_prompts
+from starhope.prompts import build_latex_error_explanation_prompts
 
 
 SOURCE = "\n".join([
     r"\documentclass{article}",
     r"\begin{document}",
-    "% MathBank-Question-ID: 83",
-    "% MathBank-Question-Number: 2",
-    "% MathBank-Field: content",
+    "% StarHope-Question-ID: 83",
+    "% StarHope-Question-Number: 2",
+    "% StarHope-Field: content",
     r"如图，在 $\triangle ABC$ 中，$\notarealcommand ACB=90^\circ$。",
-    "% MathBank-Field: answer_markdown",
+    "% StarHope-Field: answer_markdown",
     "解析：∠ACB 是直角。",
-    "% MathBank-Question-End",
+    "% StarHope-Question-End",
     r"\badtemplatecommand",
     r"\end{document}",
 ])
@@ -165,11 +165,11 @@ def test_native_xetex_strict_period_and_hard_wrapped_font_name():
 
 def test_delayed_question_body_error_finds_a_bounded_candidate_in_the_correct_field():
     source = "\n".join([
-        "% MathBank-Question-ID: 83", "% MathBank-Question-Number: 2",
-        "% MathBank-Field: content", r"\begin{question}",
+        "% StarHope-Question-ID: 83", "% StarHope-Question-Number: 2",
+        "% StarHope-Field: content", r"\begin{question}",
         r"求值 $\triangle ABC$ 与 $\doesnotexist{x}$。",
-        "% MathBank-Field: figure", r"\includegraphics{figure.png}",
-        r"\end{question}", "% MathBank-Question-End",
+        "% StarHope-Field: figure", r"\includegraphics{figure.png}",
+        r"\end{question}", "% StarHope-Question-End",
     ])
     log = "./paper.tex:8: Undefined control sequence.\n<recently read> \\doesnotexist \nl.8 \\end\n {question}"
     result = build_local_latex_diagnostic(log, source)
@@ -185,10 +185,10 @@ def test_delayed_question_body_error_finds_a_bounded_candidate_in_the_correct_fi
 
 def test_multiple_question_candidates_remain_candidates_and_do_not_cross_questions():
     source = "\n".join([
-        "% MathBank-Question-ID: 82", "🦄 in another question", "% MathBank-Question-End",
-        "% MathBank-Question-ID: 83", "% MathBank-Question-Number: 2",
-        "% MathBank-Field: content", r"\begin{question}", "🦄🦄🦄",
-        "% MathBank-Field: figure", "🦄", r"\end{question}", "% MathBank-Question-End",
+        "% StarHope-Question-ID: 82", "🦄 in another question", "% StarHope-Question-End",
+        "% StarHope-Question-ID: 83", "% StarHope-Question-Number: 2",
+        "% StarHope-Field: content", r"\begin{question}", "🦄🦄🦄",
+        "% StarHope-Field: figure", "🦄", r"\end{question}", "% StarHope-Question-End",
     ])
     log = "./paper.tex:11: Missing character: There is no 🦄 (U+1F984) in font Times New Roman.\nl.11 \\end"
     result = build_local_latex_diagnostic(log, source)
@@ -203,9 +203,9 @@ def test_multiple_question_candidates_remain_candidates_and_do_not_cross_questio
 
 def test_delayed_math_boundary_error_does_not_claim_the_final_figure_is_wrong():
     source = "\n".join([
-        "% MathBank-Question-ID: 83", "% MathBank-Field: content", r"\begin{question}",
-        r"不完整公式 $x+1", "% MathBank-Field: figure", r"\includegraphics{figure.png}",
-        r"\end{question}", "% MathBank-Question-End",
+        "% StarHope-Question-ID: 83", "% StarHope-Field: content", r"\begin{question}",
+        r"不完整公式 $x+1", "% StarHope-Field: figure", r"\includegraphics{figure.png}",
+        r"\end{question}", "% StarHope-Question-End",
     ])
     result = build_local_latex_diagnostic("./paper.tex:7: Missing $ inserted.\nl.7 \\end", source)
     assert result["field"] == ""
@@ -218,9 +218,9 @@ def test_delayed_math_boundary_error_does_not_claim_the_final_figure_is_wrong():
 
 def test_an_unread_answer_is_not_a_candidate_for_a_question_body_error():
     source = "\n".join([
-        "% MathBank-Question-ID: 83", "% MathBank-Field: content", r"\begin{question}",
-        "题干🦄", r"\end{question}", "% MathBank-Field: answer_markdown",
-        r"\begin{solution}", "解析🦄", r"\end{solution}", "% MathBank-Question-End",
+        "% StarHope-Question-ID: 83", "% StarHope-Field: content", r"\begin{question}",
+        "题干🦄", r"\end{question}", "% StarHope-Field: answer_markdown",
+        r"\begin{solution}", "解析🦄", r"\end{solution}", "% StarHope-Question-End",
     ])
     result = build_local_latex_diagnostic(
         "./paper.tex:5: Missing character: There is no 🦄 (U+1F984) in font Times New Roman.", source)

@@ -19,7 +19,7 @@ def _section(source, start, end):
 def _node(script):
     node = shutil.which("node")
     assert node, "Node.js is required to execute the shipped diagnostic renderers"
-    safe = _section(API, "const MathBankSafe = (() => {", "// Safe image previews")
+    safe = _section(API, "const StarHopeSafe = (() => {", "// Safe image previews")
     renderers = _section(PAPER, "function paperDiagnosticEvidenceHtml(", "function setPandocModalVisible(")
     escape = _section(PAPER, "function escapeHtml(", "function isWrittenQuestionType(")
     result = subprocess.run([node, "-"],

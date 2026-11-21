@@ -25,7 +25,7 @@ def test_upload_word_verification_contract(client, monkeypatch, flag, expected):
 @pytest.mark.parametrize('stage', ['prepare', 'verify'])
 def test_optional_word_verification_failure_preserves_split_and_images(monkeypatch, stage):
     import main
-    from mathbank import docx_source_evidence, docx_source_verify
+    from starhope import docx_source_evidence, docx_source_verify
 
     image = f'/{main.UPLOAD_DIR_REL}/tmp/word_verification_fixture.png'
     content = f'已知三角形，如图所示，求其面积。 ![图]({image})'
@@ -82,7 +82,7 @@ def test_optional_word_verification_failure_preserves_split_and_images(monkeypat
 @pytest.mark.parametrize('enabled,pending', [(False, True), (True, False), (True, True)])
 def test_word_verification_after_local_checks_without_reparse(monkeypatch, enabled, pending):
     import main
-    from mathbank import docx_source_evidence, docx_source_verify
+    from starhope import docx_source_evidence, docx_source_verify
     source = '1. 已知函数，求结果。'
     monkeypatch.setattr(main, 'extract_docx_markdown', lambda *a, **k: {'success': True, 'markdown': source, 'diagnostics': {}, 'image_paths': []})
     calls = []
@@ -118,7 +118,7 @@ def test_word_verification_after_local_checks_without_reparse(monkeypatch, enabl
 @pytest.mark.parametrize('enabled', [True, False])
 def test_native_formula_notice_is_verified_by_default_and_only_final_count_is_reported(monkeypatch, enabled):
     import main
-    from mathbank import docx_source_evidence, docx_source_verify
+    from starhope import docx_source_evidence, docx_source_verify
     source = '1. 求 $x+1$ [公式结构待核对] 的值。'
     warning = '部分 Office 公式含暂未完整支持的结构：fixture'
     monkeypatch.setattr(main, 'extract_docx_markdown', lambda *a, **k: {

@@ -29,8 +29,8 @@ for(const id of ['documentProjectsPanel','documentProjectsRefresh','documentProj
 globalThis.confirm=()=>true;
 listeners.DOMContentLoaded();
 window.categoryTree={'高中':{'函数':[]}};
-const session=window.MathBankDocumentImportSession;
-const stored=()=>JSON.parse(storage.get('mathbank_document_import_session_v1'));
+const session=window.StarHopeDocumentImportSession;
+const stored=()=>JSON.parse(storage.get('starhope_document_import_session_v1'));
 const good=(data)=>({ok:true,status:200,json:async()=>data});
 function next(path,data,status=200){
  const req=requests.shift();assert.ok(req,'expected request '+path);assert.equal(req.url,path);
@@ -298,7 +298,7 @@ const projectScenarios={
  async reused_pdf_from_open_project_does_not_replace_its_backup_with_empty_cards(){
   const card=await open();editProject(card,'重复上传前尚未同步的人工稿');
   window.currentPdfFile=new Blob(['pdf']);runAIPaperParse();
-  const backup=JSON.parse(storage.get('mathbank_document_import_session_v1:project-a'));
+  const backup=JSON.parse(storage.get('starhope_document_import_session_v1:project-a'));
   assert.equal(backup.questions[0].content,'重复上传前尚未同步的人工稿');
   next('/api/upload/pdf-task',{status:'success',task_id:'old-completed-task',project_id:'project-a',project_revision:4,reused_project:true});
   await flush();next('/api/document-projects/project-a/open',details());await flush();
@@ -326,8 +326,8 @@ const projectScenarios={
  },
  async resetting_workspace_preserves_last_keystrokes_in_project_backup(){
   const card=await open();edit(card,'.card-content-textarea','清理工作区前最后输入的稿件');session.saveSoon();
-  session.clear();assert.equal(storage.has('mathbank_document_import_session_v1'),false);
-  const backup=JSON.parse(storage.get('mathbank_document_import_session_v1:project-a'));
+  session.clear();assert.equal(storage.has('starhope_document_import_session_v1'),false);
+  const backup=JSON.parse(storage.get('starhope_document_import_session_v1:project-a'));
   assert.equal(backup.questions[0].content,'清理工作区前最后输入的稿件');assert.equal(backup.projectLocalDirty,true);
  },
  async late_open_response_cannot_replace_a_new_import_session(){
@@ -343,7 +343,7 @@ const projectScenarios={
   const req=next('/api/document-projects/project-a',{});assert.equal(req.options.method,'DELETE');await flush();
   next('/api/document-projects',{projects:[]});await deleting;
   assert.equal(parsedQuestionsData.length,0);assert.equal(requests.length,0);
-  assert.equal(storage.has('mathbank_document_import_session_v1:project-a'),false);
+  assert.equal(storage.has('starhope_document_import_session_v1:project-a'),false);
  }
 };
 """

@@ -5,7 +5,7 @@ import struct
 
 import pytest
 
-from mathbank.mtef_helper import decode_mtef_formula
+from starhope.mtef_helper import decode_mtef_formula
 
 
 HEADER = b"\x05\x01\x00\x07\x00DSMT7\x00\x00"

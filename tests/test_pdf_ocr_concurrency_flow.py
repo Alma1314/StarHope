@@ -45,11 +45,11 @@ def _base():
 
 
 SCENARIO = r'''
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 import base64
-from mathbank import pdf_page_vision, pdf_native_regions
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.pdf_inspector_helper import merge_pdf_page_texts
+from starhope import pdf_page_vision, pdf_native_regions
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.pdf_inspector_helper import merge_pdf_page_texts
 
 assert main.PDF_OCR_CAPACITY.total==LIMIT
 assert main.PDF_OCR_SEMAPHORE is main.PDF_OCR_CAPACITY.auxiliary
@@ -69,8 +69,8 @@ for count,values,heading in [(PAGES//2,bodies,"一、解答题"),
         start=page*19//count+1;stop=(page+1)*19//count+1
         chunks.append((heading+"\n" if page==0 else "")+
             "\n\n".join(f"{n}. {values[n]}" for n in range(start,stop)))
-texts=[f"<!-- MATHBANK_PDF_PAGE:{index+1} -->\n{text}" for index,text in enumerate(chunks)]
-expected_source=re.sub(r"<!-- MATHBANK_PDF_PAGE:\d+ -->","",merge_pdf_page_texts(texts))
+texts=[f"<!-- STARHOPE_PDF_PAGE:{index+1} -->\n{text}" for index,text in enumerate(chunks)]
+expected_source=re.sub(r"<!-- STARHOPE_PDF_PAGE:\d+ -->","",merge_pdf_page_texts(texts))
 with fitz.open() as pdf:
     for number in range(PAGES):
         page=pdf.new_page(width=300,height=400)
@@ -220,7 +220,7 @@ def test_real_routes_bound_fresh_ocr_and_keep_every_page(
     workspace = tmp_path / "source-only-workspace"
     workspace.mkdir()
     shutil.copy2(root / "main.py", workspace / "main.py")
-    shutil.copytree(root / "mathbank", workspace / "mathbank",
+    shutil.copytree(root / "starhope", workspace / "starhope",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if (root / "templates").is_dir():
         shutil.copytree(root / "templates", workspace / "templates")

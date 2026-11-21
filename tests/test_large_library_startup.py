@@ -2,7 +2,7 @@
 
 from sqlalchemy import event
 
-from mathbank.database import Paper, PaperQuestion, Question
+from starhope.database import Paper, PaperQuestion, Question
 
 
 def test_usage_calibration_is_atomic_sql_and_preserves_question_data(db_session):

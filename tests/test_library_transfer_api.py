@@ -19,13 +19,13 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from mathbank import database, sync_helper
-from mathbank.backup import verify_full_backup
-from mathbank.database import (
+from starhope import database, sync_helper
+from starhope.backup import verify_full_backup
+from starhope.database import (
     Base, KnowledgePoint, Paper, Question, QuestionCurriculum,
     QuestionKnowledgePoint, get_db,
 )
-from mathbank.db_migrations import LATEST_SCHEMA_VERSION
+from starhope.db_migrations import LATEST_SCHEMA_VERSION
 
 
 def _png_bytes():
@@ -38,7 +38,7 @@ def _png_bytes():
 def transfer_api(tmp_path, monkeypatch):
     import main
 
-    database_path = tmp_path / "math_question_bank.db"
+    database_path = tmp_path / "starhope.db"
     uploads = tmp_path / "uploads"
     backups = tmp_path / "data_backup"
     generated = tmp_path / ".system_generated"
@@ -131,7 +131,7 @@ def _export(api, keywords=None):
     return response.content
 
 
-def _import(api, data, filename="MathBank.zip", *, confirm=None):
+def _import(api, data, filename="StarHope.zip", *, confirm=None):
     fields = {"confirm_repeat_sha256": confirm} if confirm is not None else None
     return api.client.post(
         "/api/library-transfer/import", headers=api.headers,
@@ -348,7 +348,7 @@ def test_export_filters_literal_sources_and_includes_only_referenced_assets(tran
     with zipfile.ZipFile(io.BytesIO(archive)) as package:
         manifest = json.loads(package.read("manifest.json"))
         records = json.loads(package.read("questions.json"))
-        assert manifest["format"] == "mathbank-library-transfer"
+        assert manifest["format"] == "starhope-library-transfer"
         assert manifest["question_count"] == len(selected)
         assert {record["id"] for record in records} == {ids[index] for index in selected}
         names = set(package.namelist())

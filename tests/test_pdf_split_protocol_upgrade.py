@@ -4,8 +4,8 @@ import hashlib
 
 import pytest
 
-from mathbank.content_locks import lock_visible_math
-from mathbank.pdf_task_resume import is_legacy_pdf_split_input, is_compatible_pdf_split_input
+from starhope.content_locks import lock_visible_math
+from starhope.pdf_task_resume import is_legacy_pdf_split_input, is_compatible_pdf_split_input
 
 
 def legacy(source="1. 求 $x+1$。", namespace="savedsource123456"):
@@ -37,7 +37,7 @@ def test_changed_or_unrecognized_input_cannot_upgrade(change):
 
 @pytest.mark.parametrize('old_kind',['plain','task_lock','same_project_lock'])
 def test_exact_old_plain_or_recognized_namespace_can_move_to_project_protocol(old_kind):
-    source = '1. 求 $x+1$。\n原代码`mathbank-math`也必须保留。'
+    source = '1. 求 $x+1$。\n原代码`starhope-math`也必须保留。'
     old_namespace = 'old-task-123'
     target_namespace = 'project-456'
     old_model = source if old_kind=='plain' else lock_visible_math(source,

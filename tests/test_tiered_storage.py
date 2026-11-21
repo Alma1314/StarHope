@@ -7,7 +7,7 @@ import threading
 
 import pytest
 
-from mathbank import tiered_storage as ts
+from starhope import tiered_storage as ts
 
 
 pytestmark = pytest.mark.skipif(
@@ -86,7 +86,7 @@ def test_corrupt_remote_never_evicts_or_hydrates_wrong_bytes(store):
     path = add_file(root)
     storage.cycle()
     checksum = hashlib.sha256(path.read_bytes()).hexdigest()
-    target = volume / "业务资料/MathBank/objects" / checksum[:2] / checksum
+    target = volume / "业务资料/StarHope/objects" / checksum[:2] / checksum
     target.write_bytes(b"corrupt")
     now[0] += 3601
     storage.cycle()
@@ -206,9 +206,9 @@ def test_original_url_serving_and_backup_word_read_cold_assets(store):
     from starlette.applications import Starlette
     from starlette.routing import Mount
     from starlette.testclient import TestClient
-    from mathbank.asset_lifecycle import RetainedUploadStaticFiles, register_asset_store
-    from mathbank.backup import _copy_referenced_uploads
-    from mathbank.word_export_helper import _resolve_image_paths
+    from starhope.asset_lifecycle import RetainedUploadStaticFiles, register_asset_store
+    from starhope.backup import _copy_referenced_uploads
+    from starhope.word_export_helper import _resolve_image_paths
     storage, root, _, online, now = store
     path = add_file(root)
     uploads = path.parent
@@ -237,8 +237,8 @@ def test_original_url_serving_and_backup_word_read_cold_assets(store):
 
 
 def test_cold_quarantine_offline_is_recoverable_but_readonly_does_not_restore(store):
-    from mathbank.asset_lifecycle import quarantine_asset, register_asset_store
-    from mathbank.asset_security import resolve_upload_asset
+    from starhope.asset_lifecycle import quarantine_asset, register_asset_store
+    from starhope.asset_security import resolve_upload_asset
     storage, root, _, online, now = store
     path = add_file(root)
     register_asset_store(path.parent, root/'.system_generated/retained_uploads')
@@ -254,8 +254,8 @@ def test_cold_quarantine_offline_is_recoverable_but_readonly_does_not_restore(st
 
 
 def test_document_sources_keep_existing_store_contracts(store):
-    from mathbank.document_projects import DocumentProjectStore
-    from mathbank.document_task_store import DocumentTaskStore
+    from starhope.document_projects import DocumentProjectStore
+    from starhope.document_task_store import DocumentTaskStore
     storage, root, _, online, now = store
     projects = DocumentProjectStore(root/'.system_generated/document_projects')
     row = projects.create(b'%PDF-source', 'source.pdf', {}, {})

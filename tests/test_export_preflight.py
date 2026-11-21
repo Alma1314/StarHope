@@ -14,7 +14,7 @@ import pytest
 from starlette.responses import JSONResponse, Response
 from PIL import Image
 
-from mathbank import export_preflight as preflight, paper_helper as paper
+from starhope import export_preflight as preflight, paper_helper as paper
 
 
 @pytest.fixture
@@ -76,7 +76,7 @@ def test_only_generated_images_are_required_and_tikz_replacements_need_no_previe
 
 
 def test_tex_scanner_ignores_comments_and_verbatim_but_checks_executable_tikz():
-    source = r"""% MathBank-Question-ID: 8
+    source = r"""% StarHope-Question-ID: 8
 % \includegraphics{comment.png}
 \verb|\includegraphics{verbatim.png}|
 \begin{verbatim}\includegraphics{block.png}\end{verbatim}
@@ -105,7 +105,7 @@ def test_symlinks_and_unsafe_paths_block_without_reading_outside_uploads(sandbox
     (sandbox[0] / "link.png").symlink_to(outside)
     items = [question(9, "![](/static/uploads/link.png)")]
     with pytest.raises(preflight.ExportPreflightError) as error:
-        inspect(items, {"paper": "% MathBank-Question-ID: 9\n" + r"\includegraphics{link.png}"}, sandbox)
+        inspect(items, {"paper": "% StarHope-Question-ID: 9\n" + r"\includegraphics{link.png}"}, sandbox)
     assert error.value.report["errors"][0]["reason"] == "unreadable_or_unsafe"
     assert "sha256" not in error.value.report["resources"][0]
     with pytest.raises(FileNotFoundError):
@@ -175,7 +175,7 @@ def test_export_routes_stop_before_compile_or_packaging_on_missing_image(name, s
 
 @pytest.mark.parametrize("corrupt", [False, True])
 def test_required_retained_image_uses_existing_verified_recovery_only(sandbox, tmp_path, corrupt):
-    from mathbank import asset_lifecycle as lifecycle
+    from starhope import asset_lifecycle as lifecycle
     uploads = sandbox[0]
     recovery = tmp_path / "retained"
     lifecycle.register_asset_store(uploads, recovery)
@@ -188,7 +188,7 @@ def test_required_retained_image_uses_existing_verified_recovery_only(sandbox, t
             (recovery / "files/required.png").write_bytes(b"changed bytes")
         items = [question(33, "![](/static/uploads/required.png)",
                           image_paths=["/static/uploads/required.png", "/static/uploads/unused.png"])]
-        source = "% MathBank-Question-ID: 33\n" + r"\includegraphics{required.png}"
+        source = "% StarHope-Question-ID: 33\n" + r"\includegraphics{required.png}"
         if corrupt:
             with pytest.raises(preflight.ExportPreflightError) as error:
                 inspect(items, {"paper": source}, sandbox)
@@ -334,7 +334,7 @@ def test_extensionless_resolution_preserves_path_rejections(sandbox, reference):
         preflight.assert_tex_image_files([source], [image])
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_EXPORT_NATIVE") != "1" or not shutil.which("xelatex"),
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_EXPORT_NATIVE") != "1" or not shutil.which("xelatex"),
                     reason="Opt-in native XeLaTeX extensionless export validation")
 def test_real_xelatex_accepts_extensionless_preflight_copy_and_extracted_package(sandbox, tmp_path):
     image = sandbox[0] / "diagram.v1.png"
@@ -342,7 +342,7 @@ def test_real_xelatex_accepts_extensionless_preflight_copy_and_extracted_package
     items = [question(25, r"Figure: \includegraphics{diagram.v1}",
                       image_paths=["/static/uploads/diagram.v1.png"])]
     source = (r"\documentclass{article}\usepackage{graphicx}\graphicspath{{images/}{./}}"
-              "\n% MathBank-Question-ID: 25\n" +
+              "\n% StarHope-Question-ID: 25\n" +
               r"\begin{document}Figure: \includegraphics{diagram.v1}\end{document}")
     report, paths = inspect(items, {"paper": source}, sandbox)
     pdf, log = paper.compile_tex_to_pdf(source, paths)

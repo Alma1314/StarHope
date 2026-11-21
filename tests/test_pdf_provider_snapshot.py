@@ -12,13 +12,13 @@ from types import SimpleNamespace
 import pytest
 
 from pdf_feature_contract import experimental_pdf_only
-from mathbank.ai_knowledge_points import bind_ai_knowledge_catalog
-from mathbank.ai_providers import TextProviderConfig, apply_model_thinking_policy
-from mathbank.document_project_parse import run_project_legacy_parse
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.paper_parse import PAPER_SPLIT_TIMEOUT_SECONDS, parse_paper_completion
-from mathbank.pdf_legacy_parse import completion_request_binding
-from mathbank.task_manager import TaskCancelled
+from starhope.ai_knowledge_points import bind_ai_knowledge_catalog
+from starhope.ai_providers import TextProviderConfig, apply_model_thinking_policy
+from starhope.document_project_parse import run_project_legacy_parse
+from starhope.document_projects import DocumentProjectStore
+from starhope.paper_parse import PAPER_SPLIT_TIMEOUT_SECONDS, parse_paper_completion
+from starhope.pdf_legacy_parse import completion_request_binding
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture

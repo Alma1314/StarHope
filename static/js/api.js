@@ -1,28 +1,28 @@
         // Request waits only: animation, debounce and polling cadence stay separate.
-        const MathBankTimeouts = Object.freeze({
+        const StarHopeTimeouts = Object.freeze({
             LOCAL_PROBE_MS: 30000,
             QUERY_MS: 60000,
             UPLOAD_MS: 600000,
             PANDOC_INSTALL_MS: 30 * 60 * 1000
         });
-        window.MathBankTimeouts = MathBankTimeouts;
+        window.StarHopeTimeouts = StarHopeTimeouts;
 
-        const MathBankLimits = Object.freeze(Object.fromEntries(Object.entries({
+        const StarHopeLimits = Object.freeze(Object.fromEntries(Object.entries({
             image_upload_bytes: 10 * 1024 * 1024, text_source_bytes: 5 * 1024 * 1024,
             document_upload_bytes: 30 * 1024 * 1024, pdf_pages: 80
         }).map(([key, fallback]) => {
             const value = window.__processingLimits?.[key];
             return [key, Number.isSafeInteger(value) && value > 0 ? value : fallback];
         })));
-        window.MathBankLimits = MathBankLimits;
+        window.StarHopeLimits = StarHopeLimits;
         document.addEventListener('DOMContentLoaded', () => {
             const label = document.getElementById('answerTikzReferenceLimit');
-            if (label) label.textContent = `可选 · 最大 ${MathBankLimits.image_upload_bytes / (1024 * 1024)}MB`;
+            if (label) label.textContent = `可选 · 最大 ${StarHopeLimits.image_upload_bytes / (1024 * 1024)}MB`;
         });
 
         // Shared frontend trust boundary. All later cascade modules must use this
         // helper before inserting database, OCR, import or AI output into HTML.
-        const MathBankSafe = (() => {
+        const StarHopeSafe = (() => {
             const RICH_HTML_CONFIG = Object.freeze({
                 ALLOWED_TAGS: [
                     'div', 'span', 'p', 'br', 'strong', 'b', 'em', 'i',
@@ -142,7 +142,7 @@
                 safeClassList
             });
         })();
-        window.MathBankSafe = MathBankSafe;
+        window.StarHopeSafe = StarHopeSafe;
 
         // Safe image previews use one delegated listener rather than interpolated
         // inline handlers containing untrusted URLs.
@@ -151,7 +151,7 @@
                 ? event.target.closest('img[data-safe-image-open]')
                 : null;
             if (!image) return;
-            const safeUrl = MathBankSafe.safeImageUrl(image.getAttribute('src'));
+            const safeUrl = StarHopeSafe.safeImageUrl(image.getAttribute('src'));
             if (!safeUrl) return;
             const opened = window.open(safeUrl, '_blank', 'noopener,noreferrer');
             if (opened) opened.opener = null;
@@ -160,7 +160,7 @@
         // Shared, build-free dialog accessibility manager. Feature modules keep
         // their visual transitions while this layer owns focus trapping, Escape
         // handling, background isolation and focus restoration.
-        const MathBankModal = (() => {
+        const StarHopeModal = (() => {
             const dialogStack = [];
             const focusableSelector = [
                 'a[href]:not([tabindex="-1"])',
@@ -322,7 +322,7 @@
 
             return Object.freeze({ open, close });
         })();
-        window.MathBankModal = MathBankModal;
+        window.StarHopeModal = StarHopeModal;
 
         // Mirror native disabled/loading state to assistive technology. This also
         // covers dynamically rendered import and paper buttons without requiring
@@ -421,7 +421,7 @@
                     const response = await pending;
                     if (response.ok && isSameOriginApi && isWriteRequest
                             && /^\/api\/questions(?:\/[1-9]\d*)?$/.test(requestUrl.pathname)) {
-                        window.dispatchEvent(new Event('mathbank-question-mutated'));
+                        window.dispatchEvent(new Event('starhope-question-mutated'));
                     }
                     return response;
                 };
@@ -689,14 +689,14 @@
                 return [
                     ...this.contentAssets.map(asset => asset && asset.reference_image_path),
                     ...this.answerAssets.map(asset => asset && asset.reference_image_path)
-                ].map(path => window.MathBankSafe.safeImageUrl(path)).filter(Boolean);
+                ].map(path => window.StarHopeSafe.safeImageUrl(path)).filter(Boolean);
             }
         };
         window.TikzState = TikzState;
         // Markdown owns visible images. Asset arrays additionally own editable
         // TikZ previews and private reference images, never the reverse.
-        window.MathBankImageAssets = (() => {
-            const safe = value => window.MathBankSafe.safeImageUrl(value);
+        window.StarHopeImageAssets = (() => {
+            const safe = value => window.StarHopeSafe.safeImageUrl(value);
             const unique = paths => Array.from(new Set(paths.map(safe).filter(Boolean)));
             function escaped(value, start) {
                 let cursor = start - 1;
@@ -1064,7 +1064,7 @@
             if (configSettingsController) configSettingsController.abort();
             const settingsController = new AbortController();
             configSettingsController = settingsController;
-            const settingsTimeout = setTimeout(() => settingsController.abort(), MathBankTimeouts.LOCAL_PROBE_MS);
+            const settingsTimeout = setTimeout(() => settingsController.abort(), StarHopeTimeouts.LOCAL_PROBE_MS);
             // Fetch preferred engine configuration from backend to resolve defaults
             const settingsRequest = fetch('/api/settings', {signal: settingsController.signal})
                 .then(r => {
@@ -1144,7 +1144,7 @@
             const indicator = document.getElementById('apiStatusIndicator');
             const controller = new AbortController();
             configHealthController = controller;
-            const healthTimeout = setTimeout(() => controller.abort(), MathBankTimeouts.LOCAL_PROBE_MS);
+            const healthTimeout = setTimeout(() => controller.abort(), StarHopeTimeouts.LOCAL_PROBE_MS);
             const healthRequest = fetch('/healthz', {signal: controller.signal, cache: 'no-store'})
                 .then(response => {
                     if (!response.ok) throw new Error('题库尚未就绪');
@@ -1404,9 +1404,9 @@
 
                 const datalistId = `datalist_${typeKey}_${provider}`;
                 const models = getModelListForProvider(provider, typeKey);
-                const safeDatalistId = MathBankSafe.escapeAttribute(datalistId);
-                const safeRawModel = MathBankSafe.escapeAttribute(rawModel);
-                let optionsHtml = models.map(m => `<option value="${MathBankSafe.escapeAttribute(m)}">`).join('');
+                const safeDatalistId = StarHopeSafe.escapeAttribute(datalistId);
+                const safeRawModel = StarHopeSafe.escapeAttribute(rawModel);
+                let optionsHtml = models.map(m => `<option value="${StarHopeSafe.escapeAttribute(m)}">`).join('');
                 
                 container.innerHTML = `
                     <div class="flex items-center space-x-1.5 flex-1 min-w-0">
@@ -1451,7 +1451,7 @@
                 
                 let optionsHtml = models.map(m => {
                     const isSel = m === selectedValue ? 'selected' : '';
-                    return `<option value="${MathBankSafe.escapeAttribute(m)}" ${isSel}>${MathBankSafe.escapeText(m)}</option>`;
+                    return `<option value="${StarHopeSafe.escapeAttribute(m)}" ${isSel}>${StarHopeSafe.escapeText(m)}</option>`;
                 }).join('');
                 
                 container.innerHTML = `
@@ -1613,7 +1613,7 @@
                 });
                 
             modal.classList.remove('hidden');
-            window.MathBankModal.open(modal, { onEscape: closeSettingsModal });
+            window.StarHopeModal.open(modal, { onEscape: closeSettingsModal });
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
                 modal.querySelector('div').classList.remove('scale-95');
@@ -1623,7 +1623,7 @@
 
         function closeSettingsModal() {
             const modal = document.getElementById('settingsModal');
-            window.MathBankModal.close(modal);
+            window.StarHopeModal.close(modal);
             document.body.classList.remove('modal-active');
             
             modal.classList.add('opacity-0');
@@ -1679,7 +1679,7 @@
                 fetch('/api/shutdown', {
                     method: 'POST',
                     headers: {
-                        'X-MathBank-Launch-ID': window.__serverInstanceId || ''
+                        'X-StarHope-Launch-ID': window.__serverInstanceId || ''
                     }
                 })
                     .then(async response => {
@@ -1892,7 +1892,7 @@
                     const subdivisions = typeof window.loadSubKnowledgeCatalog === 'function'
                         ? await window.loadSubKnowledgeCatalog() : null;
                     populateCategoryDropdowns();
-                    window.MathBankDocumentImportSession?.refreshCatalogs();
+                    window.StarHopeDocumentImportSession?.refreshCatalogs();
                     window.refreshParsedClassificationReviews?.();
                     populateFilterDropdowns();
                     if (typeof window.loadKnowledgePointCatalog === 'function') {
@@ -2006,8 +2006,8 @@
         // on the server; reconnecting always queries the same task with GET.
         let libraryTransferBusy = '';
         let libraryTransferPane = 'export';
-        const libraryTransferStorageKey = 'mathbank.libraryTransferTask.v1';
-        const libraryTransferReceiptKey = 'mathbank.libraryTransferReceipts.v1';
+        const libraryTransferStorageKey = 'starhope.libraryTransferTask.v1';
+        const libraryTransferReceiptKey = 'starhope.libraryTransferReceipts.v1';
         let libraryTransferTask = null;
         let libraryTransferGeneration = 0;
         let libraryTransferPollTimer = null;
@@ -2285,7 +2285,7 @@
             // Parse literals and math first. Filtering raw Markdown would also
             // remove image examples inside code and corrupt the displayed source.
             const template = document.createElement('template');
-            template.innerHTML = window.MathBankSafe.sanitizeRichHtml(
+            template.innerHTML = window.StarHopeSafe.sanitizeRichHtml(
                 window.parseMarkdownWithMath(item.content || '', item.image_layouts || {}));
             template.content.querySelectorAll('img').forEach(img => {
                 const note = libraryExportNode('span', '[配图]', 'mb-transfer-image-note');
@@ -2576,7 +2576,7 @@
             const taskId = libraryTransferTask.task_id, generation = libraryTransferGeneration;
             libraryTransferPollPending = true;
             const controller = new AbortController(); libraryTransferPollController = controller;
-            const timeout = setTimeout(() => controller.abort(), MathBankTimeouts.QUERY_MS);
+            const timeout = setTimeout(() => controller.abort(), StarHopeTimeouts.QUERY_MS);
             let nextDelay = 0;
             try {
                 const response = await fetch('/api/library-transfer/tasks/' + encodeURIComponent(taskId), {signal: controller.signal});
@@ -2640,7 +2640,7 @@
                 return start();
             };
             if (navigator.locks && typeof navigator.locks.request === 'function') {
-                return navigator.locks.request('mathbank-library-transfer-start', {ifAvailable: true}, lock => lock ? guarded() : undefined);
+                return navigator.locks.request('starhope-library-transfer-start', {ifAvailable: true}, lock => lock ? guarded() : undefined);
             }
             return guarded();
         }
@@ -2663,7 +2663,7 @@
             const taskId = libraryTransferTask.task_id, generation = libraryTransferGeneration;
             libraryTransferTask.submitting = true;
             libraryTransferBusy = 'import'; updateLibraryTransferControls();
-            const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), MathBankTimeouts.QUERY_MS);
+            const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), StarHopeTimeouts.QUERY_MS);
             try {
                 const response = await fetch('/api/library-transfer/tasks/' + encodeURIComponent(taskId) + '/confirm-import',
                     {method: accept ? 'POST' : 'DELETE', signal: controller.signal});
@@ -2714,7 +2714,7 @@
                 body = new FormData(); body.append('file', file); body.append('client_request_id', taskId);
             }
             else { body = JSON.stringify({...payload, client_request_id: taskId}); headers = {'Content-Type': 'application/json'}; }
-            const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), MathBankTimeouts.UPLOAD_MS);
+            const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), StarHopeTimeouts.UPLOAD_MS);
             try {
                 const response = await fetch('/api/library-transfer/tasks/' + operation, {method: 'POST', body, headers, signal: controller.signal});
                 if (!libraryTransferTaskIsCurrent(taskId, generation)) return;
@@ -2757,7 +2757,7 @@
                 state.intent += 1; libraryTransferBusy = 'export'; updateLibraryTransferControls();
                 setLibraryTransferStatus('正在核验已勾选题目，请稍候。', 'busy');
                 let submitted = false;
-                const checkController = new AbortController(), checkTimeout = setTimeout(() => checkController.abort(), MathBankTimeouts.QUERY_MS);
+                const checkController = new AbortController(), checkTimeout = setTimeout(() => checkController.abort(), StarHopeTimeouts.QUERY_MS);
                 try {
                     const checkResponse = await fetch('/api/library-transfer/preview', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -2800,7 +2800,7 @@
             refreshes.forEach(refresh => {
                 Promise.resolve().then(refresh).catch(error => console.warn('导入已完成，部分视图刷新失败', error));
             });
-            window.dispatchEvent(new Event('mathbank-question-mutated'));
+            window.dispatchEvent(new Event('starhope-question-mutated'));
         }
 
         async function importLibraryTransfer() {
@@ -2808,7 +2808,7 @@
             return withLibraryTransferStart(async () => {
                 const file = document.getElementById('libraryImportFile').files[0];
                 if (!file || !/\.zip$/i.test(file.name)) {
-                    setLibraryTransferStatus('请选择 MathBank「导出分享包」生成的 ZIP 文件。', 'error'); return;
+                    setLibraryTransferStatus('请选择 StarHope「导出分享包」生成的 ZIP 文件。', 'error'); return;
                 }
                 if (file.size > 512 * 1024 * 1024) {
                     setLibraryTransferStatus('题库分享包不能超过 512 MiB，请按来源分批导出。', 'error'); return;
@@ -2931,8 +2931,8 @@
         // ----------------- App Version & Update Management -----------------
 
         let latestReleaseCache = null;
-        const IGNORED_UPDATE_KEY = 'mathbank_ignored_update_version';
-        const LAST_CHECK_TIME_KEY = 'mathbank_last_update_check_time';
+        const IGNORED_UPDATE_KEY = 'starhope_ignored_update_version';
+        const LAST_CHECK_TIME_KEY = 'starhope_last_update_check_time';
 
         // Check if user is on Mac or Windows
         function getClientOS() {
@@ -3005,7 +3005,7 @@
                     btnMac.classList.remove('opacity-50', 'pointer-events-none');
                     if (macSize) macSize.innerText = `${macAsset.size_mb} MB • .zip 格式`;
                 } else {
-                    btnMac.href = releaseData.release_url || 'https://github.com/JudgePeach/math-question-bank/releases';
+                    btnMac.href = releaseData.release_url || 'https://github.com/Alma1314/StarHope/releases';
                     if (macSize) macSize.innerText = '前往 Releases 下载';
                 }
                 if (clientOS === 'macOS') {
@@ -3021,7 +3021,7 @@
                     btnWin.classList.remove('opacity-50', 'pointer-events-none');
                     if (winSize) winSize.innerText = `${winAsset.size_mb} MB • .zip 格式`;
                 } else {
-                    btnWin.href = releaseData.release_url || 'https://github.com/JudgePeach/math-question-bank/releases';
+                    btnWin.href = releaseData.release_url || 'https://github.com/Alma1314/StarHope/releases';
                     if (winSize) winSize.innerText = '前往 Releases 下载';
                 }
                 if (clientOS === 'Windows') {
@@ -3033,7 +3033,7 @@
 
             // Show modal
             modal.classList.remove('hidden');
-            window.MathBankModal.open(modal, { onEscape: window.closeUpdateModal });
+            window.StarHopeModal.open(modal, { onEscape: window.closeUpdateModal });
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
                 const content = modal.querySelector('.glass-modal');
@@ -3044,7 +3044,7 @@
         window.closeUpdateModal = function() {
             const modal = document.getElementById('updateModal');
             if (!modal) return;
-            window.MathBankModal.close(modal);
+            window.StarHopeModal.close(modal);
             modal.classList.add('opacity-0');
             const content = modal.querySelector('.glass-modal');
             if (content) content.classList.add('scale-95');
@@ -3123,7 +3123,7 @@
                 if (badgeVer) badgeVer.innerText = `v${latestReleaseCache.current_version.replace(/^v/i, '')}`;
                 if (textEl) {
                     if (latestReleaseCache.has_update) {
-                        textEl.innerHTML = `<span class="text-brand-600 font-bold">发现新版本 ${MathBankSafe.escapeText(latestReleaseCache.latest_version)}</span>（当前为 v${MathBankSafe.escapeText(latestReleaseCache.current_version)}）`;
+                        textEl.innerHTML = `<span class="text-brand-600 font-bold">发现新版本 ${StarHopeSafe.escapeText(latestReleaseCache.latest_version)}</span>（当前为 v${StarHopeSafe.escapeText(latestReleaseCache.current_version)}）`;
                     } else {
                         textEl.innerText = `当前已是最新版本 (v${latestReleaseCache.current_version}) • 运行环境正常`;
                     }
@@ -3212,12 +3212,12 @@
                             latest_version: "v2.0.1",
                             release_title: "v2.0.1 正式发布",
                             release_body: "1. 新增 Word (.docx) 试卷 OMML 公式与插图 0 损直提智能拆解。\n2. 全新升级 KaTeX 填空题 \\fillin 宏与数学比较符号防撕裂转义自愈。\n3. 优化拖放区域 UI 与拆分进度动画盒模型。\n4. 内置版本自动检测、忽略更新与便携包一键直链更新体系。",
-                            release_url: "https://github.com/JudgePeach/math-question-bank/releases",
+                            release_url: "https://github.com/Alma1314/StarHope/releases",
                             published_at: new Date().toISOString(),
                             is_git_repo: true,
                             assets: {
-                                macOS: { name: "MathBank-macOS.zip", size_mb: 11.7, downloads: 40, url: "https://github.com/JudgePeach/math-question-bank/releases" },
-                                Windows: { name: "MathBank-Windows-x64.zip", size_mb: 51.2, downloads: 171, url: "https://github.com/JudgePeach/math-question-bank/releases" }
+                                macOS: { name: "StarHope-macOS.zip", size_mb: 11.7, downloads: 40, url: "https://github.com/Alma1314/StarHope/releases" },
+                                Windows: { name: "StarHope-Windows-x64.zip", size_mb: 51.2, downloads: 171, url: "https://github.com/Alma1314/StarHope/releases" }
                             }
                         };
                         openUpdateModal(demoData);
@@ -3256,7 +3256,7 @@
             if (systemMetadata && Array.isArray(systemMetadata.difficulties) && systemMetadata.difficulties.length > 0) {
                 const found = systemMetadata.difficulties.find(d => d.value === val);
                 if (found && found.color) {
-                    return MathBankSafe.safeClassList(found.color, 'text-slate-600 bg-slate-100 border border-slate-200/60');
+                    return StarHopeSafe.safeClassList(found.color, 'text-slate-600 bg-slate-100 border border-slate-200/60');
                 }
             }
             if (val === 'easy_error') return 'text-green-600 bg-green-50 border border-green-200/60';
@@ -3279,10 +3279,10 @@
             if (found) {
                 // Strip emojis (symbols) from label to keep badge clean and neat
                 const cleanLabel = String(found.label || '').replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
-                const colorClass = MathBankSafe.safeClassList(found.color, 'text-slate-600 bg-slate-100');
-                return `<span class="text-[9px] font-bold ${colorClass} px-1.5 py-0.5 rounded">${MathBankSafe.escapeText(cleanLabel)}</span>`;
+                const colorClass = StarHopeSafe.safeClassList(found.color, 'text-slate-600 bg-slate-100');
+                return `<span class="text-[9px] font-bold ${colorClass} px-1.5 py-0.5 rounded">${StarHopeSafe.escapeText(cleanLabel)}</span>`;
             }
-            return `<span class="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">${MathBankSafe.escapeText(diff)}</span>`;
+            return `<span class="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">${StarHopeSafe.escapeText(diff)}</span>`;
         }
 
         function getTypeText(type) {

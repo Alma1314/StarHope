@@ -12,7 +12,7 @@ import re
 
 import pytest
 
-from mathbank.content_locks import _source_parts, lock_visible_math, reconcile_visible_math
+from starhope.content_locks import _source_parts, lock_visible_math, reconcile_visible_math
 
 
 @pytest.mark.parametrize('heading', ['题目 1：', '题目1:', '题目1.', '题目 1．', '**题目 1：**', '### 题目 1：', '题 1：', '第1题：',
@@ -32,7 +32,7 @@ def test_explicit_question_labels_with_colons_keep_local_answers_and_comments(he
 
 @pytest.mark.parametrize('text', ['1:2', '12: 30', '**1**:2', '__1__： 2', r'\textbf{1}:2', '1.5', '题目1.5', '题目1000：', '讨论题目2：不是行首题号'])
 def test_question_colon_recognition_does_not_split_ratios_decimals_or_inline_labels(text):
-    from mathbank.content_locks import _NUMBER
+    from starhope.content_locks import _NUMBER
     assert _NUMBER.match(text) is None
 
 
@@ -168,11 +168,11 @@ def test_type_metadata_does_not_break_numeric_delimiter_matching(returned):
     assert reconcile_visible_math(questions, locks, source)['source_review_count'] == 0
 
 
-@pytest.mark.skipif(not os.environ.get('MATHBANK_PDF_CHALLENGE_TASK'), reason='local challenge PDF cache is opt-in')
+@pytest.mark.skipif(not os.environ.get('STARHOPE_PDF_CHALLENGE_TASK'), reason='local challenge PDF cache is opt-in')
 def test_challenge_pdf_cached_four_questions_match_original_numbers_and_comments():
-    from mathbank.pdf_inspector_helper import merge_pdf_page_texts
-    task = json.loads(Path(os.environ['MATHBANK_PDF_CHALLENGE_TASK']).read_text())
-    source = re.sub(r'<!-- MATHBANK_PDF_PAGE:\d+ -->', '', merge_pdf_page_texts(
+    from starhope.pdf_inspector_helper import merge_pdf_page_texts
+    task = json.loads(Path(os.environ['STARHOPE_PDF_CHALLENGE_TASK']).read_text())
+    source = re.sub(r'<!-- STARHOPE_PDF_PAGE:\d+ -->', '', merge_pdf_page_texts(
         [page['markdown'] for page in task['pdf_source_pages']]))
     _, locks = lock_visible_math(source, 'challenge-real')
     questions = copy.deepcopy(task['data'])
@@ -462,7 +462,7 @@ def test_answer_source_shared_by_two_results_is_not_advertised_as_unique():
 
 @pytest.mark.parametrize("score", ["(13分)", "（15分）", "( 17 分 )", "（ 13 分 ）"])
 def test_numbered_question_score_is_comparison_metadata_only(score):
-    from mathbank.content_locks import _comparison_layout
+    from starhope.content_locks import _comparison_layout
     content = r"已知 $x=2$，求值。"
     source = "15. " + score + "\n\n" + content
     _, locks = lock_visible_math(source, "score-header")
@@ -493,7 +493,7 @@ def test_independent_exam_footer_is_not_part_of_question_content(footer):
 
 @pytest.mark.parametrize("subject", ["高三数学", "高三数试", "初二数学试卷", "数学试题", "数学", "數學"])
 def test_footer_subjects_are_explicit_not_arbitrary_ocr_replacements(subject):
-    from mathbank.content_locks import _page_footer_ranges
+    from starhope.content_locks import _page_footer_ranges
     value = subject + r" $\cdot$ 第2页（共4页）"
     assert bool(_page_footer_ranges(value)) == (subject != "數學")
 
@@ -501,7 +501,7 @@ def test_footer_subjects_are_explicit_not_arbitrary_ocr_replacements(subject):
 @pytest.mark.parametrize("separator", ["·", "•", "⋅", r"$\cdot$", r"$ \bullet $", r"$$\cdot$$",
                                        r"\(\cdot\)", r"\[\cdot\]", r"\cdot"])
 def test_footer_separator_is_excluded_consistently_from_locks_and_formula_comparison(separator):
-    from mathbank.content_locks import _formulas, _comparison_layout
+    from starhope.content_locks import _formulas, _comparison_layout
     content = r"计算 $2\cdot3$，并求 $x+1$。"
     footer = "高三数试 " + separator + " 第2页（共4页）"
     source = "6. " + content + "\n\n" + footer
@@ -527,7 +527,7 @@ def test_footer_separator_is_excluded_consistently_from_locks_and_formula_compar
     r"高三数学 $\cdotx$ 第1页（共4页）",
 ])
 def test_real_multiplication_unknown_subjects_and_body_text_cannot_be_footer_metadata(line):
-    from mathbank.content_locks import _page_footer_ranges, _formulas
+    from starhope.content_locks import _page_footer_ranges, _formulas
     assert _page_footer_ranges(line) == []
     _, locks = lock_visible_math(line, "not-footer")
     assert len(locks) == len(_formulas(line)) == 1
@@ -536,7 +536,7 @@ def test_real_multiplication_unknown_subjects_and_body_text_cannot_be_footer_met
 @pytest.mark.parametrize("opening,closing", [(r"\[", r"\]"), ("```", "```"),
                                              (r"\begin{verbatim}", r"\end{verbatim}")])
 def test_footer_looking_line_inside_math_or_literal_example_is_not_ignored(opening, closing):
-    from mathbank.content_locks import _page_footer_ranges, _comparison_layout
+    from starhope.content_locks import _page_footer_ranges, _comparison_layout
     value = opening + "\n" + r"高三数学 $\cdot$ 第1页（共4页）" + "\n" + closing
     assert _page_footer_ranges(value) == []
     assert _comparison_layout(value) == value
@@ -686,7 +686,7 @@ def test_exam_administration_without_a_bounded_notice_header_remains_source_evid
 @pytest.mark.parametrize("score,time", [("$150$", "120"), ("$150$", r"\(120\)"),
                                       (r"\[150\]", "$$120$$"), ("$ 150 $", "$120$")])
 def test_pure_integer_math_in_administrative_template_is_not_a_question_formula(score, time):
-    from mathbank.content_locks import _formulas, _preamble_instruction_ranges
+    from starhope.content_locks import _formulas, _preamble_instruction_ranges
     instruction = f"1. 本试卷满分 {score} 分，考试时间 {time} 分钟。\n\n"
     source = "考生须知：\n\n" + instruction + "一、选择题\n\n1. 计算 $x+1$。\n2. 求值 $y=2$。"
     locked, locks = lock_visible_math(source, "numeric-administration")
@@ -711,7 +711,7 @@ def test_pure_integer_math_in_administrative_template_is_not_a_question_formula(
     ("$150$", "已知 $x=2$，求值。"),
 ])
 def test_nonliteral_or_extended_admin_items_keep_their_real_formula_locks(score, suffix):
-    from mathbank.content_locks import _preamble_instruction_ranges
+    from starhope.content_locks import _preamble_instruction_ranges
     statement = f"本试卷满分 {score} 分，考试时间120分钟。" + suffix
     source = "考生须知：\n1. " + statement + "\n\n一、选择题\n1. 计算 $1+1$。"
     _, locks = lock_visible_math(source, "not-pure-administration")
@@ -731,7 +731,7 @@ def test_pure_integer_admin_line_without_both_document_boundaries_keeps_locks():
 
 
 def test_administrative_integer_projection_is_independent_of_formula_collector(monkeypatch):
-    from mathbank import content_locks
+    from starhope import content_locks
     monkeypatch.setattr(content_locks, "_formulas", lambda *a, **k: pytest.fail("metadata matcher must not recurse into formula collection"))
     source = "考生须知：\n1. 本试卷满分 $150$ 分，考试时间 \\(120\\) 分钟。\n一、选择题\n1. 求值。"
     assert content_locks._preamble_instruction_ranges(source)
@@ -784,14 +784,14 @@ def test_notice_heading_inside_an_existing_section_cannot_hide_questions():
     assert [part.number for part in parts] == [1, 2, 3]
 
 
-@pytest.mark.skipif(not os.getenv("MATHBANK_PDF_SOURCE_TASK"), reason="optional local captured PDF import task")
+@pytest.mark.skipif(not os.getenv("STARHOPE_PDF_SOURCE_TASK"), reason="optional local captured PDF import task")
 def test_captured_task_replay_uses_exact_page_evidence_without_any_model():
-    from mathbank.pdf_figures import clear_resolved_figure_placeholders
-    from mathbank.pdf_layout import apply_figure_anchors
+    from starhope.pdf_figures import clear_resolved_figure_placeholders
+    from starhope.pdf_layout import apply_figure_anchors
 
-    task = json.loads(Path(os.environ["MATHBANK_PDF_SOURCE_TASK"]).read_text())
+    task = json.loads(Path(os.environ["STARHOPE_PDF_SOURCE_TASK"]).read_text())
     pages = {
-        issue["page_index"]: re.split(r"<!-- MATHBANK_PDF_PAGE:\d+ -->\n?", issue["source_excerpt"], maxsplit=1)[-1].split("\n\n![未归位配图]")[0]
+        issue["page_index"]: re.split(r"<!-- STARHOPE_PDF_PAGE:\d+ -->\n?", issue["source_excerpt"], maxsplit=1)[-1].split("\n\n![未归位配图]")[0]
         for issue in task["diagnostics"]["unmatched_source"] if "page_index" in issue
     }
     chunks = []
@@ -815,13 +815,13 @@ def test_captured_task_replay_uses_exact_page_evidence_without_any_model():
         assert source[match["source_start"]:match["source_end"]] == match["source_excerpt"]
 
 
-@pytest.mark.skipif(not os.getenv("MATHBANK_PDF_SPLIT_CAPTURE"), reason="optional local captured PDF splitter input/output")
+@pytest.mark.skipif(not os.getenv("STARHOPE_PDF_SPLIT_CAPTURE"), reason="optional local captured PDF splitter input/output")
 def test_full_xuejun_split_capture_keeps_only_actual_model_formula_error():
-    from mathbank.content_locks import ContentLock
+    from starhope.content_locks import ContentLock
 
-    capture = Path(os.environ["MATHBANK_PDF_SPLIT_CAPTURE"])
+    capture = Path(os.environ["STARHOPE_PDF_SPLIT_CAPTURE"])
     locked = (capture / "split-input.md").read_text()
-    tags = re.compile(r'<mathbank-math id="([^"]+)">(.*?)</mathbank-math>', re.DOTALL)
+    tags = re.compile(r'<starhope-math id="([^"]+)">(.*?)</starhope-math>', re.DOTALL)
     locks = [ContentLock(match[1], match[2]) for match in tags.finditer(locked)]
     source = tags.sub(lambda match: match[2], locked)
     questions = json.loads((capture / "split-output.json").read_text())
@@ -959,9 +959,9 @@ def test_numeric_answer_loses_only_delimiters_without_losing_source_provenance(p
     assert questions[0]["answer_markdown"] == "$28$" + punctuation
 
 
-@pytest.mark.skipif(not os.getenv("MATHBANK_NUMERIC_SOURCE_TASK"), reason="optional captured Q13 numeric-delimiter task")
+@pytest.mark.skipif(not os.getenv("STARHOPE_NUMERIC_SOURCE_TASK"), reason="optional captured Q13 numeric-delimiter task")
 def test_captured_question_13_only_adds_numeric_math_delimiters():
-    task = json.loads(Path(os.environ["MATHBANK_NUMERIC_SOURCE_TASK"]).read_text())
+    task = json.loads(Path(os.environ["STARHOPE_NUMERIC_SOURCE_TASK"]).read_text())
     question = copy.deepcopy(task["data"][12])
     source = question.pop("source_review")["source_excerpt"]
     assert "28" in source and "$28$" in question["content"]

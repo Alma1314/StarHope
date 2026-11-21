@@ -17,8 +17,8 @@ from main import (
     ocr_pdf_page_image,
     ocr_via_provider,
 )
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.prompts import COMMON_OCR_PROMPT, ILLUSTRATION_BOX_PROMPT, FILLIN_STYLE_RULE, FRACTION_STYLE_RULE
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.prompts import COMMON_OCR_PROMPT, ILLUSTRATION_BOX_PROMPT, FILLIN_STYLE_RULE, FRACTION_STYLE_RULE
 
 
 def test_ocr_prompt_compactly_preserves_tables_and_multi_figure_anchors():
@@ -66,7 +66,7 @@ def test_ocr_request_uses_resolved_multimodal_provider(tmp_path, base, model, ef
     }
 
     with patch(
-        "mathbank.ai_http.robust_request_post", return_value=response
+        "starhope.ai_http.robust_request_post", return_value=response
     ) as mock_post:
         result = ocr_via_provider(
             str(image_path), provider, include_illustration_box=True
@@ -98,7 +98,7 @@ def test_bailian_ocr_explicitly_disables_thinking(tmp_path):
     }
 
     with patch(
-        "mathbank.ai_http.robust_request_post", return_value=response
+        "starhope.ai_http.robust_request_post", return_value=response
     ) as mock_post:
         result = ocr_via_provider(str(image_path), provider)
 
@@ -123,7 +123,7 @@ def test_ocr_read_timeout_is_not_retried(tmp_path):
     )
 
     with patch(
-        "mathbank.ai_http.robust_request_post",
+        "starhope.ai_http.robust_request_post",
         side_effect=requests.exceptions.ReadTimeout("unknown provider state"),
     ) as mock_post:
         with pytest.raises(requests.exceptions.ReadTimeout):
@@ -202,7 +202,7 @@ def test_draw_request_strips_siliconflow_provider_prefix(tmp_path):
 
     with patch.dict(os.environ, {"SILICONFLOW_API_KEY": "sf-key"}):
         with patch(
-            "mathbank.ai_http.robust_request_post", return_value=response
+            "starhope.ai_http.robust_request_post", return_value=response
         ) as mock_post:
             result = draw_tikz_via_high_model(
                 str(image_path),
@@ -231,7 +231,7 @@ def test_draw_request_injects_configured_reasoning_effort(tmp_path, model, effor
     }
 
     with patch.dict(os.environ, provider_env):
-        with patch("mathbank.ai_http.robust_request_post", return_value=response) as mock_post:
+        with patch("starhope.ai_http.robust_request_post", return_value=response) as mock_post:
             draw_tikz_via_high_model(
                 str(image_path),
                 f"ZHONGZHAN_GPT/{model}:{effort}",
@@ -252,7 +252,7 @@ def test_draw_request_supports_text_only_workbench_input():
 
     with patch.dict(os.environ, {"SILICONFLOW_API_KEY": "sf-key"}):
         with patch(
-            "mathbank.ai_http.robust_request_post", return_value=response
+            "starhope.ai_http.robust_request_post", return_value=response
         ) as mock_post:
             result = draw_tikz_via_high_model(
                 None,
@@ -574,7 +574,7 @@ def test_tikz_correction_uses_resolved_bailian_provider(tmp_path):
                 "main.compile_tikz_to_png", side_effect=RuntimeError("compile failed")
             ):
                 with patch(
-                    "mathbank.ai_http.robust_request_post", return_value=response
+                    "starhope.ai_http.robust_request_post", return_value=response
                 ) as mock_post:
                     result = correct_tikz_endpoint(
                         tikz_code="\\begin{tikzpicture}bad\\end{tikzpicture}",
@@ -599,7 +599,7 @@ def test_deepseek_flash_ocr_sends_standard_image_block_and_disables_thinking(tmp
     provider = resolve_ocr_provider('deepseek', {'DEEPSEEK_API_KEY':'test-ds-key'})
     upstream = MagicMock(status_code=200)
     upstream.json.return_value = {'choices':[{'message':{'content':'$x=2$'}}]}
-    with patch('mathbank.ai_http.robust_request_post', return_value=upstream) as post:
+    with patch('starhope.ai_http.robust_request_post', return_value=upstream) as post:
         assert ocr_via_provider(str(image_path), provider) == '$x=2$'
     assert post.call_args.args[0] == 'https://api.deepseek.com/chat/completions'
     request = post.call_args.kwargs['json']

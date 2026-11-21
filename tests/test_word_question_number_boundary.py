@@ -1,8 +1,8 @@
 """Keep a Word outer question number when separating its first subquestion."""
 import pytest
 
-from mathbank.ai_json import normalize_subquestions_double_newlines
-from mathbank.content_locks import _source_parts, lock_visible_math
+from starhope.ai_json import normalize_subquestions_double_newlines
+from starhope.content_locks import _source_parts, lock_visible_math
 
 
 @pytest.mark.parametrize("number,marker", [(15, "(1)"), (1, "（1）"), (998, "①")])

@@ -19,7 +19,7 @@ def test_qa_data_has_unique_traceable_entries_and_ships_with_scripts():
     node = shutil.which('node')
     assert node
     result = subprocess.run(
-        [node, '-e', "global.window={};require('./static/js/qa-data.js');console.log(JSON.stringify(window.MathBankQaData));"],
+        [node, '-e', "global.window={};require('./static/js/qa-data.js');console.log(JSON.stringify(window.StarHopeQaData));"],
         cwd=ROOT, capture_output=True, text=True, encoding='utf-8', check=True,
     )
     data = json.loads(result.stdout)
@@ -47,7 +47,7 @@ def test_qa_data_has_unique_traceable_entries_and_ships_with_scripts():
     assert 'fetch(' not in script and 'localStorage' not in script
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1', reason='opt-in actual browser regression')
+@pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1', reason='opt-in actual browser regression')
 @pytest.mark.parametrize('viewport', [(1600, 1100), (375, 812)])
 def test_qa_search_navigation_and_responsive_layout(browser, tmp_path, viewport):
     browser.command('set', 'viewport', *map(str, viewport))
@@ -60,13 +60,13 @@ def test_qa_search_navigation_and_responsive_layout(browser, tmp_path, viewport)
         PaperStore.questionsMap[question.id] = question;
         addToCart(question.id, 8);
         updatePaperMeta('title','QA 切换保留的试卷信息');
-        localStorage.setItem('mathbank_local_drafts',JSON.stringify([{id:'qa-test-draft',content:'QA 切换保留的草稿',isDraft:true}]));
+        localStorage.setItem('starhope_local_drafts',JSON.stringify([{id:'qa-test-draft',content:'QA 切换保留的草稿',isDraft:true}]));
         return true;
     })()""")
-    before = browser.evaluate("JSON.stringify({cart:PaperStore.cart,meta:PaperStore.meta,drafts:localStorage.getItem('mathbank_local_drafts')})")
+    before = browser.evaluate("JSON.stringify({cart:PaperStore.cart,meta:PaperStore.meta,drafts:localStorage.getItem('starhope_local_drafts')})")
     browser.command('click', '#appNavQa')
     browser.command('wait', '--fn', "!document.getElementById('qaWorkspaceSection').classList.contains('hidden') && document.querySelectorAll('.qa-question').length > 0")
-    initial = browser.evaluate("({total:MathBankQaData.entries.length,shown:[...document.querySelectorAll('.qa-question')].filter(n=>!n.hidden).length,current:document.getElementById('appNavQa').getAttribute('aria-current')})")
+    initial = browser.evaluate("({total:StarHopeQaData.entries.length,shown:[...document.querySelectorAll('.qa-question')].filter(n=>!n.hidden).length,current:document.getElementById('appNavQa').getAttribute('aria-current')})")
     assert initial['total'] == initial['shown'] and initial['current'] == 'page'
     if not browser.evaluate("document.querySelector('.qa-question').open"):
         browser.command('click', '.qa-question:first-child summary')
@@ -83,13 +83,13 @@ def test_qa_search_navigation_and_responsive_layout(browser, tmp_path, viewport)
     browser.command('click', '#qaResetFilters')
     assert browser.evaluate("document.querySelector('.qa-question').open")
     browser.command('click', '#qaCategories button:nth-child(2)')
-    assert browser.evaluate("(() => {const category=document.querySelector('#qaCategories [aria-pressed=true]').dataset.category;const visible=[...document.querySelectorAll('.qa-question')].filter(n=>!n.hidden);return visible.length>0 && visible.every(n=>MathBankQaData.entries.find(e=>'qa-'+e.id===n.id).category===category)})()")
+    assert browser.evaluate("(() => {const category=document.querySelector('#qaCategories [aria-pressed=true]').dataset.category;const visible=[...document.querySelectorAll('.qa-question')].filter(n=>!n.hidden);return visible.length>0 && visible.every(n=>StarHopeQaData.entries.find(e=>'qa-'+e.id===n.id).category===category)})()")
     browser.command('click', '#qaResetFilters')
     browser.evaluate("openImportModal(); true")
     browser.command('wait', '--fn', "PaperStore.activeWorkspace === 'import'")
     browser.evaluate("closeImportModal(); true")
     assert browser.evaluate("PaperStore.activeWorkspace === 'qa' && !document.getElementById('qaWorkspaceSection').classList.contains('hidden')")
-    assert browser.evaluate("JSON.stringify({cart:PaperStore.cart,meta:PaperStore.meta,drafts:localStorage.getItem('mathbank_local_drafts')})") == before
+    assert browser.evaluate("JSON.stringify({cart:PaperStore.cart,meta:PaperStore.meta,drafts:localStorage.getItem('starhope_local_drafts')})") == before
     layout = browser.evaluate("(() => {const qa=document.getElementById('qaWorkspaceSection');const buttons=[...document.querySelectorAll('#appNavPrimary button')].map(n=>n.getBoundingClientRect());return {overflow:qa.scrollWidth>qa.clientWidth+1,navCount:buttons.length,touch:buttons.every(r=>r.width>=44&&r.height>=44),inViewport:buttons.every(r=>r.left>=0&&r.right<=innerWidth+1)}})()")
     assert not layout['overflow'] and layout['navCount'] == 6 and layout['touch'] and layout['inViewport'], layout
     browser.command('screenshot', str(tmp_path / f'qa-{viewport[0]}-light.png'))
@@ -100,17 +100,17 @@ def test_qa_search_navigation_and_responsive_layout(browser, tmp_path, viewport)
     assert browser.evaluate("document.getElementById('qaWorkspaceSection').classList.contains('hidden')")
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_TEST_QA_DISABLED') != '1', reason='separate machine-local opt-out browser run')
+@pytest.mark.skipif(os.environ.get('STARHOPE_TEST_QA_DISABLED') != '1', reason='separate machine-local opt-out browser run')
 @pytest.mark.parametrize('viewport', [(1600, 1100), (375, 812)])
 def test_qa_disabled_navigation_and_existing_workspaces(browser, viewport):
     browser.command('set', 'viewport', *map(str, viewport))
-    assert browser.evaluate("window.__qaEnabled === false && typeof window.MathBankQaData === 'undefined'")
+    assert browser.evaluate("window.__qaEnabled === false && typeof window.StarHopeQaData === 'undefined'")
     assert browser.evaluate("!document.getElementById('appNavQa') && !document.getElementById('ws-btn-qa') && !document.getElementById('qaWorkspaceSection')")
     assert browser.evaluate("!document.querySelector('script[src*=\"qa-data.js\"]') && !document.querySelector('script[src*=\"qa.js\"]')")
     browser.evaluate("selectWorkspace('bank','题库管理');true")
-    before = browser.evaluate("JSON.stringify({active:PaperStore.activeWorkspace,cart:PaperStore.cart,meta:PaperStore.meta,drafts:localStorage.getItem('mathbank_local_drafts')})")
+    before = browser.evaluate("JSON.stringify({active:PaperStore.activeWorkspace,cart:PaperStore.cart,meta:PaperStore.meta,drafts:localStorage.getItem('starhope_local_drafts')})")
     browser.evaluate("selectWorkspace('qa','QA · 常见问题');true")
-    assert browser.evaluate("JSON.stringify({active:PaperStore.activeWorkspace,cart:PaperStore.cart,meta:PaperStore.meta,drafts:localStorage.getItem('mathbank_local_drafts')})") == before
+    assert browser.evaluate("JSON.stringify({active:PaperStore.activeWorkspace,cart:PaperStore.cart,meta:PaperStore.meta,drafts:localStorage.getItem('starhope_local_drafts')})") == before
     browser.evaluate("openImportModal();true")
     assert browser.evaluate("PaperStore.activeWorkspace === 'import'")
     browser.evaluate("closeImportModal();true")

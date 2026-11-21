@@ -3,7 +3,7 @@ import copy
 
 import pytest
 
-from mathbank.database import Question
+from starhope.database import Question
 
 
 @pytest.fixture(autouse=True)
@@ -131,8 +131,8 @@ def test_explicit_other_book_name_overrides_parent_source_namespace(client, db_s
 
 
 def test_historical_identity_ambiguity_survives_repeated_formatting_and_export(client, db_session):
-    from mathbank.database import QuestionReference
-    from mathbank.question_references import replace_exchange_reference_data
+    from starhope.database import QuestionReference
+    from starhope.question_references import replace_exchange_reference_data
     a = create(client, "历史身份甲", "历史身份教材 | 例 1.2")
     source = create(client, "历史身份来源", "历史身份教材 | 例 2.1", "参考例1.2，再看例1.2。")
     b = create(client, "历史身份乙", "历史身份教材 | 例 1.2")
@@ -188,7 +188,7 @@ def test_word_export_contains_resolved_number_in_editable_text(client, db_sessio
     import zipfile
     from lxml import etree
     from main import _prepare_paper_export_questions
-    from mathbank.word_export_helper import build_word_document
+    from starhope.word_export_helper import build_word_document
     create(client, "Word 导出目标", "Word 引用教材 | 例 5.1")
     source = create(client, "Word 导出来源", "Word 引用教材 | 例 5.2", "参考例5.1的方法。")
     items = _prepare_paper_export_questions([{"id": source["id"]}], db_session)

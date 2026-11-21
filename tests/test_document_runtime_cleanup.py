@@ -4,8 +4,8 @@ import threading
 
 import pytest
 
-from mathbank.document_task_store import DurableDocumentTasks
-from mathbank.task_manager import TaskCancelled, TaskManager, iter_completed_futures
+from starhope.document_task_store import DurableDocumentTasks
+from starhope.task_manager import TaskCancelled, TaskManager, iter_completed_futures
 
 
 @pytest.mark.parametrize("removal", ["ttl", "capacity", "explicit"])

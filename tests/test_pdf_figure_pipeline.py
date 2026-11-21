@@ -10,11 +10,11 @@ import pymupdf as fitz
 from PIL import Image
 import pytest
 
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank import pdf_figure_pipeline as pipeline
-from mathbank.pdf_figure_review import CHECKS, FRAME, review_pdf_figures as actual_engine
-from mathbank.pdf_figures import describe_figure_slots
-from mathbank.task_manager import TaskCancelled
+from starhope.ai_providers import resolve_ocr_provider
+from starhope import pdf_figure_pipeline as pipeline
+from starhope.pdf_figure_review import CHECKS, FRAME, review_pdf_figures as actual_engine
+from starhope.pdf_figures import describe_figure_slots
+from starhope.task_manager import TaskCancelled
 
 
 @pytest.fixture(autouse=True)
@@ -37,7 +37,7 @@ def setup(tmp_path):
     source_path=out/"source.png"
     with fitz.open(stream=pdf,filetype="pdf") as document:document[0].get_pixmap().save(source_path)
     crop=out/"initial.png";Image.new("RGB",(50,50),"white").save(crop)
-    source="<!-- MATHBANK_PDF_PAGE:1 -->\n一、解答题\n1. 原题 $x+1$，保留  两个空格。\n[插图待补: 图1]\n原答案不由模型改写。"
+    source="<!-- STARHOPE_PDF_PAGE:1 -->\n一、解答题\n1. 原题 $x+1$，保留  两个空格。\n[插图待补: 图1]\n原答案不由模型改写。"
     slot=describe_figure_slots(source,0)[0]
     figure={"id":"p1-f1","slot_id":slot["id"],"bbox":[100,100,200,200],
         "image_path":"/static/uploads/tmp/initial.png","page_index":0,

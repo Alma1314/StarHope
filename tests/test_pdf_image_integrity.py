@@ -9,12 +9,12 @@ import shutil
 import pytest
 from PIL import Image
 
-from mathbank.export_preflight import (
+from starhope.export_preflight import (
     ExportPreflightError,
     preflight_paper_export,
     tex_image_references,
 )
-from mathbank.paper_helper import build_latex_document, clean_content_for_latex, compile_tex_to_pdf
+from starhope.paper_helper import build_latex_document, clean_content_for_latex, compile_tex_to_pdf
 
 
 IMAGE_FORMS = [
@@ -170,7 +170,7 @@ def test_environment_literals_in_image_metadata_do_not_reclassify_the_next_image
     assert rendered.index("中间正文") < rendered.index("{last.png}") < rendered.index("最后正文")
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_EXPORT_NATIVE") != "1" or not shutil.which("xelatex"),
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_EXPORT_NATIVE") != "1" or not shutil.which("xelatex"),
                     reason="Opt-in native PDF image and TikZ fidelity validation")
 @pytest.mark.parametrize("paper_type", ["exam", "quiz", "exam_19"])
 def test_real_pdf_contains_each_independent_image_and_both_vector_drawings(tmp_path, paper_type):

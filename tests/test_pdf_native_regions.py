@@ -7,8 +7,8 @@ from PIL import Image
 import pytest
 import requests
 
-from mathbank import pdf_native_regions as planner
-from mathbank.pdf_layout import inspect_pdf_page
+from starhope import pdf_native_regions as planner
+from starhope.pdf_layout import inspect_pdf_page
 
 PROSE = "这是一段能够从原生页面直接保留的中文说明文字用于解释题目的背景和作答要求。"
 MORE_PROSE = "请认真阅读题目的条件并按照要求完成解答书写过程中应当说明推理的依据。"

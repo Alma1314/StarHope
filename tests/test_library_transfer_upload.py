@@ -9,8 +9,8 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.testclient import TestClient
 import pytest
 
-from mathbank import library_transfer_upload as upload
-from mathbank.storage_access import StorageAccessError
+from starhope import library_transfer_upload as upload
+from starhope.storage_access import StorageAccessError
 
 
 PATHS = ("/api/library-transfer/import", "/api/library-transfer/tasks/import")
@@ -35,8 +35,8 @@ def _app(tmp_path, **options):
     return app, root, entered
 
 
-def _multipart(data=b"archive", *, filename="MathBank.zip", request_id="intent-123"):
-    boundary = "mathbank-upload-boundary"
+def _multipart(data=b"archive", *, filename="StarHope.zip", request_id="intent-123"):
+    boundary = "starhope-upload-boundary"
     body = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\n'
             'Content-Type: application/zip\r\n\r\n').encode() + data
     body += (f'\r\n--{boundary}\r\nContent-Disposition: form-data; name="client_request_id"\r\n\r\n'
@@ -257,7 +257,7 @@ def test_malformed_multipart_header_closes_prior_file_and_returns_safe_400(tmp_p
 
     monkeypatch.setattr(upload, "tempfile", SimpleNamespace(mkdtemp=original.mkdtemp, SpooledTemporaryFile=tracked_spool))
     boundary = "broken-header-boundary"
-    first = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="MathBank.zip"\r\n\r\n').encode()
+    first = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="StarHope.zip"\r\n\r\n').encode()
     first += b"x" * (upload.UPLOAD_SPOOL_BYTES + 13)
     broken = f'\r\n--{boundary}\r\ninvalid header without colon\r\n\r\nprivate secret\r\n--{boundary}--\r\n'.encode()
     result = asyncio.run(_asgi(app, PATHS[1], boundary, [first, broken]))
@@ -279,7 +279,7 @@ def test_storage_exception_after_handler_started_is_not_marked_as_unaccepted(tmp
 
     app.include_router(router)
     with TestClient(app, raise_server_exceptions=False) as client:
-        response = client.post(PATHS[0], files={"file": ("MathBank.zip", b"archive")})
+        response = client.post(PATHS[0], files={"file": ("StarHope.zip", b"archive")})
     assert response.status_code == 500 and entered == [True]
     assert "upload_rejected" not in response.text and "committed" not in response.text
     _assert_clean(root)
@@ -340,5 +340,5 @@ def test_upload_directory_probe_denial_is_safe_and_precedes_body_read(tmp_path, 
     _assert_clean(root)
     # The receiving slot is released even when the body was never consumed.
     assert asyncio.run(_asgi(app, path, boundary, [body]))["status"] == 200
-    assert entered == ["MathBank.zip"]
+    assert entered == ["StarHope.zip"]
     _assert_clean(root)

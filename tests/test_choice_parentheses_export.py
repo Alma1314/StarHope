@@ -4,8 +4,8 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.paper_helper import build_latex_document, clean_content_for_latex
-from mathbank.source_comments import SOURCE_ATTRIBUTION_PREFIX, SOURCE_ATTRIBUTION_SUFFIX
+from starhope.paper_helper import build_latex_document, clean_content_for_latex
+from starhope.source_comments import SOURCE_ATTRIBUTION_PREFIX, SOURCE_ATTRIBUTION_SUFFIX
 
 
 IMAGE = "![](/static/uploads/diagram.png)"
@@ -143,14 +143,14 @@ def test_image_only_source_keeps_hidden_header_hidden_after_detachment():
     block = SOURCE_ATTRIBUTION_PREFIX + "来源 https://example.invalid/a_b" + SOURCE_ATTRIBUTION_SUFFIX
     q = {"id": 11, "question_type": "single_choice", "content": block + IMAGE, "figure_align": "center"}
     tex = build_latex_document("图题来源", "", "exam", [{"question": q, "score": 5}], show_secret=False, show_notice=False)
-    assert "MathBank source attribution" not in tex
+    assert "StarHope source attribution" not in tex
     assert "example.invalid" not in tex
     assert tex.count(r"\paren") == 1
     assert tex.index(r"\paren") < tex.index("{diagram.png}")
 
 
 def test_source_example_after_image_still_prevents_end_group_detachment():
-    from mathbank.paper_helper import _split_export_image_anchors
+    from starhope.paper_helper import _split_export_image_anchors
     source = "题干\n" + IMAGE + "\n" + r"\verb|\begin{choices}|"
     assert _split_export_image_anchors(source) == (source, "")
 

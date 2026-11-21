@@ -35,8 +35,8 @@ def _question(response):
     (r"结果为____\underline{▲}____．", r"结果为\fillin．"),
 ])
 def test_book_escaped_blanks_are_stored_consistently_on_create_and_update(client, db_session, raw, expected):
-    from mathbank.database import Question, QuestionFingerprint
-    from mathbank.question_duplicates import build_question_fingerprint
+    from starhope.database import Question, QuestionFingerprint
+    from starhope.question_duplicates import build_question_fingerprint
 
     checked = client.post("/api/questions/check-duplicates", headers=_headers(), json={"items": [{
         "client_key": "real-book-blank", "content": raw, "question_type": "fill_in_blank",
@@ -66,7 +66,7 @@ def test_book_escaped_blanks_are_stored_consistently_on_create_and_update(client
 
 
 def test_api_keeps_code_urls_subscripts_and_explicit_macro_contents_exact(client, db_session):
-    from mathbank.database import Question
+    from starhope.database import Question
 
     protected = (
         r"源码`\_\_\_\_`。" + "\n\n```tex\n\\_\\_\\_\\_\n```\n\n" +

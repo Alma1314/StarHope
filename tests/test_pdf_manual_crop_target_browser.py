@@ -12,7 +12,7 @@ from test_preview_browser import browser  # noqa: F401
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / ".system_generated/pdf-manual-crop-target-20261020"
-pytestmark = pytest.mark.skipif(os.environ.get("MATHBANK_TEST_BROWSER") != "1", reason="opt-in isolated browser")
+pytestmark = pytest.mark.skipif(os.environ.get("STARHOPE_TEST_BROWSER") != "1", reason="opt-in isolated browser")
 
 
 @pytest.mark.parametrize("width,height", [(1600, 1100), (390, 844)])
@@ -28,7 +28,7 @@ def test_answer_crop_stays_between_original_solution_steps(browser, width, heigh
     browser.command("set", "viewport", str(width), str(height))
     browser.command("network", "route", "**/api/ai/**", "--abort")
     browser.evaluate(r"""(()=>{
-      MathBankDocumentImportSession.clear();selectWorkspace('import','导入中心');
+      StarHopeDocumentImportSession.clear();selectWorkspace('import','导入中心');
       window.pdfPageImages=['/static/uploads/tmp/answer-source-demo.png'];window.pdfPageNumbers=[7];
       window.currentPdfTaskId='00000000-0000-4000-8000-000000000007';window.__cropRequests=[];
       const question={project_card_id:'answer-demo',source_number:16,content:'演示题干，原题不含图片。',

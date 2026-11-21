@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 
-from mathbank import pdf_inspector_helper as helper
+from starhope import pdf_inspector_helper as helper
 
 
 @pytest.mark.parametrize("components", ["\uf8f1\uf8f2\uf8f3", "\uf8fc\uf8fd\uf8fe", "⎧⎨⎩", "⎫⎬⎭"])
@@ -116,7 +116,7 @@ def test_unreadable_pdf_retains_nonlocal_brace_review_without_table(monkeypatch)
     assert helper._native_brace_geometry_reasons("⎧⎨⎩ x+1") == []  # Local gate already rejects it.
 
 
-@pytest.mark.skipif(os.environ.get("MATHBANK_TEST_MATH_NATIVE") != "1", reason="requires installed XeLaTeX and native PDF Inspector")
+@pytest.mark.skipif(os.environ.get("STARHOPE_TEST_MATH_NATIVE") != "1", reason="requires installed XeLaTeX and native PDF Inspector")
 def test_real_pdf_independent_braces_pass_but_disordered_cases_fail_by_geometry(tmp_path):
     xelatex = shutil.which("xelatex")
     if not xelatex or not helper._PDF_INSPECTOR_AVAILABLE or not helper._FITZ_AVAILABLE:

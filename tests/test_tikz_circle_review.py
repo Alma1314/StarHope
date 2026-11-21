@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from mathbank.tikz_circle_review import Circumcircle, circumcircles
-from mathbank.tikz_geometry import TikzGeometryError, render_geometry_reply
+from starhope.tikz_circle_review import Circumcircle, circumcircles
+from starhope.tikz_geometry import TikzGeometryError, render_geometry_reply
 
 
 STEM = (
@@ -35,7 +35,7 @@ def test_find_explicit_outer_circle_in_latex_and_leave_other_circles_unbound():
 
 def test_planar_renderer_constructs_circumcenter_and_rejects_different_render_radius():
     plan = {
-        "mathbank_geometry": 1, "axes": True,
+        "starhope_geometry": 1, "axes": True,
         "points": [
             ["A", "below left", "xy", -4, 0],
             ["B", "below right", "xy", 4, 0],
@@ -57,7 +57,7 @@ def test_planar_renderer_constructs_circumcenter_and_rejects_different_render_ra
         render_geometry_reply(json.dumps(plan), context=STEM)
 
 
-@pytest.mark.skipif(os.getenv("MATHBANK_TEST_TIKZ_NATIVE") != "1", reason="requires native XeLaTeX")
+@pytest.mark.skipif(os.getenv("STARHOPE_TEST_TIKZ_NATIVE") != "1", reason="requires native XeLaTeX")
 def test_preview_rejects_measured_wrong_radius_and_accepts_same_unit(client):
     import main
 

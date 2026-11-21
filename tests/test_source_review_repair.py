@@ -1,6 +1,6 @@
 """Isolated source-backed repair rounds; no model, network or user document."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 
 from copy import deepcopy
 import json
@@ -9,10 +9,10 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank import pdf_source_verify, source_review_repair as repair
-from mathbank.ai_providers import resolve_ocr_provider
-from mathbank.source_review_results import parse_review_response
-from mathbank.task_manager import TaskCancelled
+from starhope import pdf_source_verify, source_review_repair as repair
+from starhope.ai_providers import resolve_ocr_provider
+from starhope.source_review_results import parse_review_response
+from starhope.task_manager import TaskCancelled
 
 
 CHECKS = {"same_question", "complete_content", "math_and_conditions", "options_and_subquestions", "figures", "answer"}

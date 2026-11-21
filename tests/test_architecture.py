@@ -1,15 +1,15 @@
 import ast
 import asyncio
 
-from mathbank.curriculums import CURRICULUM_NAMES, get_curriculum_preset, load_curriculum
-from mathbank.paths import (
+from starhope.curriculums import CURRICULUM_NAMES, get_curriculum_preset, load_curriculum
+from starhope.paths import (
     CURRICULUMS_DIR,
     DATABASE_FILE,
     PROJECT_ROOT,
     STATIC_DIR,
     TEMPLATES_DIR,
 )
-from mathbank.prompts import build_ai_solve_prompts
+from starhope.prompts import build_ai_solve_prompts
 
 
 STATIC_JS_DIR = PROJECT_ROOT / "static" / "js"
@@ -17,7 +17,7 @@ STATIC_JS_DIR = PROJECT_ROOT / "static" / "js"
 
 def test_python_sources_do_not_use_deprecated_fitz_import():
     source_paths = [PROJECT_ROOT / "main.py"]
-    for directory_name in ("mathbank", "scripts", "tests"):
+    for directory_name in ("starhope", "scripts", "tests"):
         source_paths.extend((PROJECT_ROOT / directory_name).rglob("*.py"))
 
     violations = []
@@ -188,7 +188,7 @@ def test_paper_parsers_use_defensive_ai_json_parser():
     for handler in ("parse_paper_text_internal", "ai_parse_paper"):
         assert "parse_paper_completion" in called_functions(PROJECT_ROOT / "main.py", handler)
     assert "parse_ai_json" in called_functions(
-        PROJECT_ROOT / "mathbank" / "paper_parse.py", "parse_paper_completion"
+        PROJECT_ROOT / "starhope" / "paper_parse.py", "parse_paper_completion"
     )
 
 
@@ -204,7 +204,7 @@ def test_backend_modules_and_cli_tools_live_in_packages():
         "task_manager.py",
     ):
         assert not (PROJECT_ROOT / module_name).exists()
-        assert (PROJECT_ROOT / "mathbank" / module_name).is_file()
+        assert (PROJECT_ROOT / "starhope" / module_name).is_file()
 
     for script_name in (
         "search_questions.py",
@@ -263,7 +263,7 @@ def test_lifespan_owns_post_startup_maintenance(monkeypatch):
         (
             "thread_created",
             "start_startup_cleanup",
-            "mathbank-post-startup-maintenance",
+            "starhope-post-startup-maintenance",
             True,
         ),
         ("thread_started",),

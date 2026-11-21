@@ -246,9 +246,9 @@ const q=parsedQuestionsData[0];
 assert.equal(q.classification_review.required,true);
 assert.equal(validateParsedQuestionBeforeImport(0),false);
 assert.equal(confirmParsedClassificationReview(0),true);
-window.MathBankDocumentImportSession.flush();
+window.StarHopeDocumentImportSession.flush();
 assert.equal(requests.length,0,'session recovery and classification decisions cannot request models or writes');
-console.log(storage.get('mathbank_document_import_session_v1'));
+console.log(storage.get('starhope_document_import_session_v1'));
 """
     confirmed = json.loads(run_node(first).splitlines()[-1])
     assert confirmed['questions'][0]['classification_review']['required'] is False
@@ -285,7 +285,7 @@ assert.equal(parsedQuestionsData[0].classification_review.required,false,
     'temporary empty controls before catalog loading must not revoke a restored teacher confirmation');
 assert.equal(validateParsedQuestionBeforeImport(0),false,'still wait for a real catalog before saving');
 categoryTree={'必修一':{'1. 集合':['1.1 集合的概念']}};window.categoryTree=categoryTree;
-window.MathBankDocumentImportSession.refreshCatalogs();refreshParsedClassificationReviews();
+window.StarHopeDocumentImportSession.refreshCatalogs();refreshParsedClassificationReviews();
 assert.equal(parsedQuestionsData[0].classification_review.required,false);
 assert.equal(validateParsedQuestionBeforeImport(0),true);
 assert.equal(requests.length,0);

@@ -11,13 +11,13 @@ import urllib.error
 
 import pytest
 
-from mathbank.paths import project_instance_id
+from starhope.paths import project_instance_id
 from scripts import local_launcher as launcher
 
 
 @pytest.fixture(autouse=True)
 def isolated_address(tmp_path, monkeypatch):
-    monkeypatch.delenv("MATHBANK_PORT", raising=False)
+    monkeypatch.delenv("STARHOPE_PORT", raising=False)
     monkeypatch.setattr(launcher, "ACTIVE_ROOT", tmp_path)
     monkeypatch.setattr(launcher, "PORT", 8000)
     monkeypatch.setattr(launcher, "BASE_URL", "http://127.0.0.1:8000")
@@ -103,7 +103,7 @@ def test_same_directory_real_http_reuses_port_without_environment_checks(tmp_pat
         assert not any("X-Local-Token" in headers for _, headers in requests)
 
 
-def test_other_directory_mathbank_is_not_reused(tmp_path):
+def test_other_directory_starhope_is_not_reused(tmp_path):
     other = tmp_path / "other-library"
     other.mkdir()
     with synthetic_server(service_responses(other)) as (port, requests):
@@ -155,7 +155,7 @@ def test_unverified_old_service_and_held_runtime_lock_never_start_second_copy(tm
     state.mkdir()
     (state / "local_token").write_text("our-synthetic-token-123456")
     with synthetic_server(service_responses(tmp_path, legacy=True, token="other-synthetic-token-123456")) as (port, _):
-        monkeypatch.setenv("MATHBANK_PORT", str(port))
+        monkeypatch.setenv("STARHOPE_PORT", str(port))
         monkeypatch.setattr(launcher, "start_server", lambda *_: pytest.fail("second server started"))
         monkeypatch.setattr(launcher, "confirm_port_change", lambda *_: pytest.fail("offered a different port"))
         with launcher.launcher_lock(state, filename="runtime.lock"):
@@ -167,7 +167,7 @@ def test_unverified_legacy_without_runtime_guard_is_not_treated_as_another_app(t
     # Very old packages may not hold today's runtime lock. Their presence
     # must still block a second instance rather than offer another address.
     with synthetic_server(service_responses(tmp_path, legacy=True)) as (port, _):
-        monkeypatch.setenv("MATHBANK_PORT", str(port))
+        monkeypatch.setenv("STARHOPE_PORT", str(port))
         monkeypatch.setattr(launcher, "start_server", lambda *_: pytest.fail("started second copy"))
         monkeypatch.setattr(launcher, "confirm_port_change", lambda *_: pytest.fail("offered port change"))
         with pytest.raises(launcher.LauncherError, match="无法确认归属，未启动第二份"):
@@ -178,7 +178,7 @@ def test_same_project_still_starting_blocks_port_change_without_a_lock_file(tmp_
     replies = service_responses(tmp_path)
     replies["/healthz"]["ready"] = False
     with synthetic_server(replies) as (port, _):
-        monkeypatch.setenv("MATHBANK_PORT", str(port))
+        monkeypatch.setenv("STARHOPE_PORT", str(port))
         monkeypatch.setattr(launcher, "start_server", lambda *_: pytest.fail("started second copy"))
         with pytest.raises(launcher.LauncherError, match="尚未就绪"):
             launcher.run_launcher(tmp_path)
@@ -240,15 +240,15 @@ def test_corrupt_settings_do_not_block_available_environment(tmp_path, raw):
 
 def test_explicit_port_overrides_memory_and_remains_fixed(tmp_path, monkeypatch):
     settings(tmp_path, {"port": 8001})
-    monkeypatch.setenv("MATHBANK_PORT", "9001")
+    monkeypatch.setenv("STARHOPE_PORT", "9001")
     assert launcher.configured_port(tmp_path) == (9001, True)
     assert launcher.candidate_ports(9001, True) == [9001]
 
 
 @pytest.mark.parametrize("value", ["", "0", "65536", "8001.0", "８００１", "1" * 5000])
 def test_invalid_explicit_port_reports_setting_name(tmp_path, monkeypatch, value):
-    monkeypatch.setenv("MATHBANK_PORT", value)
-    with pytest.raises(launcher.LauncherError, match="MATHBANK_PORT"):
+    monkeypatch.setenv("STARHOPE_PORT", value)
+    with pytest.raises(launcher.LauncherError, match="STARHOPE_PORT"):
         launcher.configured_port(tmp_path)
 
 
@@ -379,7 +379,7 @@ def test_ready_child_uses_one_port_for_launch_probe_memory_and_browser(tmp_path,
     def spawn(command, **kwargs):
         assert kwargs["cwd"] == tmp_path
         assert command[-2:] == ["--port", "9001"]
-        assert len(kwargs["env"]["MATHBANK_LAUNCH_ID"]) == 32
+        assert len(kwargs["env"]["STARHOPE_LAUNCH_ID"]) == 32
         commands.append(command)
         return SimpleNamespace(pid=12345)
 

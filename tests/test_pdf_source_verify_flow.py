@@ -44,7 +44,7 @@ def test_pdf_upload_defaults_to_smart_mode_verification_with_explicit_opt_out(cl
 
 def test_default_pdf_visual_failure_keeps_split_result_and_original_review(monkeypatch):
     import main
-    from mathbank import pdf_source_verify
+    from starhope import pdf_source_verify
     source = '1. 求 $x+1$ 的值。'
     monkeypatch.setattr(main, 'inspect_and_extract_pdf', lambda *a, **k: {
         'pdf_type': 'text_based', 'pages': [{'page_index': 0, 'markdown': source, 'needs_ocr': False}]})
@@ -75,7 +75,7 @@ def test_default_pdf_visual_failure_keeps_split_result_and_original_review(monke
 @pytest.mark.parametrize("enabled,pending", [(False, 1), (True, 0), (True, 1)])
 def test_source_verifier_only_runs_when_enabled_and_pending_after_final_text(monkeypatch, enabled, pending):
     import main
-    from mathbank import pdf_source_verify
+    from starhope import pdf_source_verify
     source = "1. 已知函数的表达式，求对应结果。"
     monkeypatch.setattr(main, "inspect_and_extract_pdf", lambda *a, **k: {
         "pdf_type": "text_based", "pages": [{"page_index": 0, "markdown": source, "needs_ocr": False}]})
@@ -128,7 +128,7 @@ def test_cancel_during_pdf_verification_keeps_published_cards_and_navigation(mon
     from pathlib import Path
 
     import main
-    from mathbank import pdf_source_verify
+    from starhope import pdf_source_verify
 
     source = "1. 求 $x+1$ 的值。"
     monkeypatch.setattr(main, "inspect_and_extract_pdf", lambda *a, **k: {

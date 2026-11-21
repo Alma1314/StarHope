@@ -14,11 +14,11 @@ import pytest
 from sqlalchemy import event, text
 from sqlalchemy.orm import sessionmaker
 
-from mathbank.curriculums import (CURRICULUM_NAMES, build_default_metadata, get_curriculum_preset,
+from starhope.curriculums import (CURRICULUM_NAMES, build_default_metadata, get_curriculum_preset,
                                  build_curriculum_routing_index, route_curriculum_location)
-from mathbank.database import (Question, QuestionCurriculum, KnowledgePoint, KnowledgePointCurriculum,
+from starhope.database import (Question, QuestionCurriculum, KnowledgePoint, KnowledgePointCurriculum,
                                QuestionKnowledgePoint)
-from mathbank.sub_knowledge import detect_curriculum_version, resolve_active_version
+from starhope.sub_knowledge import detect_curriculum_version, resolve_active_version
 
 
 VERSIONS = ("A", "B", "S", "H", "N", "X")
@@ -593,7 +593,7 @@ def test_zip_import_preparation_can_overlap_switch_but_backup_and_commit_bind_on
 
 
 def test_metadata_switch_uses_bundled_source_ancestry_without_touching_point_evidence(client, db_session, metadata_scope, monkeypatch):
-    import mathbank.knowledge_points as catalog
+    import starhope.knowledge_points as catalog
     main = metadata_scope
     target = build_default_metadata("B")
     book, chapter = "必修一", "第一章 集合与常用逻辑用语"

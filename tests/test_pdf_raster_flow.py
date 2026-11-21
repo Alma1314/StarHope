@@ -6,7 +6,7 @@ from PIL import Image
 import pymupdf as fitz
 import pytest
 
-from mathbank import pdf_figures as figures
+from starhope import pdf_figures as figures
 
 
 def scan():
@@ -34,8 +34,8 @@ def test_direct_layout_named_coordinates_are_normalized_and_auditable():
 @pytest.mark.parametrize("guard_mode", ["corrected", "suspect", "not_applicable"])
 @pytest.mark.parametrize("model_warning", [False, True])
 def test_scanned_box_is_checked_before_crop_and_warning_stays_on_own_question(tmp_path, monkeypatch, guard_mode, model_warning):
-    from mathbank import pdf_raster_guard
-    from mathbank.content_locks import lock_visible_math, reconcile_visible_math
+    from starhope import pdf_raster_guard
+    from starhope.content_locks import lock_visible_math, reconcile_visible_math
 
     source = "1. 计算相应结果。\n\n2. 如图判断结论。\n[插图待补: 图1]"
     raw_bbox, corrected = [801, 698, 928, 915], [690, 790, 930, 940]

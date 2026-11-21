@@ -20,9 +20,9 @@ def _base():
 
 
 HELPERS = r'''
-from mathbank.pdf_task_resume import prepare_pdf_checkpoint,seal_pdf_checkpoint
-from mathbank.content_locks import lock_visible_math
-from mathbank.pdf_inspector_helper import merge_pdf_page_texts
+from starhope.pdf_task_resume import prepare_pdf_checkpoint,seal_pdf_checkpoint
+from starhope.content_locks import lock_visible_math
+from starhope.pdf_inspector_helper import merge_pdf_page_texts
 
 OPTIONS={"generate_answers":False,"page_range":None,"pdf_strategy":"force_ocr",
          "pdf_verify_suspicions":False,"paper_title":"repair fixture"}
@@ -33,8 +33,8 @@ def seed_project(text, *, protocol=None, unknown=False, detail=False, with_layou
     with fitz.open(stream=raw,filetype="pdf") as pdf:
         pdf[0].get_pixmap(dpi=150).save(page)
     page_url=f"/{main.UPLOAD_DIR_REL}/tmp/{page.name}"
-    text_with_marker="<!-- MATHBANK_PDF_PAGE:1 -->\n"+text
-    original_source=re.sub(r"<!-- MATHBANK_PDF_PAGE:\d+ -->","",merge_pdf_page_texts([text_with_marker]))
+    text_with_marker="<!-- STARHOPE_PDF_PAGE:1 -->\n"+text
+    original_source=re.sub(r"<!-- STARHOPE_PDF_PAGE:\d+ -->","",merge_pdf_page_texts([text_with_marker]))
     state=prepare_pdf_checkpoint(None,task_id=job_id,document_sha256=project["source_sha256"],
         page_indices=[0],strategy="force_ocr",verify_suspicions=False,
         resolve_asset=main._document_project_service().asset_resolver)
@@ -42,7 +42,7 @@ def seed_project(text, *, protocol=None, unknown=False, detail=False, with_layou
     state["prepared"]={"transcription_sha256":hashlib.sha256(merge_pdf_page_texts([text_with_marker]).encode()).hexdigest(),
         "page_texts":[text_with_marker],"layout_result":None}
     if with_layout:
-        state["prepared"]["layout_result"]={"schema":"mathbank.pdf-layout.v1",
+        state["prepared"]["layout_result"]={"schema":"starhope.pdf-layout.v1",
             "page_texts":[text_with_marker],"pages":[{"page_index":0,"page_image":page_url,"figures":[]}],
             "issues":[],"diagnostics":{}}
     assets=[page_url]
@@ -84,8 +84,8 @@ main.post_chat_completion=source_reference_post
 
 
 PROTOCOL = r'''
-original_markdown="<!-- MATHBANK_PDF_PAGE:1 -->\n"+source
-original_source=re.sub(r"<!-- MATHBANK_PDF_PAGE:\d+ -->","",merge_pdf_page_texts([original_markdown]))
+original_markdown="<!-- STARHOPE_PDF_PAGE:1 -->\n"+source
+original_source=re.sub(r"<!-- STARHOPE_PDF_PAGE:\d+ -->","",merge_pdf_page_texts([original_markdown]))
 text=source.replace("求极差","计算极差") if CASE=="changed_source" else source
 pid,old_id,state,actual_source,assets=seed_project(text,protocol=original_source,unknown=CASE=="unknown_wrapper")
 old_input=deepcopy(state["split_input"])
@@ -241,7 +241,7 @@ with fitz.open() as pdf:
 OPTIONS={**OPTIONS,"pdf_strategy":"native_preferred"}
 project=main.DOCUMENT_PROJECTS.create(raw,"native-upgrade.pdf",OPTIONS,deepcopy(main.get_current_curriculum()))
 pid=project["project_id"];old_id=str(uuid.uuid4())
-old_texts=[f"<!-- MATHBANK_PDF_PAGE:{number} -->\n"+("一、解答题\n" if number==1 else "")+f"{number}. 原来{'OCR' if number==4 else 'native'}正文$1+1$。"
+old_texts=[f"<!-- STARHOPE_PDF_PAGE:{number} -->\n"+("一、解答题\n" if number==1 else "")+f"{number}. 原来{'OCR' if number==4 else 'native'}正文$1+1$。"
            for number in range(1,8)]
 old_pages=[{"page_number":number,"origin":"ocr" if number==4 else "native","markdown":old_texts[number-1]}
            for number in range(1,8)]
@@ -268,14 +268,14 @@ if CASE in {"native6_unchanged_all_page_edits","native5_with_real_page_edit"}:
     # when the teacher changed nothing. Those snapshots are not manual edits.
     entries=[{"page_number":index+1,"markdown":text} for index,text in enumerate(old_texts)]
     if CASE=="native5_with_real_page_edit":
-        manual_page="<!-- MATHBANK_PDF_PAGE:1 -->\n一、解答题\n1. 教师真实逐页校对正文$9+1$。"
+        manual_page="<!-- STARHOPE_PDF_PAGE:1 -->\n一、解答题\n1. 教师真实逐页校对正文$9+1$。"
         entries[0]["markdown"]=manual_page
     main.DOCUMENT_PROJECTS.save_draft(pid,{"questions":[],"page_edits":entries,"paperTitle":"保存过的逐页稿"},0)
 main.inspect_and_extract_pdf=lambda *_a,**_kw:{"pdf_type":"mixed","pages":[
     {"page_index":index,"markdown":"","needs_ocr":True,
      "quality_reasons":["native_formula_missing_after_quality_upgrade"] if index!=3 else []}
     for index in range(7)]}
-from mathbank import pdf_native_regions
+from starhope import pdf_native_regions
 pdf_native_regions.plan_pdf_regions=lambda *_a,**_kw:None
 ocr_calls.clear()
 def refresh_ocr(path,**kwargs):
@@ -326,7 +326,7 @@ def _run(tmp_path, scenario, case, expected_ocr=0):
     workspace = tmp_path / "source-only-workspace"
     workspace.mkdir()
     shutil.copy2(root / "main.py", workspace / "main.py")
-    shutil.copytree(root / "mathbank", workspace / "mathbank", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    shutil.copytree(root / "starhope", workspace / "starhope", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if (root / "templates").is_dir():
         shutil.copytree(root / "templates", workspace / "templates")
     (workspace / "static").mkdir()

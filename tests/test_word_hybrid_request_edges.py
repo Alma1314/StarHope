@@ -2,10 +2,10 @@
 
 import pytest
 
-from mathbank.source_metadata import SourceMetadataContractError
-from mathbank.word_hybrid_plan import WordHybridPlanError
-from mathbank.word_hybrid_request import request_word_hybrid
-from mathbank.task_manager import TaskCancelled
+from starhope.source_metadata import SourceMetadataContractError
+from starhope.word_hybrid_plan import WordHybridPlanError
+from starhope.word_hybrid_request import request_word_hybrid
+from starhope.task_manager import TaskCancelled
 from test_word_hybrid_safety import native_plan, reply_for, Response, CURRICULUM, PROVIDER, FIELDS
 
 
@@ -98,7 +98,7 @@ def test_partial_missing_plain_original_answer_is_present_in_ui_unmatched_excerp
     import json
     import uuid
     import main
-    from mathbank.source_metadata import prepare_word_source_metadata
+    from starhope.source_metadata import prepare_word_source_metadata
     from test_word_hybrid_flow import blob
 
     monkeypatch.setenv('PREFER_PARSE_MODEL', 'DEEPSEEK/deepseek-flash')

@@ -7,12 +7,12 @@ import re
 
 import pytest
 
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.source_metadata import (
+from starhope.docx_helper import _new_diagnostics
+from starhope.source_metadata import (
     _map_normalized_source_evidence, apply_source_metadata_response,
     build_source_metadata_messages, prepare_word_source_metadata,
 )
-from mathbank.source_metadata_request import request_word_source_metadata
+from starhope.source_metadata_request import request_word_source_metadata
 from test_word_hybrid_safety import (
     CURRICULUM, FIELDS, PROVIDER, Response, call, native_plan, reply_for,
 )
@@ -27,7 +27,7 @@ def offline(monkeypatch):
     monkeypatch.setattr("requests.sessions.Session.request",
                         lambda *_a, **_k: pytest.fail("No live model requests"))
     for module in ("source_metadata_request", "source_hybrid_request", "ai_knowledge_points"):
-        monkeypatch.setattr(f"mathbank.{module}.load_ai_knowledge_catalog", lambda: deepcopy(CATALOG))
+        monkeypatch.setattr(f"starhope.{module}.load_ai_knowledge_catalog", lambda: deepcopy(CATALOG))
 
 
 @pytest.fixture
@@ -141,8 +141,8 @@ def test_word_request_copies_catalogue_before_transport_mutates_it(monkeypatch, 
     def load():
         loads.append(True)
         return catalogue
-    monkeypatch.setattr("mathbank.source_metadata_request.load_ai_knowledge_catalog", load)
-    monkeypatch.setattr("mathbank.ai_knowledge_points.load_ai_knowledge_catalog",
+    monkeypatch.setattr("starhope.source_metadata_request.load_ai_knowledge_catalog", load)
+    monkeypatch.setattr("starhope.ai_knowledge_points.load_ai_knowledge_catalog",
                         lambda: pytest.fail("Response cannot reread catalogue"))
     def post(_provider, payload, **_options):
         posts.append(payload)
@@ -161,8 +161,8 @@ def test_hybrid_routes_and_scoped_retry_keep_one_catalogue(monkeypatch, tmp_path
     def load():
         loads.append(True)
         return catalogue
-    monkeypatch.setattr("mathbank.source_hybrid_request.load_ai_knowledge_catalog", load)
-    monkeypatch.setattr("mathbank.ai_knowledge_points.load_ai_knowledge_catalog",
+    monkeypatch.setattr("starhope.source_hybrid_request.load_ai_knowledge_catalog", load)
+    monkeypatch.setattr("starhope.ai_knowledge_points.load_ai_knowledge_catalog",
                         lambda: pytest.fail("Response cannot reread catalogue"))
     def post(_provider, payload, **_options):
         posts.append(payload)

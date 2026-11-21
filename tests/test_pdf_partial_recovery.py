@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-from mathbank.pdf_partial import complete_boundary_drafts, merge_partial_drafts, merge_recovered_questions
+from starhope.pdf_partial import complete_boundary_drafts, merge_partial_drafts, merge_recovered_questions
 
 
 PAGE = "1. 第一题的内容，计算$1+1$。\n2. 已知函数$f(x)=x^2$，求$f(2)$。\n3. 第三题起点，计算$3+3$。"
@@ -98,8 +98,8 @@ requests.sessions.Session.request = lambda *a, **k: (_ for _ in ()).throw(Assert
 import pymupdf as fitz
 from fastapi.testclient import TestClient
 import main
-from mathbank.database import SessionLocal, Question, engine
-from mathbank.document_task_store import DocumentTaskStore, DurableDocumentTasks
+from starhope.database import SessionLocal, Question, engine
+from starhope.document_task_store import DocumentTaskStore, DurableDocumentTasks
 
 assert not Path('.env').exists()
 assert Path(engine.url.database).resolve().parent == Path.cwd()
@@ -135,7 +135,7 @@ def split(text, *args, **kwargs):
     split_calls.append(text)
     if split_unknown:
         raise RuntimeError('mock split read result unknown')
-    assert all(f'MATHBANK_PDF_PAGE:{n}' in text for n in [1, 2, 3])
+    assert all(f'STARHOPE_PDF_PAGE:{n}' in text for n in [1, 2, 3])
     return [{'content': '首题，计算$1+1$。', 'answer_markdown': ''},
             {'content': '已知函数$f(x)=x^2$，求$f(2)$。', 'answer_markdown': ''},
             {'content': '跨页题起点，求值。\n跨页题续文，补充条件。', 'answer_markdown': ''},
@@ -245,7 +245,7 @@ def test_cloud_partial_failure_explicit_retry_reuses_success_and_preserves_card_
     workspace = tmp_path / "source-only-pdf-partial"
     workspace.mkdir()
     shutil.copy2(root / "main.py", workspace / "main.py")
-    shutil.copytree(root / "mathbank", workspace / "mathbank", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    shutil.copytree(root / "starhope", workspace / "starhope", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if (root / "templates").is_dir():
         shutil.copytree(root / "templates", workspace / "templates")
     (workspace / "static").mkdir()

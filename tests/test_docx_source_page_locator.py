@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank import docx_source_verify as verify
+from starhope import docx_source_verify as verify
 
 
 STEM = '1. 已知抛物线的焦点为 $F(1,0)$，另求直线与抛物线的交点坐标。'

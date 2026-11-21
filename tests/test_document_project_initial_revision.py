@@ -8,15 +8,15 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
 
-from mathbank.document_project_api import register_document_project_routes
-from mathbank.document_project_service import DocumentProjectService
-from mathbank.document_projects import DocumentProjectStore
+from starhope.document_project_api import register_document_project_routes
+from starhope.document_project_service import DocumentProjectService
+from starhope.document_projects import DocumentProjectStore
 from test_document_projects_frontend import project_script, run_node  # noqa: F401
 from test_import_source_review import review_script  # noqa: F401
 from test_pdf_layout_frontend import pdf_script  # noqa: F401
 
 
-SCHEMA = "mathbank.document-project-initial-revision.v1"
+SCHEMA = "starhope.document-project-initial-revision.v1"
 STAGE = "initial-machine-draft-revision"
 
 
@@ -131,7 +131,7 @@ def test_teacher_first_revision_is_never_certified_as_machine_initialization(tmp
 
 
 INITIAL_JS = r'''
-function initialReceipt(changes={}){return {schema:'mathbank.document-project-initial-revision.v1',
+function initialReceipt(changes={}){return {schema:'starhope.document-project-initial-revision.v1',
  origin:'first_machine_draft',project_id:'initial-project',task_id:'initial-task',base_revision:0,revision:1,
  draft_sha256:'a'.repeat(64),...changes};}
 function beginInitial(){session.begin({projectId:'initial-project',projectRevision:0,taskId:'initial-task',phase:'running'});
@@ -176,7 +176,7 @@ async function proof(){
    projectLocalDirty:true,projectSaveStatus:'conflict',questions:[question('unsaved teacher answer crop')],
    baselineQuestions:[question('machine first body')],paperTitle:'retained teacher title'};
  local.questions[0].answer_markdown='before\n![answer diagram](/static/uploads/tmp/manual.png)\nafter';
- storage.set('mathbank_document_import_session_v1:initial-project',JSON.stringify(local));
+ storage.set('starhope_document_import_session_v1:initial-project',JSON.stringify(local));
  const data=details('initial-project',1,{questions:[question('machine first body')],baselineQuestions:[question('machine first body')]});
  data.task_id='initial-task';data.task={task_id:'initial-task',status:'completed'};
  data.project_revision_receipt=initialReceipt();

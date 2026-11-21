@@ -728,12 +728,12 @@
             const removeElement = popover.remove.bind(popover);
             popover.remove = () => {
                 document.removeEventListener('click', closeHandler);
-                if (window.MathBankModal) window.MathBankModal.close(popover);
+                if (window.StarHopeModal) window.StarHopeModal.close(popover);
                 removeElement();
             };
-            if (window.MathBankModal) {
+            if (window.StarHopeModal) {
                 if (anchor) anchor.focus({ preventScroll: true });
-                window.MathBankModal.open(popover, { onEscape: () => popover.remove() });
+                window.StarHopeModal.open(popover, { onEscape: () => popover.remove() });
             }
             setTimeout(() => {
                 if (popover.isConnected) document.addEventListener('click', closeHandler);
@@ -780,15 +780,15 @@
             uploadedImages.forEach((path, idx) => {
                 if (hiddenReferencePaths.has(path)) return;
                 const filename = path.split('/').pop();
-                const safeFilename = window.MathBankSafe.escapeText(filename);
-                const safeFilenameAttr = window.MathBankSafe.escapeAttribute(filename);
+                const safeFilename = window.StarHopeSafe.escapeText(filename);
+                const safeFilenameAttr = window.StarHopeSafe.escapeAttribute(filename);
                 const imageKey = window.ImageLayoutTools.key(path);
                 const anchored = anchoredKeys.has(imageKey);
                 const layout = anchored ? (window.FigureLayoutState.imageLayouts[imageKey] || { align: 'center', size: 'auto' }) : currentEditorFigureLayout();
                 const layoutLabel = `${EDITOR_FIGURE_ALIGN_LABELS[layout.align]} · ${EDITOR_FIGURE_SIZE_LABELS[layout.size]}`;
                 const showLayoutChip = anchored || (allowLayoutControls && !layoutChipRendered);
                 if (showLayoutChip && !anchored) layoutChipRendered = true;
-                const fileDisplay = `<button type="button" data-editor-image-key="${window.MathBankSafe.escapeAttribute(anchored ? imageKey : '')}" onclick="window.showEditorFigureLayoutPopover(event)" class="flex min-w-0 items-center gap-1.5 text-left hover:text-brand-600" title="${anchored ? '调整此图的对齐与尺寸，保持正文位置' : '调整题末图片组'}">
+                const fileDisplay = `<button type="button" data-editor-image-key="${window.StarHopeSafe.escapeAttribute(anchored ? imageKey : '')}" onclick="window.showEditorFigureLayoutPopover(event)" class="flex min-w-0 items-center gap-1.5 text-left hover:text-brand-600" title="${anchored ? '调整此图的对齐与尺寸，保持正文位置' : '调整题末图片组'}">
                     <i class="fa-solid fa-file-image shrink-0 text-brand-500"></i>
                     <span class="truncate max-w-[100px]" title="${safeFilenameAttr}">${safeFilename}</span>
                     ${showLayoutChip ? `<span class="shrink-0 rounded bg-brand-50 px-1 py-0.5 text-[9px] text-brand-600">${anchored ? '正文 · ' : ''}${EDITOR_FIGURE_SIZE_LABELS[layout.size]}</span>` : ''}
@@ -997,7 +997,7 @@
                 crop = null;
                 const modal = document.getElementById('singleOcrCropModal');
                 if (modal) {
-                    if (window.MathBankModal) window.MathBankModal.close(modal);
+                    if (window.StarHopeModal) window.StarHopeModal.close(modal);
                     modal.remove();
                 }
             }
@@ -1038,14 +1038,14 @@
                 panel.appendChild(intro);
                 if (!state.applied) panel.appendChild(button('载入识别结果', () => apply(state)));
                 const text = element(state.target, 'editor').value;
-                const visiblePaths = new Set(window.MathBankImageAssets ? window.MathBankImageAssets.collect(text) : []);
+                const visiblePaths = new Set(window.StarHopeImageAssets ? window.StarHopeImageAssets.collect(text) : []);
                 state.illustrations.forEach((figure, index) => {
                     const row = document.createElement('div');
                     row.className = 'flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-2';
                     const label = document.createElement('span');
                     label.className = 'min-w-0 text-xs text-slate-600';
                     const unresolved = state.applied && occurrences(text, figure.placeholder) === 1;
-                    const imagePath = window.MathBankSafe.safeImageUrl(figure.image_path);
+                    const imagePath = window.StarHopeSafe.safeImageUrl(figure.image_path);
                     const visible = state.applied && imagePath && visiblePaths.has(imagePath);
                     let status = !state.applied ? '待载入' : unresolved ? '待截图'
                         : visible ? figure.manual_crop ? '手动截图' : figure.status === 'tikz' ? 'TikZ 绘图' : '原图截图'
@@ -1081,7 +1081,7 @@
                 }] : [];
                 const register = state.target === 'content' ? window.registerAutoContentTikzAsset : window.registerAutoAnswerTikzAsset;
                 assets.forEach(asset => {
-                    const path = window.MathBankSafe.safeImageUrl(asset.image_path);
+                    const path = window.StarHopeSafe.safeImageUrl(asset.image_path);
                     if (path && text.includes(path) && typeof register === 'function') register({
                         tikzCode: asset.tikz_code, imagePath: path, referenceImagePath: asset.reference_image_path || ''
                     });
@@ -1106,7 +1106,7 @@
             function complete(state, data) {
                 if (!current(state)) return;
                 state.data = data;
-                state.source = window.MathBankSafe.safeImageUrl(data.image_path) || state.source;
+                state.source = window.StarHopeSafe.safeImageUrl(data.image_path) || state.source;
                 state.illustrations = (Array.isArray(data.illustrations) ? data.illustrations : []).filter(figure => figure && typeof figure.placeholder === 'string');
                 // Partial/legacy metadata still exposes every visible pending slot.
                 const slots = visibleSlotMatches(data.latex);
@@ -1169,7 +1169,7 @@
                 mode.title = figure ? '指定待补图位只替换这一幅图；批量切图请使用从原图追加截图。' : '先框选合图区域，再选择四图的行列布局。';
                 document.getElementById('singleOcrCropTitle').textContent = figure ? '截图补入 ' + figure.slot : '从原图追加截图到光标位置';
                 document.getElementById('singleOcrCropClose').onclick = closeCrop;
-                if (window.MathBankModal) window.MathBankModal.open(modal, { onEscape: closeCrop });
+                if (window.StarHopeModal) window.StarHopeModal.open(modal, { onEscape: closeCrop });
                 const draw = () => {
                     if (!selection.ready) { save.disabled = true; return; }
                     const ctx = canvas.getContext('2d');
@@ -1288,7 +1288,7 @@
                         const response = await fetch('/api/upload', { method: 'POST', body: form, signal: selection.controller.signal });
                         const data = await response.json();
                         if (!unchanged()) return;
-                        const path = window.MathBankSafe.safeImageUrl(data.file_path);
+                        const path = window.StarHopeSafe.safeImageUrl(data.file_path);
                         if (!response.ok || data.status !== 'success' || !path) throw new Error(data.message || '截图保存失败');
                         paths.push(path);
                     }
@@ -1508,7 +1508,7 @@
             if (lightbox && lightboxImg) {
                 lightboxImg.src = src;
                 lightbox.classList.remove('hidden');
-                window.MathBankModal.open(lightbox, { onEscape: closeLightbox });
+                window.StarHopeModal.open(lightbox, { onEscape: closeLightbox });
                 // Force reflow for transitions
                 lightbox.offsetHeight;
                 lightbox.classList.remove('opacity-0');
@@ -1521,7 +1521,7 @@
             const lightbox = document.getElementById('imageLightbox');
             const lightboxImg = document.getElementById('lightboxImg');
             if (lightbox && lightboxImg) {
-                window.MathBankModal.close(lightbox);
+                window.StarHopeModal.close(lightbox);
                 lightbox.classList.add('opacity-0');
                 lightboxImg.classList.remove('scale-100');
                 lightboxImg.classList.add('scale-95');

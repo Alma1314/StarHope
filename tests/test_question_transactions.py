@@ -5,7 +5,7 @@ from PIL import Image
 import pytest
 from sqlalchemy import event
 
-from mathbank.database import Paper, PaperQuestion, Question, QuestionCurriculum
+from starhope.database import Paper, PaperQuestion, Question, QuestionCurriculum
 
 
 def _payload(**overrides):
@@ -457,7 +457,7 @@ def test_asset_cleanup_loads_question_references_only_once(
 
     upload_dir = tmp_path / "uploads"
     upload_dir.mkdir()
-    from mathbank.asset_lifecycle import register_asset_store
+    from starhope.asset_lifecycle import register_asset_store
     register_asset_store(upload_dir, tmp_path / "retained")
     first = upload_dir / "first.png"
     second = upload_dir / "second.png"

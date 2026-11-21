@@ -6,8 +6,8 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
-from mathbank import pdf_inspector_helper
-from mathbank.prompts import build_pdf_parse_system_prompt, build_import_parse_system_prompt
+from starhope import pdf_inspector_helper
+from starhope.prompts import build_pdf_parse_system_prompt, build_import_parse_system_prompt
 
 
 def _page(page: int, markdown: str, needs_ocr: bool = False):
@@ -16,8 +16,8 @@ def _page(page: int, markdown: str, needs_ocr: bool = False):
 
 def test_pdf_inspector_helper_fallback_when_not_installed():
     """未安装探测器且 PyMuPDF 无法可靠读取时，应安全回到视觉 OCR。"""
-    with patch("mathbank.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", False), \
-         patch("mathbank.pdf_inspector_helper._extract_fitz_pages", return_value=[]):
+    with patch("starhope.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", False), \
+         patch("starhope.pdf_inspector_helper._extract_fitz_pages", return_value=[]):
         result = pdf_inspector_helper.inspect_and_extract_pdf(b"%PDF-1.4 mock")
     assert result["available"] is False
     assert result["is_text_based"] is False
@@ -32,8 +32,8 @@ def test_pdf_inspector_extracts_selected_pages_in_requested_order():
             _page(3, "第四页：2. 已知集合 A 与 B，求 A∩B。"),
         ]
     )))
-    with patch("mathbank.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
-         patch("mathbank.pdf_inspector_helper.pdf_inspector", inspector):
+    with patch("starhope.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
+         patch("starhope.pdf_inspector_helper.pdf_inspector", inspector):
         result = pdf_inspector_helper.inspect_and_extract_pdf(
             b"%PDF-1.4 mock", page_indices=[1, 3]
         )
@@ -41,8 +41,8 @@ def test_pdf_inspector_extracts_selected_pages_in_requested_order():
     inspector.extract_pages_markdown.assert_called_once_with(ANY, pages=[1, 3])
     assert result["pdf_type"] == "text_based"
     assert [page["page_index"] for page in result["pages"]] == [1, 3]
-    assert "MATHBANK_PDF_PAGE:2" in result["markdown"]
-    assert "MATHBANK_PDF_PAGE:4" in result["markdown"]
+    assert "STARHOPE_PDF_PAGE:2" in result["markdown"]
+    assert "STARHOPE_PDF_PAGE:4" in result["markdown"]
 
 
 def test_pdf_inspector_routes_only_unreliable_pages_to_ocr():
@@ -54,8 +54,8 @@ def test_pdf_inspector_routes_only_unreliable_pages_to_ocr():
             _page(2, "第 3 页原生选项文本，继续上一页尚未结束的题目。"),
         ]
     )))
-    with patch("mathbank.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
-         patch("mathbank.pdf_inspector_helper.pdf_inspector", inspector):
+    with patch("starhope.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
+         patch("starhope.pdf_inspector_helper.pdf_inspector", inspector):
         result = pdf_inspector_helper.inspect_and_extract_pdf(
             b"%PDF-1.4 mixed", page_indices=[0, 1, 2]
         )
@@ -72,8 +72,8 @@ def test_short_native_title_page_is_not_forced_to_ocr():
     inspector = SimpleNamespace(extract_pages_markdown=MagicMock(return_value=SimpleNamespace(
         pages=[_page(0, "数学试卷")]
     )))
-    with patch("mathbank.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
-         patch("mathbank.pdf_inspector_helper.pdf_inspector", inspector):
+    with patch("starhope.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
+         patch("starhope.pdf_inspector_helper.pdf_inspector", inspector):
         result = pdf_inspector_helper.inspect_and_extract_pdf(b"%PDF-1.4 title")
     assert result["is_text_based"] is True
     assert result["pages_needing_ocr"] == []
@@ -91,8 +91,8 @@ def test_empty_per_page_result_keeps_legacy_text_path():
             confidence=0.99,
         )),
     )
-    with patch("mathbank.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
-         patch("mathbank.pdf_inspector_helper.pdf_inspector", inspector):
+    with patch("starhope.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
+         patch("starhope.pdf_inspector_helper.pdf_inspector", inspector):
         result = pdf_inspector_helper.inspect_and_extract_pdf(
             b"%PDF-1.4 legacy", page_indices=[0]
         )
@@ -115,10 +115,10 @@ def test_native_engine_rejection_reason_is_preserved(monkeypatch):
 def test_cross_page_text_is_merged_without_question_terminator():
     """分页文本只加入空行，不加入会截断跨页题的结束符。"""
     merged = pdf_inspector_helper.merge_pdf_page_texts([
-        "<!-- MATHBANK_PDF_PAGE:2 -->\n7. 已知函数 f(x)",
-        "<!-- MATHBANK_PDF_PAGE:3 -->\n的图像如下，则",
+        "<!-- STARHOPE_PDF_PAGE:2 -->\n7. 已知函数 f(x)",
+        "<!-- STARHOPE_PDF_PAGE:3 -->\n的图像如下，则",
     ])
-    assert "f(x)\n\n<!-- MATHBANK_PDF_PAGE:3 -->\n的图像如下" in merged
+    assert "f(x)\n\n<!-- STARHOPE_PDF_PAGE:3 -->\n的图像如下" in merged
     assert "7. 已知函数" in merged
 
 
@@ -138,7 +138,7 @@ def test_pdf_parse_system_prompt_includes_formula_and_cross_page_rules():
     assert "若规则要求空字符串则保持空白" in prompt
     assert "若原试卷无答案，必须将 `answer_markdown` 设为空字符串" in prompt
     assert "若原试卷缺答案，请自动推导生成标准解答步骤" in generated_prompt
-    assert "MATHBANK_PDF_PAGE:N" in prompt
+    assert "STARHOPE_PDF_PAGE:N" in prompt
     assert "必须按上下文合并为同一道完整题目" in prompt
 
 
@@ -169,8 +169,8 @@ def test_pdf_inspector_detects_formula_loss_and_triggers_ocr_fallback():
     inspector = SimpleNamespace(extract_pages_markdown=MagicMock(return_value=SimpleNamespace(
         pages=[_page(0, loss_markdown, needs_ocr=False)]
     )))
-    with patch("mathbank.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
-         patch("mathbank.pdf_inspector_helper.pdf_inspector", inspector):
+    with patch("starhope.pdf_inspector_helper._PDF_INSPECTOR_AVAILABLE", True), \
+         patch("starhope.pdf_inspector_helper.pdf_inspector", inspector):
         result = pdf_inspector_helper.inspect_and_extract_pdf(b"%PDF-1.4 formula_loss")
 
     assert result["is_text_based"] is False

@@ -12,13 +12,13 @@ import uuid
 
 import pytest
 
-from mathbank import library_transfer_tasks as task_module
-from mathbank.library_transfer_tasks import (
+from starhope import library_transfer_tasks as task_module
+from starhope.library_transfer_tasks import (
     EXPORT_RETENTION_SECONDS, LibraryTransferTasks, TransferTaskConflict,
     TransferTaskError, TransferTaskQueueFull, log_transfer_error,
     normalize_transfer_task_id, transfer_error,
 )
-from mathbank.storage_access import StorageAccessError
+from starhope.storage_access import StorageAccessError
 
 
 def _id():
@@ -422,7 +422,7 @@ def test_task_id_never_becomes_an_arbitrary_path(value):
 
 
 def test_uncertain_import_exception_is_never_reported_as_safe_to_retry():
-    from mathbank.library_transfer import LibraryImportCommitUncertain
+    from starhope.library_transfer import LibraryImportCommitUncertain
 
     error = transfer_error(LibraryImportCommitUncertain("internal context"))
     assert error["code"] == "unknown_after_commit"

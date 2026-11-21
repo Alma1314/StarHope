@@ -10,12 +10,12 @@ import zipfile
 from PIL import Image, ImageDraw
 import pytest
 
-from mathbank.docx_helper import extract_docx_markdown
-from mathbank.docx_source_scopes import verify_source_review_evidence
-from mathbank.content_locks import _source_parts
-from mathbank.import_review import prepare_word_extraction_reviews, finalize_word_extraction_reviews
-from mathbank import docx_source_verify as verifier
-from mathbank.ai_providers import resolve_ocr_provider
+from starhope.docx_helper import extract_docx_markdown
+from starhope.docx_source_scopes import verify_source_review_evidence
+from starhope.content_locks import _source_parts
+from starhope.import_review import prepare_word_extraction_reviews, finalize_word_extraction_reviews
+from starhope import docx_source_verify as verifier
+from starhope.ai_providers import resolve_ocr_provider
 
 M = 'http://schemas.openxmlformats.org/officeDocument/2006/math'
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'

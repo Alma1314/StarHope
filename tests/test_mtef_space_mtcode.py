@@ -4,8 +4,8 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
-from mathbank.mtef_helper import decode_mtef_formula
-from mathbank.omml_helper import normalize_word_formula_latex, omml_element_to_latex
+from starhope.mtef_helper import decode_mtef_formula
+from starhope.omml_helper import normalize_word_formula_latex, omml_element_to_latex
 
 # Formula-only MTEF from the original two objects, verified against their
 # embedded PNG previews. No document text, file names or model results.

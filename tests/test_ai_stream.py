@@ -8,8 +8,8 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank import ai_stream
-from mathbank.task_manager import TaskCancelled
+from starhope import ai_stream
+from starhope.task_manager import TaskCancelled
 
 
 def event(value):

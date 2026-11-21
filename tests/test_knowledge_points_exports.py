@@ -9,9 +9,9 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 
-from mathbank import sync_helper
-from mathbank.backup import create_full_backup, restore_full_backup, verify_full_backup
-from mathbank.database import (
+from starhope import sync_helper
+from starhope.backup import create_full_backup, restore_full_backup, verify_full_backup
+from starhope.database import (
     Base, KnowledgePoint, KnowledgePointCurriculum, Question,
     QuestionCurriculum, QuestionKnowledgePoint, QuestionSubKnowledge,
 )
@@ -19,7 +19,7 @@ from mathbank.database import (
 
 @pytest.fixture
 def knowledge_session(tmp_path):
-    path = tmp_path / "math_question_bank.db"
+    path = tmp_path / "starhope.db"
     engine = create_engine(f"sqlite:///{path}")
 
     @event.listens_for(engine, "connect")

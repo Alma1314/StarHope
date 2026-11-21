@@ -2,7 +2,7 @@
 
 import pytest
 
-from mathbank.content_locks import lock_visible_math, reconcile_visible_math
+from starhope.content_locks import lock_visible_math, reconcile_visible_math
 
 
 def _reconcile_formula(original, returned, *, bare_prefix=False):
@@ -113,7 +113,7 @@ def test_native_pdf_import_visually_checks_only_real_formula_spelling_difference
 
     import pymupdf as fitz
     import main
-    from mathbank import pdf_inspector_helper, pdf_page_vision, pdf_region_vision, pdf_source_verify
+    from starhope import pdf_inspector_helper, pdf_page_vision, pdf_region_vision, pdf_source_verify
 
     def forbidden(*args, **kwargs):
         pytest.fail('Literal formula spelling must not trigger a visual request')
@@ -153,7 +153,7 @@ def test_native_pdf_import_visually_checks_only_real_formula_spelling_difference
         main.run_pdf_parsing_task(task_id, file_bytes, 'formula-spelling.pdf', pdf_strategy='layout_aware')
         task = main.DOCUMENT_TASKS.snapshot(task_id)
         assert task['status'] == 'completed', task.get('error')
-        assert len(split_inputs) == 1 and '<mathbank-math ' in split_inputs[0]
+        assert len(split_inputs) == 1 and '<starhope-math ' in split_inputs[0]
         assert task['pdf_source_pages'][0]['origin'] == 'native'
         preserved_formula = original if locally_equivalent else returned
         assert task['data'][0]['content'] == '已知 $' + preserved_formula + '$，求值。'

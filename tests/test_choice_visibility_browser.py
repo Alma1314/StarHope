@@ -147,7 +147,7 @@ def test_complete_choice_cards_and_formula_ink_bounds(browser, tmp_path):
     browser.command('screenshot',str(tmp_path/'long-formula-end.png'))
 
     browser.command('set','viewport','1600','1100')
-    browser.evaluate('selectWorkspace("paper"); MathBankBrowserChecks.seed(1,0,true); Object.assign(PaperStore.questionsMap[1],window.__completeChoiceFixture); renderPaperCanvas(); true')
+    browser.evaluate('selectWorkspace("paper"); StarHopeBrowserChecks.seed(1,0,true); Object.assign(PaperStore.questionsMap[1],window.__completeChoiceFixture); renderPaperCanvas(); true')
     browser.settle()
     browser.evaluate('window.__choiceHosts=["#a4PaperPreviewSheet .paper-choice-options-row"]')
     results=browser.evaluate(measurement)

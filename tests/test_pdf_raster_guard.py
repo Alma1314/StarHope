@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 import pytest
 import requests
 
-from mathbank import pdf_raster_guard as guard
+from starhope import pdf_raster_guard as guard
 
 GOOD = [680, 785, 945, 950]
 BAD = [785, 680, 950, 945]
@@ -339,13 +339,13 @@ def test_crop_of_a_real_paragraph_is_suspicious_not_just_outside_blank_space(tmp
     assert result['status']=='suspect' and any('连续正文' in value for value in result['warnings'])
 
 
-@pytest.mark.skipif(not os.getenv('MATHBANK_RASTER_GRID_PAGE'),reason='optional captured Hangzhou grid page')
+@pytest.mark.skipif(not os.getenv('STARHOPE_RASTER_GRID_PAGE'),reason='optional captured Hangzhou grid page')
 def test_hangzhou_complete_q14_grid_does_not_require_manual_review():
     bbox=[728,726,838,823]
-    result=guard.guard_raster_figure_bbox(os.environ['MATHBANK_RASTER_GRID_PAGE'],bbox)
+    result=guard.guard_raster_figure_bbox(os.environ['STARHOPE_RASTER_GRID_PAGE'],bbox)
     assert result['status']=='not_applicable' and result['warnings']==[]
     assert result['bbox']==bbox and not result['changed']
-    cut=guard.guard_raster_figure_bbox(os.environ['MATHBANK_RASTER_GRID_PAGE'],[780,730,838,797])
+    cut=guard.guard_raster_figure_bbox(os.environ['STARHOPE_RASTER_GRID_PAGE'],[780,730,838,797])
     assert cut['status']=='suspect' and cut['warnings']
 
 
@@ -371,9 +371,9 @@ def test_cache_is_bounded_and_invalidates_when_source_changes(tmp_path):
     assert guard._page_evidence.cache_info().misses==2
 
 
-@pytest.mark.skipif(not os.getenv('MATHBANK_RASTER_GUARD_PAGE'),reason='optional exact captured page PNG')
+@pytest.mark.skipif(not os.getenv('STARHOPE_RASTER_GUARD_PAGE'),reason='optional exact captured page PNG')
 def test_captured_q17_bad_and_good_frames_use_the_same_real_page():
-    path=Path(os.environ['MATHBANK_RASTER_GUARD_PAGE'])
+    path=Path(os.environ['STARHOPE_RASTER_GUARD_PAGE'])
     bad=[801,698,928,915];good=[700,798,913,932]
     changed=guard.guard_raster_figure_bbox(str(path),bad)
     normal=guard.guard_raster_figure_bbox(str(path),good)

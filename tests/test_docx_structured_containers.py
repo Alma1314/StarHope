@@ -5,7 +5,7 @@ import zipfile
 import pytest
 from PIL import Image
 
-from mathbank.docx_helper import extract_docx_markdown
+from starhope.docx_helper import extract_docx_markdown
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 M = "http://schemas.openxmlformats.org/officeDocument/2006/math"

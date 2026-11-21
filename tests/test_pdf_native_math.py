@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pymupdf as fitz
 import pytest
 
-from mathbank.pdf_native_math import repair_native_page
+from starhope.pdf_native_math import repair_native_page
 
 
 def glyph(c, x, y, font="CMMI10", size=10.5):

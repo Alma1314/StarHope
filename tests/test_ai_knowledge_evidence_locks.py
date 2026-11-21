@@ -3,8 +3,8 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.ai_knowledge_points import annotate_ai_knowledge_points
-from mathbank.content_locks import (
+from starhope.ai_knowledge_points import annotate_ai_knowledge_points
+from starhope.content_locks import (
     ContentLockIntegrityError, lock_visible_math, reconcile_visible_math, restore_visible_math,
 )
 
@@ -33,8 +33,8 @@ def test_formula_evidence_uses_the_same_trusted_bytes_as_its_question(mode, kind
     token = f"[[{lock.lock_id}]]"
     reference = {
         "token": token,
-        "tag": f'<mathbank-math id="{lock.lock_id}">{lock.original}</mathbank-math>',
-        "modified_tag": f'<mathbank-math id="{lock.lock_id}">$伪造公式$</mathbank-math>',
+        "tag": f'<starhope-math id="{lock.lock_id}">{lock.original}</starhope-math>',
+        "modified_tag": f'<starhope-math id="{lock.lock_id}">$伪造公式$</starhope-math>',
         "math_shell": "$" + token + "$",
     }[kind]
     raw_points = [point("已知 " + reference)]
@@ -90,9 +90,9 @@ def test_same_formula_in_wrong_source_field_is_rejected(mode):
 @pytest.mark.parametrize("mode", ["strict", "reconcile"])
 @pytest.mark.parametrize("template", [
     "[[MBM_unknown_0001]]",
-    '<mathbank-math id="MBM_unknown_0001">{id}</mathbank-math>',
-    '<mathbank-math data-id="{id}">$x^2$</mathbank-math>',
-    '<mathbank-math id="{id}" id="MBM_other_0001">$x^2$</mathbank-math>',
+    '<starhope-math id="MBM_unknown_0001">{id}</starhope-math>',
+    '<starhope-math data-id="{id}">$x^2$</starhope-math>',
+    '<starhope-math id="{id}" id="MBM_other_0001">$x^2$</starhope-math>',
 ])
 def test_unknown_and_forged_tag_id_attributes_cannot_supply_point_evidence(mode, template):
     source = "1. 已知 $x^2$，求值。"

@@ -5,11 +5,11 @@ import pytest
 from lxml import etree
 from PIL import Image
 
-from mathbank.markdown_tables import (
+from starhope.markdown_tables import (
     find_markdown_tables, normalize_table_cell_math, split_markdown_row,
 )
-from mathbank.paper_helper import clean_content_for_latex, _normalize_display_array_tags
-from mathbank import word_export_helper as word
+from starhope.paper_helper import clean_content_for_latex, _normalize_display_array_tags
+from starhope import word_export_helper as word
 
 
 DISTRIBUTION = (
@@ -192,7 +192,7 @@ def test_word_table_code_dollars_are_literal_and_escaped_pipes_keep_one_cell(mon
     texts = "".join(root.xpath(".//w:tbl//w:t/text()", namespaces=ns))
     assert "$x$|2" in texts and "$y$|3" in texts and "a | b" in texts
     table, = find_markdown_tables(source)
-    from mathbank.markdown_tables import markdown_table_to_latex
+    from starhope.markdown_tables import markdown_table_to_latex
     latex = markdown_table_to_latex(table)
     assert r"\texttt{\textdollar{}y\textdollar{}\textbar{}3}" in latex
 

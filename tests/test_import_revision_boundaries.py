@@ -6,7 +6,7 @@ import subprocess
 
 import pytest
 
-from mathbank.formula_notices import separate_formula_notices
+from starhope.formula_notices import separate_formula_notices
 from test_import_source_review import review_script  # noqa: F401
 
 
@@ -38,7 +38,7 @@ def test_generated_answer_marks_saved_card_dirty_and_schedules_session_save(revi
     script += r"""
 (async () => {
     let writes = 0;
-    window.MathBankDocumentImportSession = { saveSoon() { writes++; } };
+    window.StarHopeDocumentImportSession = { saveSoon() { writes++; } };
     const question = verifiedQuestion();
     const card = show([question]);
     question.savedSnapshot = captureParsedQuestionSaveSnapshot(0, question, card);

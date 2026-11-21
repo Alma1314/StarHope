@@ -5,15 +5,15 @@ import argparse
 import json
 import os
 
-from mathbank.paths import TIERED_STORAGE_CONFIG
-from mathbank.tiered_storage import TieredStorage, initialize
+from starhope.paths import TIERED_STORAGE_CONFIG
+from starhope.tiered_storage import TieredStorage, initialize
 
 
 def main():
     parser = argparse.ArgumentParser(description="外置资料存储：配置、查看、回填与安全停用")
     parser.add_argument("action", choices=["enable", "resume", "status", "restore-local", "disable"])
     parser.add_argument("--volume-uuid")
-    parser.add_argument("--directory", default="业务资料/MathBank")
+    parser.add_argument("--directory", default="业务资料/StarHope")
     args = parser.parse_args()
     if args.action == "status":
         if not TIERED_STORAGE_CONFIG.is_file():
@@ -25,7 +25,7 @@ def main():
         return 0
     # A second CLI process has no knowledge of the server's worker thread.
     # Use the same OS runtime lock as restore; never disable a running server.
-    from mathbank.backup import acquire_runtime_lock
+    from starhope.backup import acquire_runtime_lock
     with acquire_runtime_lock():
         if args.action == "enable":
             if not args.volume_uuid:

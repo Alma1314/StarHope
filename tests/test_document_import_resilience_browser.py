@@ -7,7 +7,7 @@ import pytest
 from test_preview_browser import browser, complete_import_fixture_categories  # noqa: F401
 
 
-pytestmark = pytest.mark.skipif(os.environ.get('MATHBANK_TEST_BROWSER') != '1', reason='opt-in isolated browser')
+pytestmark = pytest.mark.skipif(os.environ.get('STARHOPE_TEST_BROWSER') != '1', reason='opt-in isolated browser')
 
 
 def click_stable(browser, selector):
@@ -17,7 +17,7 @@ def click_stable(browser, selector):
 
 
 def show_questions(browser, questions):
-    browser.evaluate("window.MathBankDocumentImportSession.clear(); selectWorkspace('import','导入中心'); "
+    browser.evaluate("window.StarHopeDocumentImportSession.clear(); selectWorkspace('import','导入中心'); "
                      "replaceParsedQuestions(" + json.dumps(questions, ensure_ascii=False) + "); "
                      "renderParsedQuestionsList(parsedQuestionsData); "
                      "document.getElementById('importPlaceholder').classList.add('hidden'); "
@@ -30,7 +30,7 @@ def test_refresh_restores_real_input_and_selection_without_reviving_verification
         'question_type': 'detailed_answer', 'difficulty': 'challenge', 'source': '原始来源', 'source_review': {
         'required': False, 'verified_by': 'vision', 'reasons': ['原记录'],
         'verification': {'document_type': 'docx', 'evidence': '原页一致'}}}])
-    browser.evaluate("MathBankDocumentImportSession.begin({taskId:'refresh-fixture',documentType:'docx',phase:'completed'}); true")
+    browser.evaluate("StarHopeDocumentImportSession.begin({taskId:'refresh-fixture',documentType:'docx',phase:'completed'}); true")
     complete_import_fixture_categories(browser, 0)
     browser.evaluate("(()=>{const select=document.querySelector('#parsed-card-0 .card-knowledge');const value=[...select.options].find(option=>option.value);if(value){select.value=value.value;select.dispatchEvent(new Event('change',{bubbles:true}));}return true;})()")
     browser.command('fill', '#parsed-card-0 .card-source', '教师校对后的来源')
@@ -38,7 +38,7 @@ def test_refresh_restores_real_input_and_selection_without_reviving_verification
     browser.command('fill', '#parsed-card-0 .card-content-textarea', '刷新前人工校对：计算 $2+2$。')
     browser.command('uncheck', '#parsed-card-0 .card-select-checkbox')
     browser.command('reload')
-    browser.command('wait', '--fn', "typeof window.MathBankDocumentImportSession === 'object' && parsedQuestionsData.length === 1")
+    browser.command('wait', '--fn', "typeof window.StarHopeDocumentImportSession === 'object' && parsedQuestionsData.length === 1")
     assert browser.evaluate("document.getElementById('dashboardWorkspaceSection').classList.contains('hidden')") is False
     assert browser.evaluate("document.querySelector('#parsed-card-0 .card-content-textarea').value") == '刷新前人工校对：计算 $2+2$。'
     assert browser.evaluate("document.querySelector('#parsed-card-0 .card-select-checkbox').checked") is False
@@ -50,7 +50,7 @@ def test_refresh_restores_real_input_and_selection_without_reviving_verification
     browser.evaluate("selectWorkspace('import','导入中心'); true")
     browser.command('wait', '--fn', "!!document.getElementById('documentImportRecoveryPanel') && !document.getElementById('documentImportRecoveryPanel').hidden")
     browser.command('screenshot', str(tmp_path / 'restored-document-corrections.png'))
-    browser.evaluate('MathBankDocumentImportSession.clear(); true')
+    browser.evaluate('StarHopeDocumentImportSession.clear(); true')
 
 
 def test_crop_pending_close_and_other_card_cannot_receive_old_image(browser, tmp_path):
@@ -94,7 +94,7 @@ def test_crop_pending_close_and_other_card_cannot_receive_old_image(browser, tmp
         assert browser.evaluate('document.getElementById("pdfCropModal").classList.contains("hidden")') is False
         browser.command('screenshot', str(tmp_path / 'late-crop-keeps-second-card.png'))
     finally:
-        browser.evaluate('window.fetch=window.__cropFetch; closePdfCropModal(); MathBankDocumentImportSession.clear(); true')
+        browser.evaluate('window.fetch=window.__cropFetch; closePdfCropModal(); StarHopeDocumentImportSession.clear(); true')
         browser.command('wait', '--fn', 'document.getElementById("pdfCropModal").classList.contains("hidden")')
 
 
@@ -118,7 +118,7 @@ def test_saved_card_edit_remains_selected_and_survives_other_batch_success(brows
     assert browser.evaluate('parsedQuestionsData.length') == 2
     assert browser.evaluate('parsedQuestionsData[0].saved') is False
     assert browser.evaluate("document.querySelector('#parsed-card-0 .card-content-textarea').value") == '入库成功之后保留的人工修订：计算 $1543+13$。'
-    browser.evaluate('MathBankDocumentImportSession.clear(); true')
+    browser.evaluate('StarHopeDocumentImportSession.clear(); true')
 
 
 def test_duplicate_review_has_per_question_choices(browser, tmp_path):
@@ -131,7 +131,7 @@ def test_duplicate_review_has_per_question_choices(browser, tmp_path):
     click_stable(browser, '#duplicateReviewIndependentBtn')
     browser.command('wait', '--fn', 'window.__duplicateDecision !== null')
     assert browser.evaluate('window.__duplicateDecision') == {'action': 'selected', 'indices': [1]}
-    browser.evaluate('MathBankDocumentImportSession.clear(); true')
+    browser.evaluate('StarHopeDocumentImportSession.clear(); true')
 
 
 def test_batch_import_only_writes_chosen_duplicate_and_unique_rows(browser):
@@ -160,7 +160,7 @@ def test_batch_import_only_writes_chosen_duplicate_and_unique_rows(browser):
     after = browser.evaluate("fetch('/api/stats').then(response=>response.json()).then(data=>data.total_count)")
     assert after - before == 2
     assert browser.evaluate('getCheckedUnsavedIndices()') == [0]
-    browser.evaluate('MathBankDocumentImportSession.clear(); true')
+    browser.evaluate('StarHopeDocumentImportSession.clear(); true')
 
 
 def test_formula_notice_precedes_content_only_for_specific_unresolved_risks(browser, tmp_path):
@@ -176,4 +176,4 @@ def test_formula_notice_precedes_content_only_for_specific_unresolved_risks(brow
     assert result[0]['color'] != 'rgb(0, 0, 0)'
     assert not result[1]['visible'] and not result[2]['visible']
     browser.command('screenshot', str(tmp_path / 'specific-formula-review-notice.png'))
-    browser.evaluate('MathBankDocumentImportSession.clear(); true')
+    browser.evaluate('StarHopeDocumentImportSession.clear(); true')

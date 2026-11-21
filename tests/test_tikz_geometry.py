@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from mathbank.tikz_geometry import TikzGeometryError, render_geometry_reply
+from starhope.tikz_geometry import TikzGeometryError, render_geometry_reply
 
 
 STEM = "等腰三角形 ABC 中 AB=AC，BC=1，角 BAC=30 度。D 为 B 到直线 AC 的垂足。"
@@ -13,7 +13,7 @@ STEM = "等腰三角形 ABC 中 AB=AC，BC=1，角 BAC=30 度。D 为 B 到直�
 
 def triangle_plan():
     return {
-        "mathbank_geometry": 1,
+        "starhope_geometry": 1,
         "axes": False,
         "points": [
             ["B", "below left", "xy", 0, 0],
@@ -36,7 +36,7 @@ def triangle_plan():
 
 def tangent_plan():
     return {
-        "mathbank_geometry": 1,
+        "starhope_geometry": 1,
         "axes": False,
         "points": [
             ["O", "left", "xy", 0, 0],

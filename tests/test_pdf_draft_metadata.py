@@ -1,6 +1,6 @@
 """Metadata-only fake transport must never replace a saved local PDF body."""
 
-from mathbank.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.ai_timeouts import DOCUMENT_AI_TIMEOUT_SECONDS
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import hashlib
@@ -11,10 +11,10 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.pdf_draft_metadata import PdfDraftMetadataCache, build_pdf_draft_metadata_messages, request_pdf_local_draft_metadata
-from mathbank.document_projects import DocumentProjectStore
-from mathbank.task_manager import TaskCancelled
+from starhope.ai_providers import resolve_text_provider
+from starhope.pdf_draft_metadata import PdfDraftMetadataCache, build_pdf_draft_metadata_messages, request_pdf_local_draft_metadata
+from starhope.document_projects import DocumentProjectStore
+from starhope.task_manager import TaskCancelled
 
 
 TREE = {"必修一": {"3. 函数": ["3.1 函数概念"]}}
@@ -25,7 +25,7 @@ STREAM = resolve_text_provider("SILICONFLOW/Qwen/Qwen3.8-27B", {"SILICONFLOW_API
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(requests.sessions.Session, "request", lambda *_a, **_kw: pytest.fail("No live model request"))
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
 
 
 def plan(count=2):
@@ -43,7 +43,7 @@ def plan(count=2):
         "section_context": "完整共享条件：各题变量均为实数。", "stem_ranges": [[0, 1]],
         "answer_ranges": [[1, 2]], "raw_content": q["content"], "raw_answer": q["answer_markdown"],
         "removals": []} for n, q in enumerate(questions, 1)]
-    return {"schema": "mathbank.pdf-local-draft.v1", "input_sha256": sha, "source_sha256": sha,
+    return {"schema": "starhope.pdf-local-draft.v1", "input_sha256": sha, "source_sha256": sha,
         "document_sha256": "a" * 64, "source": source, "ready": True, "partial": False,
         "questions": questions, "items": items,
         "source_matches": [{"question_index": n, "source_number": n + 1, "field": "content",
@@ -123,7 +123,7 @@ def test_metadata_response_keeps_every_body_answer_image_and_review_byte_identic
         assert data["input_sha256"] == draft["input_sha256"]
         assert all(set(item) == {"id", "key", "content", "section_context"} for item in data["items"])
         assert "原版答案" not in payload["messages"][1]["content"]
-        assert "<mathbank-math" not in payload["messages"][1]["content"]
+        assert "<starhope-math" not in payload["messages"][1]["content"]
         return Response(response_rows(payload))
     result = run(post, draft=draft)
     assert len(calls) == 1 and all(options["timeout"] == DOCUMENT_AI_TIMEOUT_SECONDS for _payload, options in calls)
@@ -260,7 +260,7 @@ def test_classification_input_cache_ignores_answer_and_review_only_changes(chang
 
 
 def seed_legacy_card_cache(cache, draft):
-    from mathbank.pdf_draft_metadata import _legacy_card_binding, _profile, SCHEMA
+    from starhope.pdf_draft_metadata import _legacy_card_binding, _profile, SCHEMA
     payload = {"messages": build_pdf_draft_metadata_messages(draft, TREE, compact=True)}
     rows = {row["id"]: row for row in response_rows(payload)["items"]}
     for item in draft["items"]:
@@ -618,7 +618,7 @@ def test_real_project_raw_response_history_retains_each_complete_packet_and_exac
 
 
 def compact_response_rows(payload, *, path=2):
-    from mathbank.curriculums import DEFAULT_DIFFICULTIES, DEFAULT_QUESTION_TYPES
+    from starhope.curriculums import DEFAULT_DIFFICULTIES, DEFAULT_QUESTION_TYPES
     type_code = sorted(row["value"] for row in DEFAULT_QUESTION_TYPES).index("detailed_answer")
     difficulty_code = sorted(row["value"] for row in DEFAULT_DIFFICULTIES).index("normal")
     items = json.loads(payload["messages"][1]["content"])["items"]

@@ -12,9 +12,9 @@ import zipfile
 import pytest
 from lxml import etree
 
-from mathbank.geometry_symbols import normalize_school_math_symbols
-from mathbank.paper_helper import build_latex_document, clean_content_for_latex
-from mathbank.word_export_helper import build_word_document
+from starhope.geometry_symbols import normalize_school_math_symbols
+from starhope.paper_helper import build_latex_document, clean_content_for_latex
+from starhope.word_export_helper import build_word_document
 
 
 AUDIT = json.loads((Path(__file__).parent / "fixtures" / "school_math_symbols.json").read_text(encoding="utf-8"))
@@ -84,7 +84,7 @@ def test_word_normalization_is_idempotent_and_preserves_formula_delimiters(sourc
     r"![℃‰](/static/uploads/℃‰.png)",
     r"\includegraphics{℃‰.png}",
     r"\begin{tikzpicture}\node {$\widearc{AB}$ ℃ ‰};\end{tikzpicture}",
-    r'<mathbank-math id="MBM_ARC_0001">$\widearc{AB}$ ℃ ‰</mathbank-math>',
+    r'<starhope-math id="MBM_ARC_0001">$\widearc{AB}$ ℃ ‰</starhope-math>',
     r"\widearcCustom{AB}", r"\\widearc{AB}",
     r"\mathbbm{R}", r"\mathds{R}", r"\abs{x}", r"\norm{x}", r"\Var(X)", r"\Cov(X,Y)",
     r"\overarc[2]{AB}", r"\ang[angle-symbol-degree=\ast]{30}",
@@ -155,7 +155,7 @@ def test_native_word_bare_shortcuts_and_text_groups_are_not_plain_latex():
 
 
 NATIVE = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_SYMBOL_NATIVE") != "1" or not shutil.which("xelatex"),
+    os.environ.get("STARHOPE_TEST_SYMBOL_NATIVE") != "1" or not shutil.which("xelatex"),
     reason="Opt-in native default-template XeLaTeX validation",
 )
 

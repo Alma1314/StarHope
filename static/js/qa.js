@@ -4,7 +4,7 @@
 
     function initQaWorkspace() {
         const section = document.getElementById('qaWorkspaceSection');
-        const data = window.MathBankQaData;
+        const data = window.StarHopeQaData;
         if (!section || !data || section.dataset.initialized === 'true') return;
         section.dataset.initialized = 'true';
         const search = document.getElementById('qaSearchInput');

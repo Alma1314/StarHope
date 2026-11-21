@@ -20,10 +20,10 @@ def _fixture():
 
 
 SCENARIO = r'''
-from mathbank.document_project_parse import run_project_legacy_parse
-from mathbank.pdf_legacy_parse import completion_request_binding
-from mathbank.ai_providers import apply_model_thinking_policy
-from mathbank.document_project_service import project_question_ids
+from starhope.document_project_parse import run_project_legacy_parse
+from starhope.pdf_legacy_parse import completion_request_binding
+from starhope.ai_providers import apply_model_thinking_policy
+from starhope.document_project_service import project_question_ids
 
 bodies={n:f"第{n}道完整原题$x_{{{n}}}={n}$，请计算。" for n in range(1,20)}
 answers={n:f"原卷第{n}题解答$x_{{{n}}}+1={n+1}$。" for n in range(1,20)}
@@ -37,8 +37,8 @@ chunks=["一、解答题\n"+"\n\n".join(f"{n}. {bodies[n]}" for n in range(1,11)
         "\n数 学 参 考 答 案\n第1页\n,\n2页",
     "\n\n".join(f"{n}. {answers[n]}" for n in range(11,20))+
         "\n数 学 参 考 答 案\n第2页\n,\n2页"]
-texts=[f"<!-- MATHBANK_PDF_PAGE:{index+1} -->\n{text}" for index,text in enumerate(chunks)]
-expected_source=re.sub(r"<!-- MATHBANK_PDF_PAGE:\d+ -->","",merge_pdf_page_texts(texts))
+texts=[f"<!-- STARHOPE_PDF_PAGE:{index+1} -->\n{text}" for index,text in enumerate(chunks)]
+expected_source=re.sub(r"<!-- STARHOPE_PDF_PAGE:\d+ -->","",merge_pdf_page_texts(texts))
 source_pages=[{"page_number":index+1,"origin":"ocr","markdown":text,"figures":[]}
               for index,text in enumerate(texts)]
 with fitz.open() as pdf:
@@ -239,7 +239,7 @@ def test_fresh_split_footer_and_old_zero_cache_recover_without_rewriting_source(
     root=Path(__file__).resolve().parents[1]
     workspace=tmp_path/"source-only-workspace";workspace.mkdir()
     shutil.copy2(root/"main.py",workspace/"main.py")
-    shutil.copytree(root/"mathbank",workspace/"mathbank",ignore=shutil.ignore_patterns("__pycache__","*.pyc"))
+    shutil.copytree(root/"starhope",workspace/"starhope",ignore=shutil.ignore_patterns("__pycache__","*.pyc"))
     if(root/"templates").is_dir():shutil.copytree(root/"templates",workspace/"templates")
     (workspace/"static").mkdir()
     base=_fixture();script=workspace/"fresh_recovery_api.py"

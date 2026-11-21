@@ -2,8 +2,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
-from mathbank import database
-from mathbank.database import Base, Question
+from starhope import database
+from starhope.database import Base, Question
 
 # Configure database module to use in-memory SQLite with StaticPool for tests
 test_engine = create_engine(
@@ -25,7 +25,7 @@ def dispose_test_engine_after_session():
 
 
 # Patch sync_helper output paths globally during testing to avoid overwriting or clearing real data_backup files
-from mathbank import sync_helper
+from starhope import sync_helper
 import tempfile
 import os
 test_backup_dir = tempfile.mkdtemp()
@@ -48,7 +48,7 @@ def db_session():
 def client(db_session):
     from fastapi.testclient import TestClient
     from main import app
-    from mathbank.database import get_db
+    from starhope.database import get_db
 
     def override_get_db():
         try:

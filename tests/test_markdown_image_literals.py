@@ -2,17 +2,17 @@
 
 import pytest
 
-from mathbank.markdown_helper import (
+from starhope.markdown_helper import (
     map_markdown_question_images,
     markdown_image_references,
     prepare_markdown_source,
     prepare_markdown_question_for_storage,
 )
-from mathbank.question_assets import (
+from starhope.question_assets import (
     embedded_question_assets, image_reference_spans, markdown_literal_ranges,
     rewrite_question_asset_paths,
 )
-from mathbank.content_locks import lock_visible_math, reconcile_visible_math
+from starhope.content_locks import lock_visible_math, reconcile_visible_math
 
 
 PNG = "/static/uploads/review-png.png"

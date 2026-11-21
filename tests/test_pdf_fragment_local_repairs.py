@@ -4,15 +4,15 @@ from copy import deepcopy
 import pytest
 import requests
 
-from mathbank.pdf_fragment_draft import RULES_VERSION, prepare_pdf_fragment_draft
-from mathbank.pdf_fragment_sources import prepare_pdf_fragment_sources, text_sha
-from mathbank.pdf_page_fragments import SCHEMA, validate_pdf_page_fragments
+from starhope.pdf_fragment_draft import RULES_VERSION, prepare_pdf_fragment_draft
+from starhope.pdf_fragment_sources import prepare_pdf_fragment_sources, text_sha
+from starhope.pdf_page_fragments import SCHEMA, validate_pdf_page_fragments
 
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(requests.sessions.Session, "request", lambda *_a, **_k: pytest.fail("No API for local repair"))
-    monkeypatch.setattr("mathbank.pdf_local_draft.prepare_pdf_local_draft",
+    monkeypatch.setattr("starhope.pdf_local_draft.prepare_pdf_local_draft",
                         lambda *_a, **_k: pytest.fail("No whole-paper fallback"))
 
 

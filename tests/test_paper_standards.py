@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank import paper_standards as standards
+from starhope import paper_standards as standards
 
 
 def context(prompt='', **kwargs):

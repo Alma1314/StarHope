@@ -7,9 +7,9 @@ from types import SimpleNamespace
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from mathbank.document_project_api import register_document_project_routes
-from mathbank.document_project_service import DocumentProjectService
-from mathbank.document_projects import DocumentProjectStore
+from starhope.document_project_api import register_document_project_routes
+from starhope.document_project_service import DocumentProjectService
+from starhope.document_projects import DocumentProjectStore
 from test_document_project_api import FakeTasks, api  # noqa: F401
 
 

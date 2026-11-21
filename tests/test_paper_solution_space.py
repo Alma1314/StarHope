@@ -8,9 +8,9 @@ from docx import Document
 from docx.enum.text import WD_LINE_SPACING
 import pytest
 
-from mathbank.paper_layout import item_solution_space_cm, normalize_solution_space_cm
-from mathbank.paper_helper import build_latex_document, compile_tex_to_pdf
-from mathbank.word_export_helper import build_word_document
+from starhope.paper_layout import item_solution_space_cm, normalize_solution_space_cm
+from starhope.paper_helper import build_latex_document, compile_tex_to_pdf
+from starhope.word_export_helper import build_word_document
 from test_paper_pagination_regressions import _node, _section
 
 
@@ -62,7 +62,7 @@ def test_word_long_space_is_exact_height_paragraphs_without_unbreakable_huge_spa
     assert 'QUESTIONMARK2' in '\n'.join(p.text for p in doc.paragraphs)
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_TEST_SPACING_NATIVE')!='1',reason='opt-in native XeLaTeX page validation')
+@pytest.mark.skipif(os.environ.get('STARHOPE_TEST_SPACING_NATIVE')!='1',reason='opt-in native XeLaTeX page validation')
 def test_native_pdf_thirty_centimeters_continues_before_the_next_question(tmp_path):
     import pymupdf as fitz
     tex = build_latex_document('跨页留白验证','','exam',[question(1,'30'),question(2,'0')],
@@ -87,7 +87,7 @@ def test_native_pdf_thirty_centimeters_continues_before_the_next_question(tmp_pa
                 assert line['bbox'][3] < page.rect.height-15
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_TEST_SPACING_NATIVE')!='1',reason='opt-in native XeLaTeX image/page validation')
+@pytest.mark.skipif(os.environ.get('STARHOPE_TEST_SPACING_NATIVE')!='1',reason='opt-in native XeLaTeX image/page validation')
 def test_native_embedded_figure_does_not_turn_thirty_cm_into_an_unbreakable_box(tmp_path):
     import pymupdf as fitz
     from PIL import Image, ImageDraw

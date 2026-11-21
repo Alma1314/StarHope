@@ -19,7 +19,7 @@ import pytest
 @pytest.fixture(autouse=True)
 def deny_real_ai_requests(monkeypatch):
     """A missing mock must fail locally instead of using a configured provider."""
-    from mathbank import ai_http
+    from starhope import ai_http
 
     def denied(*_args, **_kwargs):
         raise AssertionError("Markdown import tests must not make real AI requests")
@@ -54,7 +54,7 @@ def _question(content, answer="", **extra):
 def _parse(client, headers, monkeypatch, source, questions, *, mapping=None,
            source_format="markdown", inspect_request=None, generate_answers=False):
     """Mock only the provider boundary; exercise actual parsing and reconciliation."""
-    from mathbank import ai_http
+    from starhope import ai_http
 
     calls = []
 
@@ -91,7 +91,7 @@ def _parse(client, headers, monkeypatch, source, questions, *, mapping=None,
 
 @pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig", "utf-16", "gb18030"])
 def test_markdown_decoder_preserves_percent_math_and_body(encoding):
-    from mathbank.markdown_helper import decode_and_prepare_markdown
+    from starhope.markdown_helper import decode_and_prepare_markdown
 
     source = "# 高二数学试卷\n\n1. 增长率 20%，求 $x+1$。\n![图](figures/curve.png)\n"
     result = decode_and_prepare_markdown(source.encode(encoding))
@@ -108,7 +108,7 @@ def test_markdown_decoder_preserves_percent_math_and_body(encoding):
     ("```md\n# 示例标题\n```\n\n# 正式试卷\n1. 题目", "正式试卷"),
 ])
 def test_markdown_title_uses_first_visible_h1(source, title):
-    from mathbank.markdown_helper import prepare_markdown_source
+    from starhope.markdown_helper import prepare_markdown_source
 
     result = prepare_markdown_source(source)
     assert result["title"] == title

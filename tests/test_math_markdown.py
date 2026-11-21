@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from mathbank.math_markdown import normalize_question_math_markdown
+from starhope.math_markdown import normalize_question_math_markdown
 
 
 def test_wraps_vector_equations_without_guessing_vector_typography():
@@ -137,11 +137,11 @@ def test_escaped_dollars_do_not_change_the_neighboring_math_boundaries():
 
 
 @pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_MATH_NATIVE") != "1" or not shutil.which("xelatex"),
-    reason="Set MATHBANK_TEST_MATH_NATIVE=1 with XeLaTeX installed",
+    os.environ.get("STARHOPE_TEST_MATH_NATIVE") != "1" or not shutil.which("xelatex"),
+    reason="Set STARHOPE_TEST_MATH_NATIVE=1 with XeLaTeX installed",
 )
 def test_normalized_standalone_environments_compile_after_export_cleanup(tmp_path):
-    from mathbank.paper_helper import clean_content_for_latex
+    from starhope.paper_helper import clean_content_for_latex
 
     sources = [
         r"\begin{equation}x=1\end{equation}",
@@ -171,7 +171,7 @@ def test_normalized_standalone_environments_compile_after_export_cleanup(tmp_pat
 
 def test_does_not_wrap_plain_chinese_or_ordinary_english_words():
     source = (
-        "这是一段普通中文，MathBank keeps prose readable。\n"
+        "这是一段普通中文，StarHope keeps prose readable。\n"
         "\\begin{tabular}{cc}\\toprule 名称 & 数值 \\\\ \\bottomrule\\end{tabular}"
     )
 

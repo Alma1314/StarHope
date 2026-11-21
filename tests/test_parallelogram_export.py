@@ -9,9 +9,9 @@ import zipfile
 import pytest
 from lxml import etree
 
-from mathbank.geometry_symbols import normalize_parallelogram_symbols
-from mathbank.paper_helper import build_latex_document, clean_content_for_latex, compile_tex_to_pdf
-from mathbank.word_export_helper import MathToken, build_word_document, tokenize_mixed_content
+from starhope.geometry_symbols import normalize_parallelogram_symbols
+from starhope.paper_helper import build_latex_document, clean_content_for_latex, compile_tex_to_pdf
+from starhope.word_export_helper import MathToken, build_word_document, tokenize_mixed_content
 
 
 SAMPLES = [
@@ -56,7 +56,7 @@ def test_forms_become_word_math_without_touching_adjacent_delimiters(source):
     r"\begin{tikzpicture}\node {$▱\parallelogram$};\end{tikzpicture}",
     r"\tikz[baseline]{\node {$▱\parallelogram$};}",
     r"\begin{verbatim}$▱\parallelogram$\end{verbatim}",
-    r'<mathbank-math id="MBM_TEST_0001">$▱\parallelogram$</mathbank-math>',
+    r'<starhope-math id="MBM_TEST_0001">$▱\parallelogram$</starhope-math>',
     r"[[MBM_TEST_0001]]",
     r"![▱\parallelogram](/static/uploads/▱(1).png)",
     r"[source](https://example.org/▱(1).png)",
@@ -131,7 +131,7 @@ def test_native_pandoc_exports_all_forms_as_editable_omml():
 
 
 @pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_SYMBOL_NATIVE") != "1" or not shutil.which("xelatex"),
+    os.environ.get("STARHOPE_TEST_SYMBOL_NATIVE") != "1" or not shutil.which("xelatex"),
     reason="Opt-in native XeLaTeX regression",
 )
 def test_native_xelatex_renders_all_forms_without_missing_characters(tmp_path):

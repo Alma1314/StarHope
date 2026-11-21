@@ -6,9 +6,9 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-from mathbank import backup, database, db_migrations
-from mathbank.database import Question, QuestionReference, QuestionSourceLabel
-from mathbank.question_references import (
+from starhope import backup, database, db_migrations
+from starhope.database import Question, QuestionReference, QuestionSourceLabel
+from starhope.question_references import (
     export_reference_text, extract_references, extract_source_labels,
     normalize_exchange_reference_data, reference_payloads,
     replace_exchange_reference_data, serialize_question_reference_data,

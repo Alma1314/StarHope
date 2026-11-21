@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.ai_providers import apply_model_thinking_policy, apply_structured_output_policy, resolve_text_provider
+from starhope.ai_providers import apply_model_thinking_policy, apply_structured_output_policy, resolve_text_provider
 
 
 TASKS = ['ocr', 'draw', 'solve', 'classify', 'parse', 'paper_selection', 'latex_diagnostic']
@@ -198,7 +198,7 @@ def test_solve_route_sends_gpt_contract_in_both_response_modes(client, monkeypat
         ('data: ' + json.dumps({'choices': [{'delta': {'content': '答案：2'}}]})).encode(),
         b'data: [DONE]',
     ])
-    with patch('mathbank.ai_http.robust_request_post', return_value=upstream) as post:
+    with patch('starhope.ai_http.robust_request_post', return_value=upstream) as post:
         response = client.post('/api/ai/solve', data={
             'content': '求 1+1', 'question_type': 'detailed_answer',
             'thinking': 'disabled', 'model': f'ZHONGZHAN_GPT/{model}:{effort}',
@@ -279,7 +279,7 @@ def test_v41_flash_policy_does_not_guess_unverified_models_or_gateways(config):
 
 
 def test_siliconflow_v41_flash_json_mode_only_at_structured_call_sites():
-    from mathbank.ai_providers import supports_pdf_split_stream
+    from starhope.ai_providers import supports_pdf_split_stream
     provider = configured('SILICONFLOW/deepseek-ai/DeepSeek-V4.1-Flash')
     payload = {'model':provider.model_name, 'messages':[{'role':'user','content':'original page data'}]}
     original = deepcopy(payload)

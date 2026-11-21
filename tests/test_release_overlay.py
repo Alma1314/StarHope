@@ -56,9 +56,9 @@ def _manifest_bytes(root: Path, platform: str, paths: list[str], version: str) -
                         ".env",
                         ".system_generated",
                         "data_backup",
-                        "math_question_bank.db",
-                        "math_question_bank.db-shm",
-                        "math_question_bank.db-wal",
+                        "starhope.db",
+                        "starhope.db-shm",
+                        "starhope.db-wal",
                         "static/uploads",
                         "venv",
                     ],
@@ -87,13 +87,13 @@ def _install_manifest(
 
 
 def test_overlay_preserves_persistent_data_and_unknown_custom_files(tmp_path):
-    managed = _write(tmp_path, "mathbank/app.py", "old application")
-    obsolete = _write(tmp_path, "mathbank/obsolete.py", "old release file")
+    managed = _write(tmp_path, "starhope/app.py", "old application")
+    obsolete = _write(tmp_path, "starhope/obsolete.py", "old release file")
     protected_contents = {
         ".env": "SECRET=kept",
-        "math_question_bank.db": b"database",
-        "math_question_bank.db-wal": b"wal",
-        "math_question_bank.db-shm": b"shm",
+        "starhope.db": b"database",
+        "starhope.db-wal": b"wal",
+        "starhope.db-shm": b"shm",
         "data_backup/snapshots/backup.zip": b"backup",
         ".system_generated/user-setting": b"setting",
         "static/uploads/diagram.png": b"image",
@@ -108,16 +108,16 @@ def test_overlay_preserves_persistent_data_and_unknown_custom_files(tmp_path):
     for relative, content in custom_contents.items():
         _write(tmp_path, relative, content)
 
-    old_paths = ["mathbank/app.py", "mathbank/obsolete.py"]
+    old_paths = ["starhope/app.py", "starhope/obsolete.py"]
     _install_manifest(tmp_path, "macos", old_paths)
     release_overlay.apply_release_overlay(tmp_path, "macos")
 
     managed.write_text("new application", encoding="utf-8")
-    _install_manifest(tmp_path, "macos", ["mathbank/app.py"], version="2.0.0")
+    _install_manifest(tmp_path, "macos", ["starhope/app.py"], version="2.0.0")
     result = release_overlay.apply_release_overlay(tmp_path, "macos")
 
     assert result["status"] == "updated"
-    assert result["deleted"] == ["mathbank/obsolete.py"]
+    assert result["deleted"] == ["starhope/obsolete.py"]
     assert not obsolete.exists()
     for relative, expected in protected_contents.items():
         expected_bytes = expected.encode() if isinstance(expected, str) else expected
@@ -128,12 +128,12 @@ def test_overlay_preserves_persistent_data_and_unknown_custom_files(tmp_path):
 
 def test_overlay_deletes_only_unchanged_files_from_previous_release(tmp_path):
     _write(tmp_path, "main.py", "old main")
-    unchanged_obsolete = _write(tmp_path, "mathbank/old.py", "release-owned")
+    unchanged_obsolete = _write(tmp_path, "starhope/old.py", "release-owned")
     modified_obsolete = _write(tmp_path, "scripts/old.py", "release-owned")
     _install_manifest(
         tmp_path,
         "macos",
-        ["main.py", "mathbank/old.py", "scripts/old.py"],
+        ["main.py", "starhope/old.py", "scripts/old.py"],
     )
     release_overlay.apply_release_overlay(tmp_path, "macos")
 
@@ -142,7 +142,7 @@ def test_overlay_deletes_only_unchanged_files_from_previous_release(tmp_path):
     _install_manifest(tmp_path, "macos", ["main.py"], version="2.0.0")
     result = release_overlay.apply_release_overlay(tmp_path, "macos")
 
-    assert "mathbank/old.py" in result["deleted"]
+    assert "starhope/old.py" in result["deleted"]
     assert not unchanged_obsolete.exists()
     assert modified_obsolete.read_text(encoding="utf-8") == "user changed this"
 
@@ -164,20 +164,20 @@ def test_overlay_preserves_non_regular_replacement_of_an_old_release_file(tmp_pa
 
 def test_overlay_does_not_follow_a_replaced_parent_directory(tmp_path):
     _write(tmp_path, "main.py", "version one")
-    old_file = _write(tmp_path, "mathbank/old.py", "release-owned")
-    _install_manifest(tmp_path, "macos", ["main.py", "mathbank/old.py"])
+    old_file = _write(tmp_path, "starhope/old.py", "release-owned")
+    _install_manifest(tmp_path, "macos", ["main.py", "starhope/old.py"])
     release_overlay.apply_release_overlay(tmp_path, "macos")
 
     old_file.unlink()
     old_file.parent.rmdir()
     outside = _write(tmp_path, "outside/old.py", "release-owned")
-    (tmp_path / "mathbank").symlink_to(tmp_path / "outside", target_is_directory=True)
+    (tmp_path / "starhope").symlink_to(tmp_path / "outside", target_is_directory=True)
     _write(tmp_path, "main.py", "version two")
     _install_manifest(tmp_path, "macos", ["main.py"], version="2.0.0")
 
     release_overlay.apply_release_overlay(tmp_path, "macos")
 
-    assert (tmp_path / "mathbank").is_symlink()
+    assert (tmp_path / "starhope").is_symlink()
     assert outside.read_text(encoding="utf-8") == "release-owned"
 
 
@@ -274,13 +274,13 @@ def test_windows_runtime_walk_error_fails_without_recording_success(tmp_path, mo
 
 
 def test_windows_case_only_path_change_is_not_deleted_as_obsolete(tmp_path):
-    old_case = _write(tmp_path, "mathbank/Legacy.py", "same application file")
-    _install_manifest(tmp_path, "windows-x64", ["mathbank/Legacy.py"])
+    old_case = _write(tmp_path, "starhope/Legacy.py", "same application file")
+    _install_manifest(tmp_path, "windows-x64", ["starhope/Legacy.py"])
     release_overlay.apply_release_overlay(tmp_path, "windows-x64")
 
-    _write(tmp_path, "mathbank/legacy.py", "same application file")
+    _write(tmp_path, "starhope/legacy.py", "same application file")
     _install_manifest(
-        tmp_path, "windows-x64", ["mathbank/legacy.py"], version="2.0.0"
+        tmp_path, "windows-x64", ["starhope/legacy.py"], version="2.0.0"
     )
     release_overlay.apply_release_overlay(tmp_path, "windows-x64")
 
@@ -346,9 +346,9 @@ def test_windows_overlay_requires_launcher_helper():
 
 
 def test_windows_upgrade_accepts_pre_219_installed_manifest(tmp_path):
-    obsolete = _write(tmp_path, "mathbank/obsolete.py", "old release code")
+    obsolete = _write(tmp_path, "starhope/obsolete.py", "old release code")
     old = json.loads(_manifest_bytes(
-        tmp_path, "windows-x64", ["mathbank/obsolete.py"], "2.1.8"
+        tmp_path, "windows-x64", ["starhope/obsolete.py"], "2.1.8"
     ))
     old["files"] = [
         entry for entry in old["files"]
@@ -440,7 +440,7 @@ def test_release_state_directory_link_is_rejected(tmp_path):
 
 
 def test_running_server_lock_blocks_overlay_before_cleanup_or_state_commit(tmp_path):
-    from mathbank.backup import acquire_runtime_lock
+    from starhope.backup import acquire_runtime_lock
 
     tombstone = _write(tmp_path, "database.py", "must stay")
     _install_manifest(tmp_path, "macos", ["main.py"])
@@ -504,8 +504,8 @@ def test_split_state_after_interruption_is_repaired_on_next_run(tmp_path, monkey
 
 def test_tampered_installed_manifest_is_not_trusted_for_deletion(tmp_path):
     _write(tmp_path, "main.py", "version one")
-    _write(tmp_path, "mathbank/old.py", "old application")
-    _install_manifest(tmp_path, "macos", ["main.py", "mathbank/old.py"])
+    _write(tmp_path, "starhope/old.py", "old application")
+    _install_manifest(tmp_path, "macos", ["main.py", "starhope/old.py"])
     release_overlay.apply_release_overlay(tmp_path, "macos")
 
     installed = (
@@ -520,4 +520,4 @@ def test_tampered_installed_manifest_is_not_trusted_for_deletion(tmp_path):
     with pytest.raises(release_overlay.ReleaseOverlayError, match="digest does not match"):
         release_overlay.apply_release_overlay(tmp_path, "macos")
 
-    assert (tmp_path / "mathbank" / "old.py").exists()
+    assert (tmp_path / "starhope" / "old.py").exists()

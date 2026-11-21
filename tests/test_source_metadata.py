@@ -6,9 +6,9 @@ import re
 
 import pytest
 
-from mathbank.content_locks import _formulas, lock_visible_math, reconcile_visible_math
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.source_metadata import (
+from starhope.content_locks import _formulas, lock_visible_math, reconcile_visible_math
+from starhope.docx_helper import _new_diagnostics
+from starhope.source_metadata import (
     SourceMetadataContractError, apply_source_metadata_response,
     build_source_metadata_messages, prepare_word_source_metadata,
     source_metadata_diagnostics, normalize_source_fillin,
@@ -87,7 +87,7 @@ def test_current_curriculum_full_body_and_literal_section_context_sent_without_l
     items = json.loads(messages[1]["content"])["items"]
     assert body in items[0]["content"]
     assert items[0]["section_context"] == "一、解答题"
-    assert "mathbank-math" not in messages[1]["content"]
+    assert "starhope-math" not in messages[1]["content"]
     assert "MBM_" not in messages[1]["content"]
     assert "1. 集合与常用逻辑用语" in messages[0]["content"]
 
@@ -347,7 +347,7 @@ def test_original_source_marker_literals_are_never_deleted_by_protocol_prefix_cl
 def test_textbox_paragraphs_concatenated_by_native_extractor_cannot_become_one_certified_question(tmp_path):
     from io import BytesIO
     from zipfile import ZipFile
-    from mathbank.docx_helper import extract_docx_markdown
+    from starhope.docx_helper import extract_docx_markdown
     xml = '''<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:v="urn:schemas-microsoft-com:vml"><w:body>
     <w:p><w:r><w:t>1. 正常第一题。</w:t></w:r></w:p>
     <w:p><w:r><w:pict><v:shape><v:textbox><w:txbxContent>

@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 
-from mathbank.paper_helper import build_latex_document, compile_tex_to_pdf
+from starhope.paper_helper import build_latex_document, compile_tex_to_pdf
 
 
 TRIANGLE = r"""\begin{tikzpicture}
@@ -69,7 +69,7 @@ def test_between_stem_and_choices_uses_source(paper_type, q_type, include_answer
     assert tex.count(TRIANGLE) == 1
     assert "tikz_triangle.png" not in tex
     assert "private_reference" not in tex
-    assert "MATHBANKTIKZ" not in tex
+    assert "STARHOPETIKZ" not in tex
 
 
 def test_plain_letter_choices_do_not_parse_drawing_source_as_prose():
@@ -163,7 +163,7 @@ def test_paper_without_tikz_does_not_require_additional_drawing_libraries():
 
 
 @pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_TIKZ_NATIVE") != "1" or not shutil.which("xelatex"),
+    os.environ.get("STARHOPE_TEST_TIKZ_NATIVE") != "1" or not shutil.which("xelatex"),
     reason="Opt-in native XeLaTeX regression",
 )
 @pytest.mark.parametrize("scenario", ["choice", "table", "multiple", "plot", "pattern"])

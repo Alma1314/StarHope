@@ -12,8 +12,8 @@ import zipfile
 import pytest
 
 from test_library_transfer_api import transfer_api, _export, _import, _seed, _question_count  # noqa: F401
-from mathbank.backup import verify_full_backup
-from mathbank.database import Question
+from starhope.backup import verify_full_backup
+from starhope.database import Question
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def tasks_api(transfer_api):
             manager.close()
 
 
-def _start_import(api, archive, task_id=None, *, filename="MathBank.zip", confirm=None):
+def _start_import(api, archive, task_id=None, *, filename="StarHope.zip", confirm=None):
     fields = {"client_request_id": task_id or str(uuid.uuid4())}
     if confirm is not None:
         fields["confirm_repeat_sha256"] = confirm
@@ -99,7 +99,7 @@ def test_retry_after_response_loss_and_renamed_zip_can_confirm_without_upload(ta
 
 @pytest.mark.parametrize("end", ["cancel", "expiry", "restart"])
 def test_unconfirmed_archive_is_cleaned_and_never_imported(tasks_api, monkeypatch, end):
-    from mathbank import library_transfer_tasks
+    from starhope import library_transfer_tasks
 
     api = tasks_api
     _seed(api, with_image=False)
@@ -226,7 +226,7 @@ def test_missing_old_images_are_recorded_in_backup_and_do_not_block_append(tasks
     else:
         response = api.client.post(
             "/api/library-transfer/import", headers=api.headers,
-            files={"file": ("MathBank.zip", archive, "application/zip")},
+            files={"file": ("StarHope.zip", archive, "application/zip")},
         )
         assert response.status_code == 200, response.text
         result = response.json()
@@ -249,14 +249,14 @@ def test_missing_old_images_are_recorded_in_backup_and_do_not_block_append(tasks
 
 
 def test_import_authentication_precedes_private_multipart_parsing(tasks_api, monkeypatch):
-    from mathbank import library_transfer_upload
+    from starhope import library_transfer_upload
 
     def forbidden_parser(*args, **kwargs):
         pytest.fail("unauthenticated request reached multipart file staging")
 
     monkeypatch.setattr(library_transfer_upload._SharingMultipartParser, "on_headers_finished", forbidden_parser)
     for path in ("/api/library-transfer/tasks/import", "/api/library-transfer/import"):
-        response = tasks_api.client.post(path, files={"file": ("MathBank.zip", b"bad", "application/zip")},
+        response = tasks_api.client.post(path, files={"file": ("StarHope.zip", b"bad", "application/zip")},
                                          data={"client_request_id": str(uuid.uuid4())})
         assert response.status_code == 403
     assert not (tasks_api.generated / "library_transfer_uploads").exists()
@@ -355,7 +355,7 @@ def test_two_windows_with_different_uuids_cannot_concurrently_append_the_same_ar
 
 @pytest.mark.parametrize("endpoint", ["synchronous", "task"])
 def test_real_commit_followed_by_exception_keeps_images_and_warns_against_retry(tasks_api, monkeypatch, endpoint):
-    from mathbank.database import Question
+    from starhope.database import Question
 
     api = tasks_api
     _seed(api)
@@ -386,7 +386,7 @@ def test_real_commit_followed_by_exception_keeps_images_and_warns_against_retry(
     else:
         response = api.client.post(
             "/api/library-transfer/import", headers=api.headers,
-            files={"file": ("MathBank.zip", archive, "application/zip")},
+            files={"file": ("StarHope.zip", archive, "application/zip")},
         )
         assert response.status_code == 500
         assert "勿直接再次导入" in response.json()["detail"]

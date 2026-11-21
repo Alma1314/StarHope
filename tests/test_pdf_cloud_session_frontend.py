@@ -8,7 +8,7 @@ from test_import_source_review import review_script  # noqa: F401
 from test_pdf_layout_frontend import pdf_script  # noqa: F401
 
 
-KEY = "mathbank_document_import_session_v1"
+KEY = "starhope_document_import_session_v1"
 
 
 def cloud_script(pdf_script, saved=None):
@@ -20,7 +20,7 @@ localStorage.setItem=(key,value)=>{writes.push(key);oldSet(key,value);};
 localStorage.removeItem=key=>{removals.push(key);oldRemove(key);};
 for(const id of ['documentProjectsPanel','documentProjectsRefresh','documentProjectsList',
  'documentImportRecoveryPanel','documentProjectPageEditor'])create(id);
-const session=window.MathBankDocumentImportSession;
+const session=window.StarHopeDocumentImportSession;
 listeners.DOMContentLoaded();
 """
 
@@ -65,7 +65,7 @@ def test_old_pdf_archive_is_not_restored_or_deleted_and_no_project_actions_dispa
         saved["documentType"] = document_type
     script = cloud_script(pdf_script, saved) + r"""
 (async()=>{
- const key='mathbank_document_import_session_v1',archive=storage.get(key);
+ const key='starhope_document_import_session_v1',archive=storage.get(key);
  assert.equal(parsedQuestionsData.length,0,'archived PDF cards are not auto restored');
  assert.equal(session.isRestored(),false);assert.equal(window.currentPdfTaskId||null,null);
  assert.equal(await session.refreshProjects(),false);
@@ -92,11 +92,11 @@ def test_other_document_corrections_still_persist_with_pdf_cloud_flag(pdf_script
  const card=document.getElementById('parsed-card-0');
  edit(card,'.card-content-textarea','其他文档人工校对');
  session.saveSoon();session.flush();
- const saved=JSON.parse(storage.get('mathbank_document_import_session_v1'));
+ const saved=JSON.parse(storage.get('starhope_document_import_session_v1'));
  assert.equal(saved.documentType,TYPE);assert.equal(saved.questions[0].content,'其他文档人工校对');
  assert.ok(writes.length>0,'Word and TeX correction persistence stays enabled');
  assert.equal(requests.length,0);session.clear();
- assert.equal(storage.has('mathbank_document_import_session_v1'),false);
+ assert.equal(storage.has('starhope_document_import_session_v1'),false);
 })().catch(error=>{console.error(error);process.exitCode=1});
 """.replace("TYPE", json.dumps(document_type))
     run_node(script)

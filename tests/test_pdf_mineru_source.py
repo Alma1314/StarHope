@@ -6,8 +6,8 @@ from zipfile import ZipFile
 import pymupdf as fitz
 import pytest
 
-from mathbank.pdf_figures import _mineru_graph_crop, enrich_pdf_with_figures
-from mathbank.pdf_mineru_source import load_mineru_pdf_source
+from starhope.pdf_figures import _mineru_graph_crop, enrich_pdf_with_figures
+from starhope.pdf_mineru_source import load_mineru_pdf_source
 
 
 def pdf(word):
@@ -98,7 +98,7 @@ def test_mineru_competing_box_must_recover_the_same_graph(
                 "status": "verified" if original_status == "verified" else "corrected",
                 "figure_candidates": initial["figure_candidates"], "warnings": [], "bbox": confirmed}
 
-    monkeypatch.setattr("mathbank.pdf_raster_guard.guard_raster_figure_bbox", validate)
+    monkeypatch.setattr("starhope.pdf_raster_guard.guard_raster_figure_bbox", validate)
     assert (_mineru_graph_crop(source, 0, "owned.png", initial) is not None) == expected
 
 
@@ -124,7 +124,7 @@ def test_truncated_original_can_use_independently_proven_mineru_frame(monkeypatc
     candidate = {"method": method, "status": "corrected" if expected else "verified",
                  "figure_candidates": 0 if expected else 1, "warnings": [],
                  "bbox": [127.2158, 253.8462, 446.2982, 476.9231]}
-    monkeypatch.setattr("mathbank.pdf_raster_guard.guard_raster_figure_bbox", lambda *a, **k: candidate)
+    monkeypatch.setattr("starhope.pdf_raster_guard.guard_raster_figure_bbox", lambda *a, **k: candidate)
     assert (_mineru_graph_crop(source, 0, "owned.png", initial) is not None) == expected
 
 
@@ -139,5 +139,5 @@ def test_misplaced_frame_can_only_be_replaced_by_a_unique_isolated_graph(
     initial = {"status": "not_applicable", "figure_candidates": count, "model_bbox": [119, 545, 431, 891]}
     candidate = {"method": method, "status": "corrected", "figure_candidates": 0,
                  "warnings": [], "bbox": [127.2158, 253.8462, 446.2982, 476.9231]}
-    monkeypatch.setattr("mathbank.pdf_raster_guard.guard_raster_figure_bbox", lambda *a, **k: candidate)
+    monkeypatch.setattr("starhope.pdf_raster_guard.guard_raster_figure_bbox", lambda *a, **k: candidate)
     assert (_mineru_graph_crop(source, 0, "owned.png", initial) is not None) == expected

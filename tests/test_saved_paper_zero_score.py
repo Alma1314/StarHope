@@ -21,11 +21,11 @@ def test_loading_saved_paper_preserves_zero_scores_through_cart_storage_reload()
     load_end = source.index("    window.deleteSavedPaper = async function (paperId)", load_start)
     script = r"""
 const assert = require('node:assert/strict');
-const STORAGE_KEY_CART = 'mathbank_paper_cart';
-const STORAGE_KEY_META = 'mathbank_paper_meta';
-const STORAGE_KEY_COLLAPSED = 'mathbank_paper_filter_collapsed';
+const STORAGE_KEY_CART = 'starhope_paper_cart';
+const STORAGE_KEY_META = 'starhope_paper_meta';
+const STORAGE_KEY_COLLAPSED = 'starhope_paper_filter_collapsed';
 const drafts = JSON.stringify([{id:'draft-synthetic',content:'未保存的合成题稿'}]);
-const stored = new Map([['mathbank_local_drafts', drafts]]);
+const stored = new Map([['starhope_local_drafts', drafts]]);
 const localStorage = {
   getItem(key) { return stored.get(key) ?? null; },
   setItem(key, value) { stored.set(key, String(value)); },
@@ -71,7 +71,7 @@ async function fetch(url) {
   assert.equal(closed, 1);
   assert.equal(rendered, 1);
   assert.equal(toasts.at(-1).type, 'success');
-  assert.equal(stored.get('mathbank_local_drafts'), drafts);
+  assert.equal(stored.get('starhope_local_drafts'), drafts);
 
   // Execute the real browser-storage restore path as on a later page load.
   window.PaperStore.cart = [];
@@ -79,7 +79,7 @@ async function fetch(url) {
   loadStateFromStorage();
   assert.deepEqual(window.PaperStore.cart, expected);
   assert.equal(window.PaperStore.meta.title, paper.title);
-  assert.equal(stored.get('mathbank_local_drafts'), drafts);
+  assert.equal(stored.get('starhope_local_drafts'), drafts);
 })().catch(error=>{console.error(error);process.exitCode=1;});
 """
     result = subprocess.run(

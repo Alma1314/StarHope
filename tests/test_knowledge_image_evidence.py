@@ -6,10 +6,10 @@ import json
 from PIL import Image
 import pytest
 
-from mathbank import ai_classification as classification
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.ai_knowledge_points import annotate_ai_knowledge_points
-from mathbank.knowledge_image_evidence import IMAGE_REASON_NOTICE
+from starhope import ai_classification as classification
+from starhope.ai_providers import resolve_text_provider
+from starhope.ai_knowledge_points import annotate_ai_knowledge_points
+from starhope.knowledge_image_evidence import IMAGE_REASON_NOTICE
 
 
 CATALOG = [{"code": "local:method", "name": "实际方法"}]
@@ -149,7 +149,7 @@ def test_each_unsent_image_has_a_safe_reason_and_friendly_message(image_request,
     elif kind == "invalid_image": (root / "answer.png").write_bytes(b"not an image")
     elif kind == "invalid_path": q = {**q, "answer_markdown": "![](https://private.example/secret.png)"}
     elif kind in {"output_too_large", "unreadable_file"}:
-        from mathbank.asset_security import _ImageOutputTooLargeError
+        from starhope.asset_security import _ImageOutputTooLargeError
         def fail(*args, **kwargs):
             raise (_ImageOutputTooLargeError("private conversion detail") if kind == "output_too_large"
                    else PermissionError("private file detail"))
@@ -171,7 +171,7 @@ def test_each_unsent_image_has_a_safe_reason_and_friendly_message(image_request,
     ("![原图](/static/uploads/answer.png)", "![原图](/static/uploads/answer.png)", "legacy_source"),
 ])
 def test_sharing_does_not_rewrite_legacy_or_ungrounded_metadata(evidence, source, field):
-    from mathbank.library_transfer import _import_image_evidence
+    from starhope.library_transfer import _import_image_evidence
     frozen = deepcopy(evidence)
     result = _import_image_evidence({"evidence_source": field, "evidence": evidence},
         {"answer_markdown": source}, {"answer_markdown": source.replace("answer.png", "shared.png")},
@@ -182,9 +182,9 @@ def test_sharing_does_not_rewrite_legacy_or_ungrounded_metadata(evidence, source
 def test_image_metadata_survives_normal_save_and_sharing_roundtrip(image_request, tmp_path):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
-    from mathbank.database import Base, KnowledgePoint, Question
-    from mathbank.knowledge_points import normalize_question_points, replace_question_points
-    from mathbank.library_transfer import export_library_zip, import_library_zip, inspect_library_zip
+    from starhope.database import Base, KnowledgePoint, Question
+    from starhope.knowledge_points import normalize_question_points, replace_question_points
+    from starhope.library_transfer import export_library_zip, import_library_zip, inspect_library_zip
 
     q = adopt(image_request)
     engines = [create_engine("sqlite:///:memory:") for _ in range(2)]

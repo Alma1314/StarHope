@@ -6,7 +6,7 @@ import sqlite3
 import pytest
 from sqlalchemy.engine import Engine
 
-from mathbank.geometry_symbols import normalize_school_math_symbols
+from starhope.geometry_symbols import normalize_school_math_symbols
 
 
 @pytest.fixture(autouse=True)
@@ -105,7 +105,7 @@ def test_table_prose_and_math_cells_remain_distinct():
     r"<pre>△ ∠</pre>",
     r"<!-- △ ∠ -->",
     r"% △ ∠ $∠A$",
-    r'<mathbank-math id="MBM_TEST_0001">$△+\text{∠}$</mathbank-math>',
+    r'<starhope-math id="MBM_TEST_0001">$△+\text{∠}$</starhope-math>',
     r"[[MBM_TEST_0001]]",
     r"\△ \∠",
 ])
@@ -145,7 +145,7 @@ def test_word_export_keeps_its_existing_unicode_behavior(source):
 
 
 def test_clean_content_entry_adapts_prose_and_text_but_preserves_math():
-    from mathbank.paper_helper import clean_content_for_latex
+    from starhope.paper_helper import clean_content_for_latex
 
     source = r"在△ABC中，∠A=30°，$△DEF+∠D+\text{∠E}$。"
     expected = (r"在\ensuremath{\triangle}ABC中，\ensuremath{\angle}A=30°，"
@@ -155,7 +155,7 @@ def test_clean_content_entry_adapts_prose_and_text_but_preserves_math():
 
 
 def test_latex_stem_and_answer_export_does_not_mutate_question_source():
-    from mathbank.paper_helper import build_latex_document
+    from starhope.paper_helper import build_latex_document
 
     questions = [{"question": {"id": 1, "question_type": "fill_in_blank",
         "content": "在△ABC中，∠A已知。", "answer_markdown": "由∠A可得△ABC的面积。",

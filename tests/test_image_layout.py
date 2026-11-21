@@ -12,11 +12,11 @@ from PIL import Image
 from docx import Document
 from sqlalchemy import create_engine
 
-from mathbank.image_layout import split_image_anchors, normalize_image_layouts
-from mathbank.paper_helper import build_latex_document, compile_tex_to_pdf
-from mathbank.word_export_helper import build_word_document
-from mathbank.database import Base, Question
-from mathbank import db_migrations
+from starhope.image_layout import split_image_anchors, normalize_image_layouts
+from starhope.paper_helper import build_latex_document, compile_tex_to_pdf
+from starhope.word_export_helper import build_word_document
+from starhope.database import Base, Question
+from starhope import db_migrations
 
 A = '![](/static/uploads/a.png)'
 B = '![](/static/uploads/b.png)'
@@ -102,12 +102,12 @@ def test_latex_four_image_options_are_compact_and_ordered(paper_type):
     _four_image_options().replace(r'\item ![](/static/uploads/option_D.png)', r'\item $1$'),
 ])
 def test_compact_image_options_do_not_override_mixed_or_authored_layouts(content):
-    from mathbank.paper_helper import clean_content_for_latex
+    from starhope.paper_helper import clean_content_for_latex
     tex = clean_content_for_latex(content, q_type='single_choice', preserve_image_positions=True)
     assert 'max width=3.0cm,max height=3.0cm' not in tex
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_TEST_TIKZ_NATIVE') != '1', reason='opt-in XeLaTeX')
+@pytest.mark.skipif(os.environ.get('STARHOPE_TEST_TIKZ_NATIVE') != '1', reason='opt-in XeLaTeX')
 @pytest.mark.parametrize('paper_type', ['exam', 'quiz', 'exam_19'])
 def test_native_pdf_four_image_options_share_one_row(tmp_path, paper_type):
     import pymupdf as fitz
@@ -153,7 +153,7 @@ def test_mixed_word_keeps_positions_and_individual_alignment(tmp_path):
 
 def test_api_saves_image_layout_and_rejects_invalid_update(client, tmp_path, monkeypatch):
     import main
-    from mathbank.asset_lifecycle import register_asset_store
+    from starhope.asset_lifecycle import register_asset_store
     from main import LOCAL_TOKEN
     headers={'X-Local-Token':LOCAL_TOKEN}
     # Persistence now validates visible image references independently of the
@@ -231,7 +231,7 @@ def test_math_repair_preserves_individual_image_layout_through_editor_and_paper(
               + '\n\n后文222 $x^2 +\ny^2 = 1$。\n\n![](/static/uploads/b_2.png)')
     layouts = {'a_1.png': {'align': 'left', 'size': 'small'}}
     script = '''
-global.window = { MathBankSafe: {
+global.window = { StarHopeSafe: {
     safeImageUrl: value => value,
     escapeAttribute: value => value,
     sanitizeRichHtml: value => value
@@ -275,7 +275,7 @@ console.log(JSON.stringify({{
     assert 'data-figure-size="medium"' in embedded['imgHtml']
 
 
-@pytest.mark.skipif(os.environ.get('MATHBANK_TEST_TIKZ_NATIVE')!='1', reason='opt-in XeLaTeX')
+@pytest.mark.skipif(os.environ.get('STARHOPE_TEST_TIKZ_NATIVE')!='1', reason='opt-in XeLaTeX')
 def test_native_mixed_tikz_and_table_layout(tmp_path):
     import pymupdf as fitz
     code=r'\begin{tikzpicture}\draw (0,0) rectangle (2,1);\end{tikzpicture}'

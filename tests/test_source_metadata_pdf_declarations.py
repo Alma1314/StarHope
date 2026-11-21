@@ -2,8 +2,8 @@
 
 import pytest
 
-from mathbank.docx_helper import _new_diagnostics
-from mathbank.source_metadata import (
+from starhope.docx_helper import _new_diagnostics
+from starhope.source_metadata import (
     _atomic_ranges, _visible_heading_census, inspect_source_structure,
     prepare_word_source_metadata,
 )

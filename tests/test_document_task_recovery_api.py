@@ -6,7 +6,7 @@ import threading
 import pytest
 import requests
 
-from mathbank.document_task_store import DocumentTaskStore, DurableDocumentTasks
+from starhope.document_task_store import DocumentTaskStore, DurableDocumentTasks
 
 
 @pytest.fixture

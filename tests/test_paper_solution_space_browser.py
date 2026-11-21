@@ -4,7 +4,7 @@ from test_preview_browser import browser, pytestmark  # noqa: F401
 
 
 def seed(browser, space):
-    browser.evaluate("""MathBankBrowserChecks.seed(2,0,true);
+    browser.evaluate("""StarHopeBrowserChecks.seed(2,0,true);
         PaperStore.meta.show_notice=false;
         for(let i=1;i<=2;i++)PaperStore.questionsMap[i].question_type='detailed_answer';
         PaperStore.cart[0].solution_space=%s;
@@ -15,7 +15,7 @@ def seed(browser, space):
 def test_thirty_cm_space_flows_across_fixed_a4_pages_and_rebalances_without_duplicates(browser):
     seed(browser, 30)
     for _ in range(3):
-        result=browser.evaluate("""({pages:MathBankBrowserChecks.measure(),
+        result=browser.evaluate("""({pages:StarHopeBrowserChecks.measure(),
             height:[...document.querySelectorAll('[data-solution-space-zone-qid="1"],[data-solution-space-continuation-qid="1"]')]
                 .reduce((n,x)=>{const page=x.closest('.a4-paper-sheet');
                     const scale=page.getBoundingClientRect().width/page.offsetWidth;

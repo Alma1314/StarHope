@@ -7,9 +7,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from mathbank import database, knowledge_points
-from mathbank.curriculums import load_curriculum
-from mathbank.database import KnowledgePoint
+from starhope import database, knowledge_points
+from starhope.curriculums import load_curriculum
+from starhope.database import KnowledgePoint
 
 
 NEW_CODE = "zxxk:catalog:999990001"
@@ -193,7 +193,7 @@ def test_alias_namespace_never_collides_with_zhixue_or_forms_a_chain():
 
 
 def test_sharing_accepts_namespaced_platform_definition_and_rejects_spoofed_codes():
-    from mathbank.library_transfer import _validate_point
+    from starhope.library_transfer import _validate_point
     point = {"code": NEW_CODE, "name": "目录点", "original_name": "目录点", "source": "zxxk",
              "aliases": [], "curriculum_paths": [], "role": "main", "status": "confirmed", "position": 0}
     _validate_point(point)

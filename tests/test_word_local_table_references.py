@@ -1,6 +1,6 @@
 """A direct indexical table reference must retain complete local ownership."""
 import pytest
-from mathbank.word_source_dependencies import analyze_word_source_dependencies
+from starhope.word_source_dependencies import analyze_word_source_dependencies
 
 TABLE = r"""\begin{tabular}{|c|c|c|}
 \hline

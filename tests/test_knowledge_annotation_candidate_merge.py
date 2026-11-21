@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.ai_knowledge_points import (
+from starhope.ai_knowledge_points import (
     MAX_AI_CANDIDATES, MAX_AI_POINTS, annotate_ai_knowledge_points,
     restore_ai_knowledge_evidence,
 )

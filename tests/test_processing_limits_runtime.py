@@ -14,9 +14,9 @@ requests.sessions.Session.request=lambda *a,**k: (_ for _ in ()).throw(Assertion
 import pymupdf as fitz
 from fastapi.testclient import TestClient
 import main
-from mathbank.asset_security import MAX_PDF_BYTES,MAX_SINGLE_IMAGE_BYTES,MAX_IMAGE_PIXELS
-from mathbank.tex_helper import MAX_TEX_BYTES
-from mathbank.database import SessionLocal,Question,engine
+from starhope.asset_security import MAX_PDF_BYTES,MAX_SINGLE_IMAGE_BYTES,MAX_IMAGE_PIXELS
+from starhope.tex_helper import MAX_TEX_BYTES
+from starhope.database import SessionLocal,Question,engine
 assert Path(engine.url.database).resolve().parent==Path.cwd()
 assert not Path('.env').exists()
 assert (MAX_PDF_BYTES,MAX_SINGLE_IMAGE_BYTES,MAX_IMAGE_PIXELS,MAX_TEX_BYTES)==(64*1048576,12*1048576,60000000,8*1048576)
@@ -81,15 +81,15 @@ def test_configured_capacity_reaches_real_source_only_upload_worker(tmp_path):
     target=tmp_path/'source-only-runtime'
     target.mkdir()
     shutil.copy2(root/'main.py',target/'main.py')
-    shutil.copytree(root/'mathbank',target/'mathbank',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+    shutil.copytree(root/'starhope',target/'starhope',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     if (root/'templates').exists():shutil.copytree(root/'templates',target/'templates')
     (target/'static').mkdir()
     script=target/'capacity_scenario.py';script.write_text(SCENARIO)
     env={key:value for key,value in os.environ.items()
          if not any(word in key.upper() for word in ('API_KEY','TOKEN','SECRET'))}
-    env.update(PYTHONPATH=str(target),MATHBANK_MAX_DOCUMENT_MIB='64',MATHBANK_MAX_IMAGE_MIB='12',
-        MATHBANK_MAX_IMAGE_MEGAPIXELS='60',MATHBANK_MAX_TEXT_SOURCE_MIB='8',MATHBANK_MAX_PDF_PAGES='120',
-        MATHBANK_DOCUMENT_WORKERS='3',MATHBANK_DOCUMENT_QUEUE='8',PDF_OCR_CONCURRENCY='6')
+    env.update(PYTHONPATH=str(target),STARHOPE_MAX_DOCUMENT_MIB='64',STARHOPE_MAX_IMAGE_MIB='12',
+        STARHOPE_MAX_IMAGE_MEGAPIXELS='60',STARHOPE_MAX_TEXT_SOURCE_MIB='8',STARHOPE_MAX_PDF_PAGES='120',
+        STARHOPE_DOCUMENT_WORKERS='3',STARHOPE_DOCUMENT_QUEUE='8',PDF_OCR_CONCURRENCY='6')
     result=subprocess.run([sys.executable,'-B',str(script)],cwd=target,env=env,
         capture_output=True,text=True,timeout=40)
     assert result.returncode==0,result.stdout[-6000:]+'\n'+result.stderr[-6000:]

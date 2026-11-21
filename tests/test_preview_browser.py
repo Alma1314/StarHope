@@ -1,6 +1,6 @@
 """Opt-in regressions against the real offline app, Chromium, and KaTeX.
 
-Run with MATHBANK_TEST_BROWSER=1 python -m pytest --noconftest
+Run with STARHOPE_TEST_BROWSER=1 python -m pytest --noconftest
 tests/test_preview_browser.py. Requires the optional agent-browser CLI and its
 browser; neither is an application dependency. A source-only temporary copy
 gets its own database, uploads, token, server, and browser session.
@@ -22,7 +22,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.skipif(
-    os.environ.get("MATHBANK_TEST_BROWSER") != "1",
+    os.environ.get("STARHOPE_TEST_BROWSER") != "1",
     reason="opt-in actual browser regression",
 )
 
@@ -45,14 +45,14 @@ class Browser:
     def evaluate(self, source):
         # Retain async results until CDP finishes awaiting them, including drags
         # that replace their source DOM nodes before their promise resolves.
-        retained_source = "window.__mathbankTestEvaluation = (0, eval)(" + json.dumps(source) + ")"
+        retained_source = "window.__starhopeTestEvaluation = (0, eval)(" + json.dumps(source) + ")"
         data = self.command("eval", "--stdin", source=retained_source)
         return data.get("result") if isinstance(data, dict) and "result" in data else data
 
     def settle(self):
-        if self.evaluate("typeof window.MathBankBrowserChecks === 'undefined'"):
+        if self.evaluate("typeof window.StarHopeBrowserChecks === 'undefined'"):
             self.evaluate((ROOT / "tests" / "browser_preview_fixture.js").read_text())
-        self.evaluate("MathBankBrowserChecks.settle().then(() => true)")
+        self.evaluate("StarHopeBrowserChecks.settle().then(() => true)")
 
 
 def complete_import_fixture_categories(browser, index):
@@ -75,9 +75,9 @@ def complete_import_fixture_categories(browser, index):
 def browser(tmp_path_factory):
     executable = shutil.which("agent-browser")
     assert executable, "Install the optional agent-browser CLI to run this test"
-    root = tmp_path_factory.mktemp("mathbank-browser")
+    root = tmp_path_factory.mktemp("starhope-browser")
     shutil.copy2(ROOT / "main.py", root / "main.py")
-    for directory in ("mathbank", "templates", "static"):
+    for directory in ("starhope", "templates", "static"):
         shutil.copytree(
             ROOT / directory, root / directory,
             ignore=shutil.ignore_patterns("__pycache__", "uploads", "test_uploads", "*.pyc"),
@@ -86,9 +86,9 @@ def browser(tmp_path_factory):
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     url = f"http://127.0.0.1:{port}"
-    env = dict(os.environ, MATHBANK_LAUNCH_ID=uuid.uuid4().hex)
+    env = dict(os.environ, STARHOPE_LAUNCH_ID=uuid.uuid4().hex)
     env.pop("PYTHONPATH", None)
-    browser = Browser(executable, "mathbank-test-" + uuid.uuid4().hex[:12])
+    browser = Browser(executable, "starhope-test-" + uuid.uuid4().hex[:12])
     browser.root = root  # Disposable app root for opt-in local fixture assets.
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     with (root / "server.log").open("w") as log:
@@ -335,15 +335,15 @@ def test_stats_modal_returns_focus_to_visible_entry(browser, width):
 
 def test_resizing_repartitions_every_question_inside_footer_boundary(browser):
     browser.command("set", "viewport", "1600", "1100")
-    browser.evaluate("MathBankBrowserChecks.seed(15, 2); true")
+    browser.evaluate("StarHopeBrowserChecks.seed(15, 2); true")
     browser.settle()
-    wide = browser.evaluate("MathBankBrowserChecks.measure()")
+    wide = browser.evaluate("StarHopeBrowserChecks.measure()")
     browser.command("set", "viewport", "1100", "900")
     browser.settle()
-    narrow = browser.evaluate("MathBankBrowserChecks.measure()")
+    narrow = browser.evaluate("StarHopeBrowserChecks.measure()")
     browser.command("set", "viewport", "1600", "1100")
     browser.settle()
-    restored = browser.evaluate("MathBankBrowserChecks.measure()")
+    restored = browser.evaluate("StarHopeBrowserChecks.measure()")
     for layout in (wide, narrow, restored):
         assert [q["id"] for page in layout for q in page["questions"]] == list(range(1, 16))
         assert all(q["overflow"] <= 2 for page in layout for q in page["questions"]), layout
@@ -356,15 +356,15 @@ def test_resizing_repartitions_every_question_inside_footer_boundary(browser):
 
 def test_oversize_page_stays_complete_after_repeated_title_updates(browser):
     browser.command("set", "viewport", "1600", "1100")
-    browser.evaluate("MathBankBrowserChecks.seed(1, 120); true")
+    browser.evaluate("StarHopeBrowserChecks.seed(1, 120); true")
     browser.settle()
-    layouts = [browser.evaluate("MathBankBrowserChecks.measure()")]
+    layouts = [browser.evaluate("StarHopeBrowserChecks.measure()")]
     if browser.evaluate("document.querySelector('.paper-meta-details').hidden"):
         browser.command("click", "#togglePaperMetaBtn")
     for suffix in ("甲", "乙", "丙"):
         browser.command("fill", "#paperMetaTitle", "超长题检查" + suffix)
         browser.settle()
-        layouts.append(browser.evaluate("MathBankBrowserChecks.measure()"))
+        layouts.append(browser.evaluate("StarHopeBrowserChecks.measure()"))
     for layout in layouts:
         assert [q["id"] for page in layout for q in page["questions"]] == [1], layout
         assert any(page["expanded"] for page in layout), layout
@@ -372,7 +372,7 @@ def test_oversize_page_stays_complete_after_repeated_title_updates(browser):
 
 
 def test_header_typing_preserves_focus_and_second_character(browser):
-    browser.evaluate("MathBankBrowserChecks.seed(4, 0, true); true")
+    browser.evaluate("StarHopeBrowserChecks.seed(4, 0, true); true")
     browser.settle()
     browser.command("click", ".canvas-meta-title")
     browser.command("press", "End")
@@ -385,39 +385,39 @@ def test_header_typing_preserves_focus_and_second_character(browser):
 
 
 def test_dragging_uses_destination_question_order(browser):
-    browser.evaluate("MathBankBrowserChecks.seed(4, 0, true); true")
+    browser.evaluate("StarHopeBrowserChecks.seed(4, 0, true); true")
     browser.settle()
-    result = browser.evaluate("MathBankBrowserChecks.drag(1, 4)")
+    result = browser.evaluate("StarHopeBrowserChecks.drag(1, 4)")
     assert result == [2, 3, 4, 1]
     browser.settle()
-    result = browser.evaluate("MathBankBrowserChecks.drag(1, 2, true)")
+    result = browser.evaluate("StarHopeBrowserChecks.drag(1, 2, true)")
     assert result == [1, 2, 3, 4]
 
 
 def test_cross_page_drop_and_cancel_keep_the_cart_complete(browser):
-    browser.evaluate("MathBankBrowserChecks.seed(15, 2); true")
+    browser.evaluate("StarHopeBrowserChecks.seed(15, 2); true")
     browser.settle()
-    assert len(browser.evaluate("MathBankBrowserChecks.measure()")) > 1
-    assert browser.evaluate("MathBankBrowserChecks.drag(1, 15, false, true)") == list(range(1, 16))
+    assert len(browser.evaluate("StarHopeBrowserChecks.measure()")) > 1
+    assert browser.evaluate("StarHopeBrowserChecks.drag(1, 15, false, true)") == list(range(1, 16))
     browser.settle()
-    assert browser.evaluate("MathBankBrowserChecks.drag(1, 15, false, false, true)") == list(range(2, 16)) + [1]
+    assert browser.evaluate("StarHopeBrowserChecks.drag(1, 15, false, false, true)") == list(range(2, 16)) + [1]
     browser.settle()
-    layout = browser.evaluate("MathBankBrowserChecks.measure()")
+    layout = browser.evaluate("StarHopeBrowserChecks.measure()")
     assert [q["id"] for page in layout for q in page["questions"]] == list(range(2, 16)) + [1]
     assert all(q["overflow"] <= 2 for page in layout for q in page["questions"]), layout
 
 
 def test_returning_to_dragged_question_does_not_commit_old_hover_target(browser):
-    browser.evaluate("MathBankBrowserChecks.seed(3, 0, true); true")
+    browser.evaluate("StarHopeBrowserChecks.seed(3, 0, true); true")
     browser.settle()
-    assert browser.evaluate("MathBankBrowserChecks.drag(1, 3, false, false, false, true)") == [1, 2, 3]
+    assert browser.evaluate("StarHopeBrowserChecks.drag(1, 3, false, false, false, true)") == [1, 2, 3]
 
 
 @pytest.mark.parametrize("paper_type", ["exam", "quiz", "exam_19"])
 def test_templates_preserve_mixed_question_types_and_solution_space(browser, paper_type):
     result = browser.evaluate(r"""
     (async () => {
-        MathBankBrowserChecks.seed(19, 2);
+        StarHopeBrowserChecks.seed(19, 2);
         const state = window.PaperStore;
         state.meta.paper_type = %s;
         for (let id = 1; id <= 19; id++) {
@@ -434,8 +434,8 @@ def test_templates_preserve_mixed_question_types_and_solution_space(browser, pap
             }
         }
         window.renderPaperCanvas();
-        await MathBankBrowserChecks.settle();
-        return MathBankBrowserChecks.measure();
+        await StarHopeBrowserChecks.settle();
+        return StarHopeBrowserChecks.measure();
     })()
     """ % json.dumps(paper_type))
     assert [q["id"] for page in result for q in page["questions"]] == list(range(1, 20))
@@ -445,7 +445,7 @@ def test_templates_preserve_mixed_question_types_and_solution_space(browser, pap
 def test_old_layout_callback_does_not_disconnect_current_observer(browser):
     result = browser.evaluate("""
     (() => {
-        MathBankBrowserChecks.seed(15, 2);
+        StarHopeBrowserChecks.seed(15, 2);
         const oldCallback = window.scheduleActiveA4Repagination;
         window.renderPaperCanvas();
         const currentObserver = window.activeA4PaginationResizeObserver;
@@ -742,7 +742,7 @@ def test_image_options_stay_in_labeled_import_editor_and_paper_cells(browser):
         browser.evaluate("selectWorkspace('paper', '组卷排版工作台'); true")
         browser.command('wait', '--fn', '!PaperStore.cartQuestionLoad.loading')
         browser.evaluate(r"""
-        MathBankBrowserChecks.seed(1, 0, true);
+        StarHopeBrowserChecks.seed(1, 0, true);
         Object.assign(PaperStore.questionsMap[1], window.imageOptionBrowserQuestion);
         renderPaperCanvas(); true;
         """)
@@ -794,20 +794,20 @@ def test_content_area_and_three_level_bank_filter(browser):
     browser.command('wait', '--fn', f"!document.getElementById('questionsList').hasAttribute('aria-busy') && document.querySelectorAll('#questionsList .question-card').length === 1 && document.querySelector('#questionsList .question-card').dataset.id === '{sample['ids'][0]}'")
     browser.command('select', '#filterKnowledge', sample['knowledge'][1])
     browser.command('wait', '--fn', f"!document.getElementById('questionsList').hasAttribute('aria-busy') && document.querySelector('#questionsList .question-card')?.dataset.id === '{sample['ids'][1]}'")
-    saved_drafts = browser.evaluate("localStorage.getItem('mathbank_local_drafts')")
+    saved_drafts = browser.evaluate("localStorage.getItem('starhope_local_drafts')")
     drafts = [{"id": "section-draft-" + str(i), "isDraft": True, "content": "小节过滤回归草稿 " + str(i),
                "question_type": "detailed_answer", "difficulty": "normal", "category_compulsory": sample['phase'],
                "category_chapter": sample['chapters'][0], "category_knowledge": sample['knowledge'][i],
                "updated_at": "2026-09-18T00:00:00Z"} for i in (0, 1)]
-    browser.evaluate("localStorage.setItem('mathbank_local_drafts', %s); true" % json.dumps(json.dumps(drafts)))
+    browser.evaluate("localStorage.setItem('starhope_local_drafts', %s); true" % json.dumps(json.dumps(drafts)))
     browser.command('click', '#sidebarTab-drafts')
     assert browser.evaluate("document.getElementById('questionsList').innerText.includes('小节过滤回归草稿 1') && !document.getElementById('questionsList').innerText.includes('小节过滤回归草稿 0')")
     browser.command('select', '#filterKnowledge', sample['knowledge'][0])
     assert browser.evaluate("document.getElementById('questionsList').innerText.includes('小节过滤回归草稿 0') && !document.getElementById('questionsList').innerText.includes('小节过滤回归草稿 1')")
     if saved_drafts is None:
-        browser.evaluate("localStorage.removeItem('mathbank_local_drafts'); true")
+        browser.evaluate("localStorage.removeItem('starhope_local_drafts'); true")
     else:
-        browser.evaluate("localStorage.setItem('mathbank_local_drafts', %s); true" % json.dumps(saved_drafts))
+        browser.evaluate("localStorage.setItem('starhope_local_drafts', %s); true" % json.dumps(saved_drafts))
     browser.command('click', '#sidebarTab-bank')
     browser.command('select', '#filterChapter', sample['chapters'][1])
     assert browser.evaluate("document.getElementById('filterKnowledge').value") == ''
@@ -836,7 +836,7 @@ def test_reload_returns_home_without_losing_cart_metadata_or_drafts(browser):
         addToCart(question.id, 8);
         updatePaperMeta('title','刷新保留的演示卷');
         const draft = [{id:'reload-draft',content:'刷新保留的草稿',isDraft:true}];
-        localStorage.setItem('mathbank_local_drafts',JSON.stringify(draft));
+        localStorage.setItem('starhope_local_drafts',JSON.stringify(draft));
         selectWorkspace('paper','智能组卷');
         return {id:question.id, draft:JSON.stringify(draft)};
     })()
@@ -862,7 +862,7 @@ def test_reload_returns_home_without_losing_cart_metadata_or_drafts(browser):
     assert browser.evaluate("!document.getElementById('dashboardWorkspaceSection').classList.contains('hidden')")
     assert browser.evaluate("PaperStore.cart.map(q=>q.id)") == [saved['id']]
     assert browser.evaluate("PaperStore.meta.title") == '刷新保留的演示卷'
-    assert browser.evaluate("localStorage.getItem('mathbank_local_drafts')") == saved['draft']
+    assert browser.evaluate("localStorage.getItem('starhope_local_drafts')") == saved['draft']
 
 
 def test_paper_reload_recovers_missing_selection_from_preview_button(browser):
@@ -887,9 +887,9 @@ def test_paper_reload_recovers_missing_selection_from_preview_button(browser):
         PaperStore.cart = questions.map((q, i) => ({id:q.id,score:i+3,solution_space:'0'}));
         questions.forEach(q => { PaperStore.questionsMap[q.id] = q; });
         PaperStore.filters.tab = 'all';
-        localStorage.setItem('mathbank_paper_cart', JSON.stringify(PaperStore.cart));
+        localStorage.setItem('starhope_paper_cart', JSON.stringify(PaperStore.cart));
         const draft = JSON.stringify([{id:'reload-recovery-draft',content:'保留未保存草稿'}]);
-        localStorage.setItem('mathbank_local_drafts', draft);
+        localStorage.setItem('starhope_local_drafts', draft);
         await renderPaperWorkspace();
         window.__reloadOriginalConfirm = window.confirm;
         window.__reloadConfirmCalls = 0;
@@ -907,8 +907,8 @@ def test_paper_reload_recovers_missing_selection_from_preview_button(browser):
         browser.command('wait', '--fn', "!PaperStore.cartQuestionLoad.loading && PaperStore.cart.length === 5")
         browser.settle()
         assert browser.evaluate("PaperStore.cart") == fixture['cart']
-        assert browser.evaluate("JSON.parse(localStorage.getItem('mathbank_paper_cart'))") == fixture['cart']
-        assert browser.evaluate("localStorage.getItem('mathbank_local_drafts')") == fixture['draft']
+        assert browser.evaluate("JSON.parse(localStorage.getItem('starhope_paper_cart'))") == fixture['cart']
+        assert browser.evaluate("localStorage.getItem('starhope_local_drafts')") == fixture['draft']
         assert browser.evaluate("window.__reloadConfirmCalls") == 0
         assert browser.evaluate("PaperStore.cartQuestionLoad.error") == ''
         assert browser.evaluate("!document.getElementById('paperCanvasSection').textContent.includes('卷面题目尚未完整加载')")
@@ -924,8 +924,8 @@ def test_paper_answers_preserve_reading_position_focus_and_late_page_changes(bro
     browser.evaluate(r"""
     (async () => {
         selectWorkspace('paper', '组卷排版工作台');
-        await MathBankBrowserChecks.settle();
-        MathBankBrowserChecks.seed(24, 2, true);
+        await StarHopeBrowserChecks.settle();
+        StarHopeBrowserChecks.seed(24, 2, true);
         const store = PaperStore;
         store.answerCache = Object.create(null);
         store.expandedAnswerIds.clear();
@@ -1036,7 +1036,7 @@ def test_preview_controls_scroll_with_pages_and_metadata_has_one_toggle(browser,
     browser.evaluate((ROOT / 'tests' / 'browser_preview_fixture.js').read_text())
     browser.evaluate("selectWorkspace('paper', '智能组卷'); true")
     browser.command('wait', '--fn', '!PaperStore.cartQuestionLoad.loading && !PaperStore.streamPagination.all.loading')
-    browser.evaluate('MathBankBrowserChecks.seed(12, 2); true')
+    browser.evaluate('StarHopeBrowserChecks.seed(12, 2); true')
     browser.settle()
     if browser.evaluate("document.getElementById('paperMetaDetails').hidden"):
         browser.command('click', '#togglePaperMetaBtn')

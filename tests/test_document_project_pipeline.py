@@ -6,12 +6,12 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-import mathbank.document_project_pipeline as module
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.document_project_pipeline import PLAN_STAGE, RESULT_STAGE, parse_project_pdf
-from mathbank.document_projects import DocumentProjectStore, ProjectCorrupt
-from mathbank.pdf_local_structure import PdfLocalStructureError
-from mathbank.task_manager import TaskCancelled
+import starhope.document_project_pipeline as module
+from starhope.ai_providers import resolve_text_provider
+from starhope.document_project_pipeline import PLAN_STAGE, RESULT_STAGE, parse_project_pdf
+from starhope.document_projects import DocumentProjectStore, ProjectCorrupt
+from starhope.pdf_local_structure import PdfLocalStructureError
+from starhope.task_manager import TaskCancelled
 
 
 TREE = {"必修一": {"3. 函数": []}}
@@ -21,7 +21,7 @@ PROVIDER = resolve_text_provider("deepseek-flash", {"DEEPSEEK_API_KEY": "fake-of
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(requests.sessions.Session, "request", lambda *_a, **_kw: pytest.fail("Real model requests forbidden"))
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
 
 
 @pytest.fixture

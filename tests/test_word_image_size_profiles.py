@@ -6,10 +6,10 @@ from docx.shared import Cm
 from PIL import Image
 import pytest
 
-from mathbank.image_layout import (
+from starhope.image_layout import (
     BODY_IMAGE_SIZE_CM, COMPACT_CHOICE_IMAGE_SIZE_CM, TABLE_IMAGE_MAX_HEIGHT_CM,
 )
-from mathbank.word_export_helper import WordExamBuilder, WordExportDiagnostics
+from starhope.word_export_helper import WordExamBuilder, WordExportDiagnostics
 
 
 def _builder():

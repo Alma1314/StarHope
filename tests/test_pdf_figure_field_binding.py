@@ -3,14 +3,14 @@ from copy import deepcopy
 
 import pytest
 
-from mathbank.pdf_figure_pipeline import bind_figure_review_questions
+from starhope.pdf_figure_pipeline import bind_figure_review_questions
 
 
 def bundle():
     stem = '16. 题干前文[插图待补: 图1]题干后文'
     answer = '16. 解：第一步。\n[插图待补: 图1]\n第二步和最后结论。'
-    pages = [{'page_number':3,'markdown':'<!-- MATHBANK_PDF_PAGE:3 -->\n'+stem},
-             {'page_number':7,'markdown':'<!-- MATHBANK_PDF_PAGE:7 -->\n'+answer}]
+    pages = [{'page_number':3,'markdown':'<!-- STARHOPE_PDF_PAGE:3 -->\n'+stem},
+             {'page_number':7,'markdown':'<!-- STARHOPE_PDF_PAGE:7 -->\n'+answer}]
     # Main merges strip()'d pages and then removes page markers.
     source = '\n'+stem+'\n\n\n'+answer
     qs = [{'source_number':16,'content':stem[4:], 'answer_markdown':answer[4:]}]
@@ -53,7 +53,7 @@ def test_unproved_or_ambiguous_slot_does_not_guess_a_target(change):
 
 def test_canonical_verified_slot_does_not_renumber_later_pending_slots():
     import hashlib
-    from mathbank.pdf_page_fragments import SCHEMA
+    from starhope.pdf_page_fragments import SCHEMA
     def sha(text):return hashlib.sha256(text.encode()).hexdigest()
     image='![插图](/static/uploads/tmp/one.png)'
     text='16. '+image+'\n中间[插图待补: 图2]，之后[插图待补: 图3]。'
@@ -81,8 +81,8 @@ def test_canonical_verified_slot_does_not_renumber_later_pending_slots():
 def test_opening_existing_project_derives_field_targets_without_writing_saved_evidence(tmp_path):
     import threading
     from types import SimpleNamespace
-    from mathbank.document_projects import DocumentProjectStore
-    from mathbank.document_project_service import DocumentProjectService
+    from starhope.document_projects import DocumentProjectStore
+    from starhope.document_project_service import DocumentProjectService
     qs,matches,pages,review=bundle()
     store=DocumentProjectStore(tmp_path/'projects')
     pid=store.create(b'%PDF-test','test.pdf',{}, {})['project_id']

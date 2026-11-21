@@ -24,7 +24,7 @@ requests.sessions.Session.request = no_network
 
 import main
 from fastapi.testclient import TestClient
-from mathbank.database import Question, QuestionKnowledgePoint, SessionLocal
+from starhope.database import Question, QuestionKnowledgePoint, SessionLocal
 from PIL import Image
 
 client = TestClient(main.app)
@@ -57,7 +57,7 @@ def isolated_app(tmp_path):
     (tmp_path / "scripts").mkdir()
     for filename in ("__init__.py", "search_questions.py"):
         shutil.copy2(ROOT / "scripts" / filename, tmp_path / "scripts" / filename)
-    for directory in ("mathbank", "templates", "static"):
+    for directory in ("starhope", "templates", "static"):
         shutil.copytree(
             ROOT / directory, tmp_path / directory,
             ignore=shutil.ignore_patterns(
@@ -65,7 +65,7 @@ def isolated_app(tmp_path):
                 "*.db", "*.db-*", ".env", ".system_generated",
             ),
         )
-    assert not (tmp_path / "math_question_bank.db").exists()
+    assert not (tmp_path / "starhope.db").exists()
     assert not (tmp_path / ".env").exists()
     environment = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     environment.pop("PYTHONPATH", None)
@@ -83,7 +83,7 @@ def test_http_and_cli_share_one_read_only_teaching_workflow(isolated_app):
     isolated_app(r'''
         import subprocess, sys
         from pathlib import Path
-        from mathbank.paths import DATA_BACKUP_DIR, UPLOADS_DIR
+        from starhope.paths import DATA_BACKUP_DIR, UPLOADS_DIR
 
         # The test app normally uses test_uploads/custom_metadata_test.json;
         # point both adapters at the same disposable production-shaped paths.
@@ -195,7 +195,7 @@ def test_agent_missing_ids_validation_and_bounded_requests(isolated_app):
 
 def test_detail_version_parameter_reads_mirror_without_switching_global_version(isolated_app):
     isolated_app(r'''
-        from mathbank.database import QuestionCurriculum
+        from starhope.database import QuestionCurriculum
         db.add(QuestionCurriculum(question_id=7, version_code='B', compulsory='B册',
                                   chapter='B章', knowledge='B节'))
         db.commit()

@@ -63,7 +63,7 @@ const mark=path=>`![插图](${path})`;
 """
 SOURCES = (
     section(API, 'function safeImageUrl(value)', 'function sanitizeRichHtml')
-    + '\nwindow.MathBankSafe={safeImageUrl};\n'
+    + '\nwindow.StarHopeSafe={safeImageUrl};\n'
     + section(API, 'const EditorState =', '// Global variables')
     + section(API, 'let uploadedImages =', 'let contentOcrAbortController')
     + section(EDITOR, 'let subKnowledgeCatalog =', '// Formatting operates')
@@ -99,8 +99,8 @@ def run_js(checks, sources=SOURCES):
 def test_collect_and_migrate_supported_destinations(source):
     source = source.format(old='/static/uploads/tmp/figure.png')
     run_js('const source=' + json.dumps(source) + r""";
-      assert.deepEqual(window.MathBankImageAssets.collect(source),[old]);
-      assert.equal(window.MathBankImageAssets.mapText(source,{[old]:final}),source.split(old).join(final));
+      assert.deepEqual(window.StarHopeImageAssets.collect(source),[old]);
+      assert.equal(window.StarHopeImageAssets.mapText(source,{[old]:final}),source.split(old).join(final));
     """)
 
 
@@ -114,17 +114,17 @@ def test_literal_images_are_neither_owned_nor_rewritten(wrapper):
     literal = wrapper % '![示例](/static/uploads/tmp/figure.png)' if wrapper != '%% %s' else '% ![示例](/static/uploads/tmp/figure.png)'
     run_js('const literal=' + json.dumps(literal) + r""";
       const content=literal+'\n'+mark(old);
-      assert.deepEqual(window.MathBankImageAssets.collect(literal),[]);
-      assert.deepEqual(window.MathBankImageAssets.collect(content),[old]);
-      assert.equal(window.MathBankImageAssets.mapText(content,{[old]:final}),literal+'\n'+mark(final));
+      assert.deepEqual(window.StarHopeImageAssets.collect(literal),[]);
+      assert.deepEqual(window.StarHopeImageAssets.collect(content),[old]);
+      assert.equal(window.StarHopeImageAssets.mapText(content,{[old]:final}),literal+'\n'+mark(final));
     """)
 
 
 @pytest.mark.parametrize('prefix', ['```latex\n', '~~~\n', '<!-- ', r'\begin{tikzpicture}'])
 def test_unclosed_literal_protects_remaining_text(prefix):
     run_js('const content=' + json.dumps(prefix) + r"""+mark(old);
-      assert.deepEqual(window.MathBankImageAssets.collect(content),[]);
-      assert.equal(window.MathBankImageAssets.mapText(content,{[old]:final}),content);
+      assert.deepEqual(window.StarHopeImageAssets.collect(content),[]);
+      assert.equal(window.StarHopeImageAssets.mapText(content,{[old]:final}),content);
     """)
 
 
@@ -141,7 +141,7 @@ def test_cut_undo_paste_shared_answer_and_private_tikz_draft_assets():
       assert.deepEqual(uploadedImages,[final]);
       assert.deepEqual(uploadedAnswerImages,[final]);
       saveCurrentToDrafts();
-      const draft=JSON.parse(draftStorage.mathbank_local_drafts)[0];
+      const draft=JSON.parse(draftStorage.starhope_local_drafts)[0];
       assert.deepEqual(new Set(draft.image_paths),new Set([final,old,reference]));
       assert.equal(draft.content_tikz_assets[0].reference_image_path,reference);
       assert.equal(isEditorModified(),false);
@@ -212,8 +212,8 @@ def test_stale_editor_response_cannot_migrate_new_question():
       EditorState.useQuestion({id:8});elements.editContent.value=mark(old);
       applyEditorAssetPathMap({[old]:final},session);
       assert.equal(elements.editContent.value,mark(old));
-      assert.deepEqual(window.MathBankImageAssets.collect('![x](https://other.invalid/a.png)'),[]);
-      assert.deepEqual(Object.keys(window.MathBankImageAssets.normalizeMap({[old]:'https://other.invalid/a.png'})),[]);
+      assert.deepEqual(window.StarHopeImageAssets.collect('![x](https://other.invalid/a.png)'),[]);
+      assert.deepEqual(Object.keys(window.StarHopeImageAssets.normalizeMap({[old]:'https://other.invalid/a.png'})),[]);
     """)
 
 
@@ -251,10 +251,10 @@ def test_review_images_survive_draft_save_mapping_and_later_edit(edit_during_sav
 
 def test_review_ownership_keeps_shared_and_legacy_images_but_not_literals():
     run_js(r"""
-      assert.deepEqual(window.MathBankImageAssets.withoutReviewOnly([old,reference],'题干','解析',mark(old)),[reference]);
-      assert.deepEqual(window.MathBankImageAssets.withoutReviewOnly([old,reference],mark(old),'解析',mark(old)),[old,reference]);
-      assert.deepEqual(window.MathBankImageAssets.withoutReviewOnly([old,reference],'题干',mark(old),mark(old)),[old,reference]);
-      assert.deepEqual(window.MathBankImageAssets.withoutReviewOnly([old,reference],'题干','解析','`'+mark(old)+'`'),[old,reference]);
+      assert.deepEqual(window.StarHopeImageAssets.withoutReviewOnly([old,reference],'题干','解析',mark(old)),[reference]);
+      assert.deepEqual(window.StarHopeImageAssets.withoutReviewOnly([old,reference],mark(old),'解析',mark(old)),[old,reference]);
+      assert.deepEqual(window.StarHopeImageAssets.withoutReviewOnly([old,reference],'题干',mark(old),mark(old)),[old,reference]);
+      assert.deepEqual(window.StarHopeImageAssets.withoutReviewOnly([old,reference],'题干','解析','`'+mark(old)+'`'),[old,reference]);
       EditorState.useQuestion({id:7});const session=EditorState.snapshot();
       EditorState.useQuestion({id:8});elements.editReview.value=mark(old);
       applyEditorAssetPathMap({[old]:final},session);
@@ -289,8 +289,8 @@ def test_parsed_prompt_preview_never_supplements_review_only_image():
     run_js(r"""
       globalThis.parseMarkdownWithMath=text=>text;
       globalThis.renderMathInElement=()=>{};
-      window.MathBankSafe.escapeAttribute=value=>value;
-      window.MathBankSafe.sanitizeRichHtml=value=>value;
+      window.StarHopeSafe.escapeAttribute=value=>value;
+      window.StarHopeSafe.sanitizeRichHtml=value=>value;
       const contentPreview=element(),answerPreview=element();
       contentPreview.parentElement={classList:{toggle(){}}};
       const card={id:'parsed-card-0',querySelector:selector=>selector==='.card-content-preview'?contentPreview:answerPreview};
@@ -313,7 +313,7 @@ def test_pdf_crop_navigation_tracks_promoted_image_without_rewriting_source_evid
       const receipt={image_path:old,replaced_image_path:reference,original_page_image:reference,
         page_number:7,method:'manual',ai_verified:false};
       const source={image_path:old,page_index:6,bbox:[1,2,3,4]};
-      const mapped=window.MathBankImageAssets.mapRecord({pdf_source_figures:[source],
+      const mapped=window.StarHopeImageAssets.mapRecord({pdf_source_figures:[source],
         document_import_manual_crops:[receipt]}, {[old]:final,[reference]:finalReference});
       assert.equal(mapped.pdf_source_figures[0].image_path,final);
       assert.equal(mapped.pdf_source_figures[0].page_index,6);
@@ -330,8 +330,8 @@ def test_migration_changes_only_exact_destination_and_keeps_alt_filename_prefix(
     run_js(r"""
       const prefix='/static/uploads/tmp/figure.png.copy.png';
       const content=`![原名 ${old}](${old} "${old}") `+mark(prefix);
-      assert.deepEqual(window.MathBankImageAssets.collect(content),[old,prefix]);
-      assert.equal(window.MathBankImageAssets.mapText(content,{[old]:final}),
+      assert.deepEqual(window.StarHopeImageAssets.collect(content),[old,prefix]);
+      assert.equal(window.StarHopeImageAssets.mapText(content,{[old]:final}),
         `![原名 ${old}](${final} "${old}") `+mark(prefix));
     """)
 

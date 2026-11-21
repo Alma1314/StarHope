@@ -3,8 +3,8 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from mathbank import mineru_api
-from mathbank.task_manager import TaskCancelled
+from starhope import mineru_api
+from starhope.task_manager import TaskCancelled
 from test_pdf_mineru_source import make_bundle, pdf
 
 
@@ -144,7 +144,7 @@ def test_mineru_ocr_upload_sends_bound_transcript_to_selected_api(monkeypatch):
     from time import monotonic, sleep
 
     import main
-    from mathbank import pdf_page_vision
+    from starhope import pdf_page_vision
 
     original = pdf("Source page with material")
     transcript = "一、解答题\n1. 计算 $1+1$。\n\n【答案】$2$。"

@@ -3,8 +3,8 @@ from typing import get_type_hints
 
 import pytest
 
-from mathbank.ai_json import parse_ai_json
-from mathbank.prompts import (
+from starhope.ai_json import parse_ai_json
+from starhope.prompts import (
     COMMON_OCR_PROMPT,
     build_ai_solve_prompts,
     build_classification_system_prompt,
@@ -189,9 +189,9 @@ def test_import_prompts_return_single_leaf_or_whole_chapter_pending():
 
 
 def test_updated_prompts_cover_symbol_safety_and_default_difficulty_rules():
-    from mathbank.docx_helper import _new_diagnostics
-    from mathbank.prompts import build_tikz_correction_prompt
-    from mathbank.source_metadata import build_source_metadata_messages, prepare_word_source_metadata
+    from starhope.docx_helper import _new_diagnostics
+    from starhope.prompts import build_tikz_correction_prompt
+    from starhope.source_metadata import build_source_metadata_messages, prepare_word_source_metadata
 
     curriculum = {"必修一": {"1. 集合": []}}
     for fmt in ("markdown", "tex"):

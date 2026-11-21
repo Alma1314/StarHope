@@ -1,4 +1,4 @@
-from mathbank.database import Paper, Question, QuestionFingerprint
+from starhope.database import Paper, Question, QuestionFingerprint
 
 def test_question_crud_operations(db_session):
     # 1. Create Question

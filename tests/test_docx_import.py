@@ -10,16 +10,16 @@ import pytest
 from PIL import Image
 from fastapi.testclient import TestClient
 from main import app, LOCAL_TOKEN, post_process_pdf_parsed_questions
-from mathbank.omml_helper import (
+from starhope.omml_helper import (
     omml_element_to_latex,
     omml_to_latex,
     normalize_known_word_math_private_characters,
     normalize_word_formula_latex,
     normalize_word_linear_latex_boundaries,
 )
-from mathbank.docx_helper import extract_docx_markdown
+from starhope.docx_helper import extract_docx_markdown
 
-from mathbank.mtef_helper import decode_mtef_formula, mtef_to_latex
+from starhope.mtef_helper import decode_mtef_formula, mtef_to_latex
 
 client = TestClient(app)
 

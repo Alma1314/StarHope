@@ -1,7 +1,7 @@
 """Startup must preserve chapter-level, custom and cross-version classification."""
 import pytest
-from mathbank.curriculums import CURRICULUM_NAMES, load_curriculum
-from mathbank.database import Question, QuestionCurriculum
+from starhope.curriculums import CURRICULUM_NAMES, load_curriculum
+from starhope.database import Question, QuestionCurriculum
 
 
 def seed(session, compulsory, chapter, knowledge, version='A'):

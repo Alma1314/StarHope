@@ -8,10 +8,10 @@ import pytest
 import requests
 
 from pdf_feature_contract import experimental_pdf_only
-from mathbank.ai_providers import resolve_text_provider
-from mathbank.document_project_draft import execute_pdf_local_draft
-from mathbank.document_projects import DocumentProjectError, DocumentProjectStore
-from mathbank.task_manager import TaskCancelled
+from starhope.ai_providers import resolve_text_provider
+from starhope.document_project_draft import execute_pdf_local_draft
+from starhope.document_projects import DocumentProjectError, DocumentProjectStore
+from starhope.task_manager import TaskCancelled
 
 
 TREE = {"必修一": {"3. 函数": []}}
@@ -21,7 +21,7 @@ PROVIDER = resolve_text_provider("deepseek-flash", {"DEEPSEEK_API_KEY": "fake-of
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
     monkeypatch.setattr(requests.sessions.Session, "request", lambda *a, **kw: pytest.fail("No real provider HTTP"))
-    monkeypatch.setattr("mathbank.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("starhope.pdf_vision_request.PDF_VISION_RETRY_DELAY_SECONDS", 0)
 
 
 @pytest.fixture

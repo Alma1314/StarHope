@@ -9,8 +9,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from mathbank.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS, DOCUMENT_AI_TIMEOUT_SECONDS
-from mathbank.processing_timeouts import TIKZ_COMPILE_TIMEOUT_SECONDS
+from starhope.ai_timeouts import AI_REQUEST_TIMEOUT_SECONDS, DOCUMENT_AI_TIMEOUT_SECONDS
+from starhope.processing_timeouts import TIKZ_COMPILE_TIMEOUT_SECONDS
 
 
 def test_settings_exposes_only_resolved_request_waits():
@@ -53,14 +53,14 @@ def test_saved_env_is_loaded_before_business_timeout_aliases(tmp_path):
     app = tmp_path / "source-only"
     app.mkdir()
     shutil.copy2(root / "main.py", app / "main.py")
-    for name in ("mathbank", "static", "templates", "scripts"):
+    for name in ("starhope", "static", "templates", "scripts"):
         shutil.copytree(root / name, app / name,
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "uploads", "test_uploads", ".env"))
-    (app / ".env").write_text("MATHBANK_AI_REQUEST_TIMEOUT_SECONDS=1200\nMATHBANK_DOCUMENT_AI_TIMEOUT_SECONDS=2400\n")
+    (app / ".env").write_text("STARHOPE_AI_REQUEST_TIMEOUT_SECONDS=1200\nSTARHOPE_DOCUMENT_AI_TIMEOUT_SECONDS=2400\n")
     script = """
 import pytest, json
 import main
-from mathbank.ocr_figure_review import REVIEW_TIMEOUT_SECONDS
+from starhope.ocr_figure_review import REVIEW_TIMEOUT_SECONDS
 print('TIMEOUT_POLICY=' + json.dumps([main.get_settings()['request_timeouts'],
     main.CLASSIFICATION_TIMEOUT_SECONDS, REVIEW_TIMEOUT_SECONDS,
     main.request_tikz_completion.__kwdefaults__['timeout']]))

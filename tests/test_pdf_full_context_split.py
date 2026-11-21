@@ -8,10 +8,10 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from mathbank.content_locks import lock_visible_math
-from mathbank.document_projects import ProjectConflict
-from mathbank.pdf_full_context_split import full_context_pdf_split_eligibility, request_full_context_pdf_split
-from mathbank.task_manager import TaskCancelled
+from starhope.content_locks import lock_visible_math
+from starhope.document_projects import ProjectConflict
+from starhope.pdf_full_context_split import full_context_pdf_split_eligibility, request_full_context_pdf_split
+from starhope.task_manager import TaskCancelled
 
 PROVIDER = SimpleNamespace(provider_code="offline", model_name="same-original-model", reasoning_effort="low",
     api_key="never-network", chat_completions_url="https://no-network.invalid/v1/chat/completions")
@@ -25,7 +25,7 @@ def no_network(monkeypatch):
 def source(n=19):
     preamble = "2026年模拟考试\n注意事项\n1. 填写姓名。\n2. 使用铅笔。\n3. 交回试卷。\n"
     questions = "\n\n".join(f"{i}. 第{i}题完整条件$x_{i}=1$。" + "原题完整说明。"*65 +
-        ("\n<!-- MATHBANK_PDF_PAGE:2 -->\n这是跨页续文，仍属同一题。" if i==10 else "") for i in range(1,n+1))
+        ("\n<!-- STARHOPE_PDF_PAGE:2 -->\n这是跨页续文，仍属同一题。" if i==10 else "") for i in range(1,n+1))
     return preamble + "一、单项选择题\n" + questions + "\n# 参考答案与解析\n" + "\n".join(
         f"{i}\\. 第{i}题原答案$x_{i}+1=2$，原始完整推理。" for i in range(1,n+1))
 

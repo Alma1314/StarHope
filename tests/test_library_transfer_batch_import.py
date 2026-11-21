@@ -7,10 +7,10 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 
-from mathbank import library_transfer as transfer
-from mathbank import question_duplicate_service as fingerprints
-from mathbank.database import Base, KnowledgePoint, Question, QuestionFingerprint, QuestionKnowledgePoint
-from mathbank.knowledge_points import METADATA_FIELDS
+from starhope import library_transfer as transfer
+from starhope import question_duplicate_service as fingerprints
+from starhope.database import Base, KnowledgePoint, Question, QuestionFingerprint, QuestionKnowledgePoint
+from starhope.knowledge_points import METADATA_FIELDS
 
 
 def test_streamed_question_json_matches_v1_bytes_and_exact_size_cap(tmp_path, monkeypatch):
