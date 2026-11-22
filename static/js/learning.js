@@ -11,6 +11,7 @@ window.LearningWorkspace = (() => {
     let automaticTimer = null;
     let reviewPlan = null, mistakePlan = null, explanation = null;
     let scanTask = '', scanData = null, scanSaved = false, scanTimer = null, scanPending = null, recommendationSerial = 0;
+    let dailyData = null, dailySerial = 0;
     function node(tag, text, host, className) {
         const element = document.createElement(tag);
         if (text !== undefined) element.textContent = text;
@@ -19,6 +20,14 @@ window.LearningWorkspace = (() => {
         return element;
     }
     function message(value) { $('learningStatus').textContent = value; }
+    function showPanel(name) {
+        const target = document.querySelector(`[data-learning-panel="${name}"]`);
+        if (!target) return;
+        document.querySelectorAll('[data-learning-panel]').forEach(panel => { panel.hidden = panel !== target; });
+        document.querySelectorAll('[data-learning-section]').forEach(button => {
+            button.setAttribute('aria-pressed', String(button.dataset.learningSection === name));
+        });
+    }
     function current(id, token) { return id === learnerId && token === serial; }
     async function request(path, method = 'GET', body) {
         const controller = new AbortController();
@@ -100,6 +109,8 @@ window.LearningWorkspace = (() => {
         message([data.grade, data.goal].filter(Boolean).join(' · ') || '尚未填写年级或学习目标，可在“编辑档案”中补充。');
         renderMastery(); renderHistory(history); renderReviewPlan(); renderMistakes();
         $('learningErrorTypes').textContent = (data.error_types || []).map(row => `${row.label} ${row.count}题`).join(' · ') || '暂无可归类的错误证据。';
+        renderPracticeFocus(data);
+        loadDaily();
         loadRecommendations().catch(error => { $('learningRecommendations').textContent = error.message; });
         if (!candidate) drawProfile(data.ai_profile?.report ? data.ai_profile : null, false, data.profile_stale);
         profileTask = recalledTask(); $('learningReconnectProfile').hidden = !profileTask;
@@ -292,18 +303,21 @@ window.LearningWorkspace = (() => {
             node('span', value, label);
         });
     }
-    async function chooseQuestion(id) {
+    async function chooseQuestion(id, online = false) {
         if (saving || !mayReplace()) return;
         const owner = learnerId, token = serial;
         const data = await request('practice/' + id);
         if (!current(owner, token)) return;
         resetPractice(); question = data; started = performance.now(); requestId = crypto.randomUUID();
+        if (online) $('learningOrigin').value = 'practice';
         $('learningAnswer').value = ''; $('learningNotes').value = ''; $('learningElapsed').value = '';
         $('learningManualOutcome').value = 'ungraded';
         $('learningQuestionMeta').textContent = `#${id} · ${data.subject} · ${data.topics.map(topic => topic.name).join('、') || '尚未标注知识点，记录后暂不计入知识点统计'}`;
         renderQuestionPreviewContent($('learningQuestionBody'), data.content);
         renderChoiceAnswer();
         $('learningAttemptForm').hidden = false; syncOrigin();
+        showPanel('practice');
+        $('learningQuestionMeta').focus({preventScroll: true});
         $('learningQuestionBody').scrollIntoView({block: 'nearest', behavior: 'smooth'});
     }
     async function submitAttempt(event) {
@@ -360,7 +374,9 @@ window.LearningWorkspace = (() => {
         const id = learnerId, token = serial;
         const row = await request(`learners/${id}/attempts/${identifier}`);
         if (!current(id, token)) return;
-        resetPractice(); showReview(row); $('learningReview').scrollIntoView({block: 'nearest', behavior: 'smooth'});
+        resetPractice(); showReview(row); showPanel('practice');
+        $('learningReviewMeta').focus({preventScroll: true});
+        $('learningReview').scrollIntoView({block: 'nearest', behavior: 'smooth'});
     }
     async function grade() {
         if (!review) return;
@@ -472,6 +488,69 @@ window.LearningWorkspace = (() => {
             } catch (error) { status.textContent = error.message; save.disabled = false; close.disabled = false; }
         });
         dialog.addEventListener('close', () => returnFocus?.focus(), {once: true}); dialog.showModal(); name.focus();
+    }
+    function renderPracticeFocus(data) {
+        $('learningProfileEvidence').textContent = `画像依据：${data.graded}条已核对记录，其中${data.automatic_graded || 0}条为尚未人工复核的扫描自动分析；${data.ungraded}条待核对不计入得分。`;
+        const host = $('learningPracticeFocus'); host.replaceChildren();
+        node('strong', '当前优先练习点', host, 'text-sm');
+        if (!data.practice_focus?.length) node('p', data.mastery?.length ? '当前有充分证据的知识点表现较稳定，可通过每日题单继续复习和补充练习。' : '先完成并核对几道题，并标注知识点，逐步积累画像证据；可从每日题单开始。', host, 'text-sm text-slate-500');
+        (data.practice_focus || []).forEach(item => {
+            const card = node('div', undefined, host, 'learning-row');
+            node('strong', `${item.education_stage} · ${item.subject} · ${item.topic}`, card, 'text-sm');
+            node('p', `${item.sample_count}道不同题 · 最近得分率${item.score_rate}%${item.sample_count < 3 ? ' · 证据不足' : ''}`, card, 'text-xs text-slate-500');
+            if (item.error_types?.length) node('p', '已记录错因：' + item.error_types.map(key => errorTypes[key] || key).join('、'), card, 'text-sm');
+            node('p', item.action, card, 'text-sm');
+            const evidence = node('button', '查看记录依据', card, 'glass-btn px-3 py-2 rounded-xl'); evidence.type = 'button';
+            evidence.addEventListener('click', action(() => openAttempt(item.evidence_ids[0])));
+        });
+    }
+    async function loadDaily(create = false) {
+        if (!learnerId) return;
+        const owner = learnerId, token = serial, generation = ++dailySerial;
+        const scope = {education_stage: $('learningEducationStage').value, subject: $('learningSubject').value};
+        dailyData = null;
+        $('learningDailyStart').hidden = true;
+        $('learningDailyGenerate').hidden = true;
+        $('learningDailyProgress').value = 0;
+        $('learningDailyStatus').textContent = create ? '正在安排今日题单…' : '正在读取今日进度…';
+        $('learningDailyList').replaceChildren();
+        try {
+            const result = await request(`learners/${owner}/daily-practice` + (create ? '' : '?' + new URLSearchParams(scope)), create ? 'POST' : 'GET', create ? scope : undefined);
+            if (!current(owner, token) || generation !== dailySerial) return;
+            dailyData = result;
+            const scopeText = `${result.education_stage || '全部学段'} · ${result.subject || '全部学科'}`;
+            $('learningDailyStatus').textContent = `${result.date} · ${scopeText} · ` + (result.generated
+                ? `已作答 ${result.completed}/${result.total} 题 · 已核对 ${result.graded} 题 · 正确 ${result.correct} 题${result.unavailable ? ` · ${result.unavailable}题资料变化或不可用` : ''}`
+                : create ? '暂无可安排的题目。请调整范围或补充题库；今天已做过的题暂不重复安排。' : '点击“生成今日题单”，安排本次练习。');
+            $('learningDailyGenerate').hidden = result.generated;
+            $('learningDailyStart').hidden = !result.items.some(row => row.available && !row.completed);
+            $('learningDailyStart').textContent = result.completed ? '继续今日练习' : '开始今日练习';
+            $('learningDailyProgress').max = Math.max(1, result.total);
+            $('learningDailyProgress').value = result.completed;
+            const host = $('learningDailyList');
+            result.items.forEach((row, index) => {
+                const card = node('div', undefined, host, 'learning-row');
+                const state = row.completed ? outcomes[row.outcome] : row.available ? '未作答' : '不可用';
+                node('strong', `${index + 1}. #${row.id} · ${state}`, card, 'text-sm');
+                node('p', row.content_excerpt, card, 'text-sm whitespace-pre-wrap');
+                node('p', row.reason, card, 'text-xs text-slate-500 mt-2');
+                const toolbar = node('div', undefined, card, 'learning-toolbar mt-2');
+                if (row.available && !row.completed) {
+                    const start = node('button', '练习这道题', toolbar, 'glass-btn px-3 py-2 rounded-xl'); start.type = 'button';
+                    start.addEventListener('click', action(() => chooseQuestion(row.id, true)));
+                }
+                if (row.attempt_id || row.evidence_ids?.length) {
+                    const evidence = node('button', row.attempt_id ? '查看作答并核对' : '查看推荐依据', toolbar, 'glass-btn px-3 py-2 rounded-xl'); evidence.type = 'button';
+                    evidence.addEventListener('click', action(() => openAttempt(row.attempt_id || row.evidence_ids[0])));
+                }
+            });
+            if (result.generated) node('p', result.note + (result.basis_stale ? ' 学习记录已更新，今日题单保留生成时的安排。' : '') + (result.total < 5 ? ' 当前符合条件的题目不足5道，已按实际数量安排。' : ''), host, 'text-xs text-slate-500');
+        } catch (error) {
+            if (current(owner, token) && generation === dailySerial) {
+                $('learningDailyStatus').textContent = (error.message || '题单暂不可用') + '；再次生成会接回今天的同一题单。';
+                $('learningDailyGenerate').hidden = false;
+            }
+        }
     }
     async function loadRecommendations() {
         if (!learnerId) return;
@@ -625,12 +704,20 @@ window.LearningWorkspace = (() => {
     }
     function initialize() {
         initialized = true;
+        document.querySelectorAll('[data-learning-section]').forEach(button => {
+            button.addEventListener('click', () => showPanel(button.dataset.learningSection));
+        });
         [...$('learningSubject').options].filter(option => option.value).forEach(option => $('learningScanSubject').append(option.cloneNode(true)));
         $('learningScanSubject').value = '数学';
         $('learningScanForm').addEventListener('submit', action(startScan));
         $('learningScanReconnect').addEventListener('click', action(pollScan));
         $('learningScanApply').addEventListener('click', action(applyScan));
         $('learningRecommend').addEventListener('click', action(loadRecommendations));
+        $('learningDailyGenerate').addEventListener('click', action(() => mutate($('learningDailyGenerate'), () => loadDaily(true))));
+        $('learningDailyStart').addEventListener('click', action(() => {
+            const next = dailyData?.items.find(row => row.available && !row.completed);
+            return next ? chooseQuestion(next.id, true) : null;
+        }));
         $('learningScanCancel').addEventListener('click', action(async () => {
             if (!scanTask || !window.confirm('取消或丢弃本次尚未录入的扫描结果？已保存的学习记录保留。')) return;
             try { await request(`learners/${learnerId}/scan-tasks/${scanTask}`, 'DELETE'); }
@@ -647,12 +734,14 @@ window.LearningWorkspace = (() => {
             clearTimeout(profileTimer); clearTimeout(scanTimer); scanTask = ''; scanData = null; scanPending = null; scanSaved = false;
             $('learningScanResults').replaceChildren(); $('learningScanStatus').textContent = ''; $('learningScanApply').hidden = true;
             serial++; learnerId = id; historyPage = 1; candidate = null; resetPractice();
+            dailyData = null; dailySerial++; $('learningDailyList').replaceChildren(); $('learningDailyStart').hidden = true;
+            $('learningDailyGenerate').hidden = true; $('learningDailyProgress').value = 0; $('learningDailyStatus').textContent = '正在读取当前档案…';
             $('learningProfileStatus').textContent = ''; $('learningApplyProfile').hidden = true; $('learningCancelProfile').hidden = true;
             $('learningGenerateProfile').disabled = false; await refresh(); restoreScan();
         }));
         $('learningQuestionSearch').addEventListener('submit', action(event => { event.preventDefault(); questionPage = 1; return searchQuestions(); }));
-        $('learningEducationStage').addEventListener('change', action(() => { questionPage = 1; return Promise.all([searchQuestions(), loadRecommendations()]); }));
-        $('learningSubject').addEventListener('change', action(() => { questionPage = 1; return Promise.all([searchQuestions(), loadRecommendations()]); }));
+        $('learningEducationStage').addEventListener('change', action(() => { questionPage = 1; return Promise.all([searchQuestions(), loadRecommendations(), loadDaily()]); }));
+        $('learningSubject').addEventListener('change', action(() => { questionPage = 1; return Promise.all([searchQuestions(), loadRecommendations(), loadDaily()]); }));
         $('learningQuestionsPrev').addEventListener('click', action(() => { questionPage--; return searchQuestions(); }));
         $('learningQuestionsNext').addEventListener('click', action(() => { questionPage++; return searchQuestions(); }));
         $('learningOrigin').addEventListener('change', syncOrigin);

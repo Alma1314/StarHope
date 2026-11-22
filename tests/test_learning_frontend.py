@@ -4,6 +4,28 @@ import shutil
 import subprocess
 
 
+def test_section_navigation_preserves_forms_and_does_not_start_requests():
+    source = (Path(__file__).resolve().parents[1] / 'static/js/learning.js').read_text()
+    shipped = source[source.index('function showPanel('):source.index('function current(')]
+    script = r'''
+const assert=require('node:assert/strict');
+const panels=['today','practice','scan','review','profile'].map(name=>({dataset:{learningPanel:name},hidden:name!=='today',answer:'未提交的作答',scan:{selected:true}}));
+const buttons=panels.map(panel=>({dataset:{learningSection:panel.dataset.learningPanel},setAttribute(key,value){this[key]=value;}}));
+const document={querySelector(selector){return panels.find(panel=>selector===`[data-learning-panel="${panel.dataset.learningPanel}"]`);},querySelectorAll(selector){return selector==='[data-learning-panel]'?panels:buttons;}};
+''' + shipped + r'''
+const original=panels.map(panel=>[panel.answer,panel.scan]);
+for(const name of ['scan','practice','profile','review','today']) {
+ showPanel(name);
+ assert.deepEqual(panels.filter(panel=>!panel.hidden).map(panel=>panel.dataset.learningPanel),[name]);
+ assert.deepEqual(buttons.filter(button=>button['aria-pressed']==='true').map(button=>button.dataset.learningSection),[name]);
+ panels.forEach((panel,i)=>{assert.equal(panel.answer,original[i][0]);assert.equal(panel.scan,original[i][1]);});
+}
+showPanel('missing');assert.equal(panels[0].hidden,false);
+'''
+    result = subprocess.run([shutil.which('node'), '-'], input=script, text=True, capture_output=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+
+
 def test_submit_handler_runs_prevent_default_synchronously():
     source = (Path(__file__).resolve().parents[1] / 'static/js/learning.js').read_text()
     start = source.index('function action(handler)')
@@ -117,6 +139,45 @@ const request=async(_,method,payload)=>{sent.push(payload);if(fail)throw new Err
  renderChoiceAnswer();syncOrigin();assert.equal($('learningChoiceAnswer').hidden,true);
  assert.equal($('learningChoiceOptions').querySelectorAll('input').length,0);
  assert.equal($('learningAnswer').required,true);assert.equal(practiceAnswer(),'非选择题解答');
+})().catch(error=>{console.error(error);process.exit(1);});
+"""
+    result = subprocess.run([shutil.which('node'), '-'], input=script, text=True, capture_output=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+
+
+def test_daily_plan_ignores_stale_scope_responses_and_starts_online_practice():
+    source = (Path(__file__).resolve().parents[1] / 'static/js/learning.js').read_text()
+    shipped = source[source.index('async function loadDaily('):source.index('async function loadRecommendations(')]
+    script = r"""
+const assert=require('node:assert/strict');
+let learnerId=1,serial=1,dailySerial=0,dailyData=null,chosen=[],opened=[],pending=[];
+const elements={};const $=id=>elements[id]||(elements[id]={value:'',children:[],replaceChildren(){this.children=[];},append(child){this.children.push(child);}});
+const current=(owner,token)=>owner===learnerId&&token===serial;
+const request=(url,method,body)=>new Promise((resolve,reject)=>pending.push({url,method,body,resolve,reject}));
+const outcomes={ungraded:'待核对',correct:'正确'};
+const action=fn=>fn;const chooseQuestion=(...args)=>chosen.push(args);const openAttempt=id=>opened.push(id);
+function node(tag,text,host){const e={tag,textContent:text,children:[],append(child){this.children.push(child);},addEventListener(_,fn){this.click=fn;}};host?.append(e);return e;}
+""" + shipped + r"""
+(async()=>{
+ $('learningEducationStage').value='高中';$('learningSubject').value='数学';
+ const old=loadDaily();assert.equal($('learningDailyStart').hidden,true);
+ $('learningSubject').value='物理';const newer=loadDaily(true);
+ assert.equal(pending[1].method,'POST');assert.equal(pending[1].body.subject,'物理');
+ const result={date:'2026-11-22',education_stage:'高中',subject:'物理',generated:true,total:2,completed:1,graded:0,correct:0,unavailable:0,note:'依据原记录',items:[
+   {id:7,completed:false,available:true,content_excerpt:'物理题',reason:'到期复习',evidence_ids:['original']},
+   {id:8,completed:true,available:true,outcome:'ungraded',attempt_id:'actual',evidence_ids:[]}
+ ]};
+ pending[1].resolve(result);await newer;
+ assert.equal(dailyData,result);assert.equal($('learningDailyProgress').value,1);
+ assert.ok($('learningDailyStatus').textContent.includes('物理'));assert.ok($('learningDailyStatus').textContent.includes('正确 0'));
+ const flatten=e=>[e,...e.children.flatMap(flatten)];
+ const buttons=flatten($('learningDailyList')).filter(x=>x.tag==='button');
+ buttons.find(x=>x.textContent==='练习这道题').click();assert.deepEqual(chosen,[[7,true]]);
+ buttons.find(x=>x.textContent==='查看作答并核对').click();assert.deepEqual(opened,['actual']);
+ pending[0].resolve({...result,subject:'数学',items:[]});await old;
+ assert.equal(dailyData,result,'old scope response must not replace the current daily plan');
+ const changing=loadDaily();learnerId=2;serial++;pending[2].reject(new Error('old profile unavailable'));await changing;
+ assert.ok(!$('learningDailyStatus').textContent.includes('old profile unavailable'));
 })().catch(error=>{console.error(error);process.exit(1);});
 """
     result = subprocess.run([shutil.which('node'), '-'], input=script, text=True, capture_output=True, timeout=10)

@@ -309,3 +309,136 @@ def test_explanation_is_advice_only_and_requires_wrong_grade(isolated, monkeypat
     with factory() as db: assert db.get(LearningAttempt, row['id']).notes == ''
     correct, _ = record(isolated, 2, origin='manual', outcome='correct')
     assert client.post(f"/api/learning/learners/{learner['id']}/attempts/{correct['id']}/explain").status_code == 400
+
+
+def test_daily_plan_persists_without_changing_profile_revision_and_rotates_by_local_day(isolated, monkeypatch):
+    client, factory, _, learner, _ = isolated
+    path = f"/api/learning/learners/{learner['id']}/daily-practice"
+    assert client.get(path).json()['generated'] is False
+    before = client.get(f"/api/learning/learners/{learner['id']}").json()['revision']
+    first = client.post(path, json={}).json()
+    assert first['generated'] and first['total'] == 4
+    assert all(row['kind'] == 'explore' and row['evidence_ids'] == [] for row in first['items'])
+    ids = [row['id'] for row in first['items']]
+    with factory() as db:
+        db.add(Question(content='后来加入的新题', subject='物理', subject_topics='牛顿第二定律')); db.commit()
+        saved = json.loads(db.get(Learner, learner['id']).daily_practice)
+        assert saved['date'] == first['date'] and len(saved['plans']) == 1
+    assert [row['id'] for row in client.post(path, json={}).json()['items']] == ids
+    assert client.get(f"/api/learning/learners/{learner['id']}").json()['revision'] == before
+    other = client.post('/api/learning/learners', json={'name': '独立档案'}).json()
+    assert not client.get(f"/api/learning/learners/{other['id']}/daily-practice").json()['generated']
+    assert client.get(path + '?subject=化学').json()['items'] == []
+    assert client.post(path, json={'subject': '不存在'}).status_code == 400
+    assert client.post(path, json={'education_stage': []}).status_code == 400
+    assert client.post('/api/learning/learners/999/daily-practice', json={}).status_code == 404
+    now = learning._utcnow()
+    monkeypatch.setattr(learning, '_utcnow', lambda: now + __import__('datetime').timedelta(days=1))
+    assert client.get(path).json()['generated'] is False
+    tomorrow = client.post(path, json={}).json()
+    assert tomorrow['date'] != first['date'] and tomorrow['total'] == 5
+    with factory() as db: assert json.loads(db.get(Learner, learner['id']).daily_practice)['date'] == tomorrow['date']
+
+
+def test_daily_progress_uses_real_latest_attempts_and_keeps_fixed_questions(isolated):
+    client, factory, _, learner, _ = isolated
+    path = f"/api/learning/learners/{learner['id']}/daily-practice"
+    plan = client.post(path, json={}).json()
+    qid = plan['items'][0]['id']
+    row, _ = record(isolated, qid=qid)
+    progress = client.get(path).json()
+    assert progress['completed'] == 1 and progress['graded'] == progress['correct'] == 0
+    assert next(item for item in progress['items'] if item['id'] == qid)['outcome'] == 'ungraded'
+    response = client.patch(f"/api/learning/learners/{learner['id']}/attempts/{row['id']}",
+        json={'revision': row['revision'], 'outcome': 'incorrect', 'error_types': ['calculation']})
+    assert response.status_code == 200
+    detail = client.get(f"/api/learning/learners/{learner['id']}").json()
+    focus = detail['practice_focus'][0]
+    assert focus['sample_count'] == 1 and focus['error_types'] == ['calculation'] and focus['evidence_ids'] == [row['id']]
+    assert client.get(path).json()['graded'] == 1
+    response = client.patch(f"/api/learning/learners/{learner['id']}/attempts/{row['id']}",
+        json={'revision': response.json()['revision'], 'outcome': 'correct'})
+    assert response.status_code == 200
+    updated = client.post(path, json={}).json()
+    assert updated['correct'] == 1 and [item['id'] for item in updated['items']] == [item['id'] for item in plan['items']]
+    assert client.delete(f"/api/learning/learners/{learner['id']}/attempts/{row['id']}?revision={response.json()['revision']}").status_code == 200
+    assert client.get(path).json()['completed'] == 0
+    with factory() as db:
+        db.get(Question, qid).content = '已更新的题文'; db.delete(db.get(Question, plan['items'][1]['id'])); db.commit()
+    changed = client.get(path).json()
+    assert changed['unavailable'] == 2 and changed['total'] == plan['total']
+    assert not next(item for item in changed['items'] if item['id'] == qid)['available']
+
+
+def test_daily_scope_excludes_today_attempts_but_includes_correct_due_review(isolated):
+    client, factory, _, learner, _ = isolated
+    old, _ = record(isolated, qid=1, origin='manual', outcome='correct')
+    record(isolated, qid=2)
+    with factory() as db:
+        db.get(LearningAttempt, old['id']).created_at = learning._utcnow() - __import__('datetime').timedelta(days=4)
+        review = db.query(LearningReview).filter_by(question_id=1).one()
+        review.due_at = learning._utcnow() - __import__('datetime').timedelta(days=1)
+        db.add_all([Question(content='高中物理题', education_stage='高中', subject='物理'),
+                    Question(content='初中物理题', education_stage='初中', subject='物理')]); db.commit()
+    live = client.get(f"/api/learning/learners/{learner['id']}/recommendations?subject=物理").json()
+    assert live['items'][0]['id'] == 1 and live['items'][0]['kind'] == 'review'
+    path = f"/api/learning/learners/{learner['id']}/daily-practice"
+    plan = client.post(path, json={'subject': '物理', 'education_stage': '未标注'}).json()
+    assert plan['items'][0]['id'] == 1 and plan['items'][0]['evidence_ids'] == [old['id']]
+    assert 2 not in [item['id'] for item in plan['items']]
+    high = client.post(path, json={'subject': '物理', 'education_stage': '高中'}).json()
+    assert high['total'] == 1 and high['items'][0]['education_stage'] == '高中'
+    assert client.get(path + '?subject=物理&education_stage=未标注').json()['total'] == plan['total']
+    with factory() as db: assert len(json.loads(db.get(Learner, learner['id']).daily_practice)['plans']) == 2
+
+
+def test_daily_plan_is_in_full_backup_without_copying_question_or_student_text(isolated):
+    import sqlite3
+    import zipfile
+    client, factory, engine, learner, root = isolated
+    result = client.post(f"/api/learning/learners/{learner['id']}/daily-practice", json={}).json()
+    assert result['generated']
+    with factory() as db:
+        original = db.get(Learner, learner['id']).daily_practice
+        assert '第1道力学题' not in original and '我的解题步骤' not in original
+    from starhope.backup import create_full_backup, verify_full_backup
+    from starhope.db_migrations import LATEST_SCHEMA_VERSION
+    with engine.begin() as connection: connection.exec_driver_sql(f'PRAGMA user_version={LATEST_SCHEMA_VERSION}')
+    uploads = root / 'uploads'; uploads.mkdir()
+    archive = create_full_backup(database_path=Path(engine.url.database), uploads_dir=uploads,
+        metadata_path=root / 'metadata.json', output_dir=root / 'backups', retention=None)
+    assert verify_full_backup(archive)['database']['schema_version'] == 24
+    with zipfile.ZipFile(archive) as bundle:
+        member = next(name for name in bundle.namelist() if name.startswith('database/') and not name.endswith('/'))
+        restored = root / 'backup-copy.sqlite'; restored.write_bytes(bundle.read(member))
+    with sqlite3.connect(restored) as connection:
+        assert connection.execute('SELECT daily_practice FROM learners').fetchone()[0] == original
+
+
+def test_daily_local_clock_respects_dst_midnight_boundaries(monkeypatch):
+    import datetime as dt
+    import time
+    if not hasattr(time, 'tzset'): pytest.skip('requires a POSIX timezone clock')
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv('TZ', 'America/New_York'); time.tzset()
+            for month, day, hours in [(3, 8, 23), (11, 1, 25)]:
+                patch.setattr(learning, '_utcnow', lambda: dt.datetime(2026, month, day, 12))
+                date, start, end = learning._daily_clock()
+                assert date == f'2026-{month:02}-{day:02}'
+                assert (end - start).total_seconds() == hours * 3600
+    finally:
+        time.tzset()
+
+
+def test_concurrent_daily_creation_replays_the_same_set(isolated):
+    from concurrent.futures import ThreadPoolExecutor
+    client, factory, _, learner, _ = isolated
+    path = f"/api/learning/learners/{learner['id']}/daily-practice"
+    def create(_):
+        response = client.post(path, json={})
+        assert response.status_code == 200, response.text
+        return [item['id'] for item in response.json()['items']]
+    with ThreadPoolExecutor(max_workers=4) as pool: results = list(pool.map(create, range(4)))
+    assert all(result == results[0] for result in results)
+    with factory() as db: assert len(json.loads(db.get(Learner, learner['id']).daily_practice)['plans']) == 1

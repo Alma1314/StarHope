@@ -20,7 +20,7 @@ from starhope.paths import SCHEMA_SNAPSHOT_DIR
 from starhope.sub_knowledge import normalize_sub_knowledge
 
 
-LATEST_SCHEMA_VERSION = 23
+LATEST_SCHEMA_VERSION = 24
 LEGACY_REQUIRED_TABLES = {
     "questions",
     "question_curriculums",
@@ -404,13 +404,15 @@ def _ensure_subject_columns(connection):
     connection.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_questions_education_stage ON questions(education_stage)")
 
 
-def _validate_learning_schema(connection, *, reviews=True, assessments=True):
+def _validate_learning_schema(connection, *, reviews=True, assessments=True, daily_practice=True):
     from starhope.database import Learner, LearningAttempt, LearningReview
     models = (Learner, LearningAttempt, LearningReview) if reviews else (Learner, LearningAttempt)
     for model in models:
         table = model.__table__
         info = {row[1]: row for row in connection.exec_driver_sql(f'PRAGMA table_info("{table.name}")')}
         expected = set(table.columns.keys())
+        if model is Learner and not daily_practice:
+            expected.discard("daily_practice")
         if model is LearningAttempt and not assessments:
             expected.discard("assessment")
         if set(info) != expected:
@@ -448,7 +450,8 @@ def _ensure_learning_tables(connection):
     columns = {row[1] for row in connection.exec_driver_sql('PRAGMA table_info("learners")')}
     for name, definition in {"auto_profile": "BOOLEAN NOT NULL DEFAULT 1",
                              "profile_notes": "TEXT NOT NULL DEFAULT ''",
-                             "profile_error": "TEXT NOT NULL DEFAULT ''"}.items():
+                             "profile_error": "TEXT NOT NULL DEFAULT ''",
+                             "daily_practice": "TEXT NOT NULL DEFAULT '{}'"}.items():
         if name not in columns:
             connection.exec_driver_sql(f"ALTER TABLE learners ADD COLUMN {name} {definition}")
     _validate_learning_schema(connection)

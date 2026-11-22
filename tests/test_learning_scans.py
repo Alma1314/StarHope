@@ -317,6 +317,7 @@ def test_schema22_backup_and_failed_assessment_migration_preserve_records(tmp_pa
         db.commit()
     with engine.begin() as connection:
         connection.exec_driver_sql('ALTER TABLE learning_attempts DROP COLUMN assessment')
+        connection.exec_driver_sql("ALTER TABLE learners DROP COLUMN daily_practice")
         connection.exec_driver_sql('PRAGMA user_version=22')
     monkeypatch.setattr(db_migrations, 'SCHEMA_SNAPSHOT_DIR', tmp_path / 'snapshots')
     uploads = tmp_path / 'uploads'; uploads.mkdir()

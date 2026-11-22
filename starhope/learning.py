@@ -208,6 +208,133 @@ def learning_summary(db, learner_id):
                             for key, count in errors.most_common()]}
 
 
+def _recommendation_scope(education_stage, subject):
+    from .subject_annotations import EDUCATION_STAGES, SUBJECTS
+    if (not isinstance(education_stage, str) or not isinstance(subject, str)
+            or education_stage and education_stage not in EDUCATION_STAGES or subject and subject not in SUBJECTS):
+        raise HTTPException(400, "学段或学科无效")
+
+
+def _daily_clock():
+    local = _utcnow().replace(tzinfo=dt.timezone.utc).astimezone()
+    start = dt.datetime.combine(local.date(), dt.time()).astimezone()
+    # Local midnight may cross a DST boundary; convert each boundary separately.
+    end = dt.datetime.combine(local.date() + dt.timedelta(days=1), dt.time()).astimezone()
+    return local.date().isoformat(), start.astimezone(dt.timezone.utc).replace(tzinfo=None), end.astimezone(dt.timezone.utc).replace(tzinfo=None)
+
+
+def recommendation_items(db, learner_id, education_stage, subject, limit, *, day="", day_start=None, day_end=None):
+    summary = learning_summary(db, learner_id)
+    a, newer = aliased(LearningAttempt), aliased(LearningAttempt)
+    later = exists(select(newer.id).where(newer.learner_id == learner_id, newer.question_id == a.question_id,
+        or_(newer.created_at > a.created_at, and_(newer.created_at == a.created_at, newer.id > a.id))))
+    mastered = exists(select(a.id).where(a.learner_id == learner_id, a.question_id == Question.id,
+                                        a.outcome == "correct", ~later))
+    base = db.query(Question.id, Question.content, Question.subject, Question.education_stage, Question.difficulty)
+    if education_stage: base = base.filter(Question.education_stage == education_stage)
+    if subject: base = base.filter(Question.subject == subject)
+    if day:
+        done = exists(select(LearningAttempt.id).where(LearningAttempt.learner_id == learner_id,
+            LearningAttempt.question_id == Question.id, LearningAttempt.created_at >= day_start, LearningAttempt.created_at < day_end))
+        base = base.filter(~done)
+    selected, seen = [], set()
+    def adopt(row, reason, evidence, kind):
+        if row.id not in seen and len(selected) < limit:
+            seen.add(row.id)
+            selected.append({"id": row.id, "content_excerpt": row.content[:240], "subject": row.subject,
+                "education_stage": row.education_stage, "difficulty": row.difficulty,
+                "reason": reason, "evidence_ids": evidence, "kind": kind})
+    due = base.add_columns(LearningReview.last_attempt_id).join(LearningReview, LearningReview.question_id == Question.id).filter(
+        LearningReview.learner_id == learner_id, LearningReview.due_at <= _utcnow()).order_by(LearningReview.due_at, Question.id).limit(limit).all()
+    for row in due: adopt(row, "这道题已到复习日期，建议先回顾。", [row.last_attempt_id] if row.last_attempt_id else [], "review")
+    base = base.filter(~mastered)
+    pools = []
+    for topic in summary["mastery"][:40]:
+        if len(selected) >= limit: break
+        stage = topic.get("education_stage", "未标注")
+        if education_stage and stage != education_stage or subject and topic["subject"] != subject: continue
+        if topic["sample_count"] >= 3 and topic["score_rate"] >= 80: continue
+        matches = (literal("\n") + func.coalesce(Question.subject_topics, "") + literal("\n")).contains("\n" + topic["name"] + "\n", autoescape=True)
+        matches = or_(matches, Question.knowledge_points.any(and_(
+            QuestionKnowledgePoint.role == "main", QuestionKnowledgePoint.status == "confirmed",
+            QuestionKnowledgePoint.point.has(KnowledgePoint.name == topic["name"]))))
+        if ":code:" in topic["key"]:
+            code = topic["key"].split(":code:", 1)[1]
+            matches = or_(matches, Question.knowledge_points.any(and_(QuestionKnowledgePoint.point_code == code,
+                QuestionKnowledgePoint.role == "main", QuestionKnowledgePoint.status == "confirmed")))
+        rows = base.filter(Question.subject == topic["subject"], Question.education_stage == stage, matches).order_by(
+            Question.created_at.desc(), Question.id.desc()).limit(30).all()
+        evidence = topic["evidence_ids"]
+        note = "记录较少，补充不同题目的证据" if topic["sample_count"] < 3 else f"最近核对得分率{topic['score_rate']}%，巩固薄弱点"
+        if topic.get("error_types"):
+            note += "；相关错因：" + "、".join(ERROR_TYPES.get(key, key) for key in topic["error_types"])
+        if day: rows.sort(key=lambda row: _hash([day, learner_id, topic["key"], row.id]))
+        pools.append((rows, f"{topic['name']}：{note}。", evidence))
+    # Round-robin across weak topics so one topic cannot fill the whole set.
+    for index in range(30):
+        for rows, reason, evidence in pools:
+            if index < len(rows): adopt(rows[index], reason, evidence, "focus")
+        if len(selected) >= limit: break
+    if day and len(selected) < limit:
+        # ponytail: rotate within 200 recent eligible candidates; widen only if real libraries need older coverage.
+        rows = base.order_by(Question.created_at.desc(), Question.id.desc()).limit(200).all()
+        rows.sort(key=lambda row: _hash([day, learner_id, education_stage, subject, row.id]))
+        for row in rows:
+            adopt(row, "补充不同题目的练习证据；尚不能据此判断该知识点的掌握程度。", [], "explore")
+    return selected
+
+
+def practice_focus(summary):
+    return [{"topic": item["name"], "subject": item["subject"],
+             "education_stage": item.get("education_stage", "未标注"), "sample_count": item["sample_count"],
+             "score_rate": item["score_rate"], "error_types": item["error_types"], "evidence_ids": item["evidence_ids"],
+             "action": "先补充不同题目的记录，再判断薄弱点。" if item["sample_count"] < 3 else "对照错因复盘，再练同知识点的不同题目。"}
+            for item in summary["mastery"] if item["sample_count"] < 3 or item["score_rate"] < 80][:3]
+
+
+def daily_plan_result(db, learner, education_stage, subject):
+    day, start, end = _daily_clock()
+    stored = json.loads(learner.daily_practice or "{}")
+    plan = stored.get("plans", {}).get(_hash([education_stage, subject])) if stored.get("date") == day else None
+    result = {"date": day, "education_stage": education_stage, "subject": subject, "items": [],
+              "completed": 0, "graded": 0, "correct": 0, "unavailable": 0, "total": 0,
+              "generated": plan is not None, "basis_revision": None,
+              "note": "按本机日期安排；当天题单固定，完成进度依实际作答更新，待核对不视为已答对。"}
+    if plan is None: return result
+    result.update(generated_at=plan["generated_at"], basis_revision=plan["basis_revision"], basis_stale=plan["basis_revision"] != learner.revision)
+    evidence_ids = {identifier for item in plan["items"] for identifier in item["evidence_ids"]}
+    existing_evidence = set(db.scalars(select(LearningAttempt.id).where(
+        LearningAttempt.learner_id == learner.id, LearningAttempt.id.in_(evidence_ids)))) if evidence_ids else set()
+    identities = [item["identity"] for item in plan["items"]]
+    attempts = db.query(LearningAttempt.question_identity, LearningAttempt.id, LearningAttempt.outcome).filter(
+        LearningAttempt.learner_id == learner.id, LearningAttempt.question_identity.in_(identities),
+        LearningAttempt.created_at >= start, LearningAttempt.created_at < end).order_by(
+            LearningAttempt.created_at.desc(), LearningAttempt.id.desc()).all()
+    latest = {}
+    for row in attempts: latest.setdefault(row.question_identity, row)
+    for item in plan["items"]:
+        question = db.get(Question, item["id"])
+        try:
+            snapshot = question_snapshot(question) if question else None
+        except HTTPException as error:
+            if error.status_code != 400: raise
+            snapshot = None
+        available = bool(snapshot and snapshot["question_revision"] == item["revision"])
+        attempt = latest.get(item["identity"])
+        result["items"].append({"id": item["id"], "reason": item["reason"], "kind": item["kind"],
+            "evidence_ids": [identifier for identifier in item["evidence_ids"] if identifier in existing_evidence], "available": available,
+            "content_excerpt": question.content[:240] if available else "原题已删除或题目资料已变化，请从其他推荐中选择练习。",
+            "education_stage": question.education_stage if available else education_stage, "subject": question.subject if available else subject,
+            "completed": attempt is not None, "attempt_id": attempt.id if attempt else None,
+            "outcome": attempt.outcome if attempt else None})
+        result["completed"] += int(attempt is not None)
+        result["graded"] += int(attempt is not None and attempt.outcome != "ungraded")
+        result["correct"] += int(attempt is not None and attempt.outcome == "correct")
+        result["unavailable"] += int(not available)
+    result["total"] = len(result["items"])
+    return result
+
+
 def validate_profile(value, basis):
     if not isinstance(value, dict) or set(value) != {"summary", "insights", "study_plan"}:
         raise ValueError("画像返回格式无效")
@@ -239,6 +366,8 @@ def profile_basis(db, learner):
         LearningAttempt.outcome != "ungraded").order_by(LearningAttempt.created_at.desc()).limit(20).all()
     basis = {"revision": learner.revision, "grade": learner.grade, "goal": learner.goal,
         "profile_notes": learner.profile_notes, "graded": summary["graded"], "mastery": summary["mastery"][:40],
+        "automatic_graded": summary["automatic_graded"], "ungraded": summary["ungraded"],
+        "practice_focus": practice_focus(summary),
         "recent_attempts": [{"id": row.id, "subject": row.subject, "outcome": row.outcome,
             "content_excerpt": row.content[:500], "answer_excerpt": row.student_answer[:500],
             "notes_excerpt": row.notes[:200], "elapsed_seconds": row.elapsed_seconds} for row in recent],
@@ -456,7 +585,7 @@ def create_learning_router(get_db, *, updater=None):
         review_due = db.query(LearningReview).filter(LearningReview.learner_id == learner_id,
             LearningReview.due_at <= _utcnow()).count()
         profile = json.loads(learner.ai_profile)
-        return {**_public(learner), **summary, "review_due": review_due, "ai_profile": profile,
+        return {**_public(learner), **summary, "practice_focus": practice_focus(summary), "review_due": review_due, "ai_profile": profile,
                 "profile_update_state": updater.state(learner_id) if updater and learner.auto_profile else "idle",
                 "profile_error": learner.profile_error,
                 "profile_stale": bool(profile) and profile.get("basis_revision") != learner.revision}
@@ -472,52 +601,41 @@ def create_learning_router(get_db, *, updater=None):
 
     @router.get("/learners/{learner_id}/recommendations")
     def recommendations(learner_id: int, education_stage: str = "", subject: str = "", limit: int = 10, db=Depends(get_db)):
-        from .subject_annotations import EDUCATION_STAGES, SUBJECTS
         _integer(limit, 1, 30, "推荐题数")
-        if education_stage and education_stage not in EDUCATION_STAGES or subject and subject not in SUBJECTS:
-            raise HTTPException(400, "学段或学科无效")
+        _recommendation_scope(education_stage, subject)
         db.execute(text("BEGIN")); _learner(db, learner_id)
-        summary = learning_summary(db, learner_id)
-        a, newer = aliased(LearningAttempt), aliased(LearningAttempt)
-        later = exists(select(newer.id).where(newer.learner_id == learner_id, newer.question_id == a.question_id,
-            or_(newer.created_at > a.created_at, and_(newer.created_at == a.created_at, newer.id > a.id))))
-        mastered = exists(select(a.id).where(a.learner_id == learner_id, a.question_id == Question.id,
-                                            a.outcome == "correct", ~later))
-        base = db.query(Question.id, Question.content, Question.subject, Question.education_stage, Question.difficulty).filter(~mastered)
-        if education_stage: base = base.filter(Question.education_stage == education_stage)
-        if subject: base = base.filter(Question.subject == subject)
-        selected, seen = [], set()
-        def adopt(row, reason, evidence):
-            if row.id not in seen and len(selected) < limit:
-                seen.add(row.id)
-                selected.append({"id": row.id, "content_excerpt": row.content[:240], "subject": row.subject,
-                    "education_stage": row.education_stage, "difficulty": row.difficulty,
-                    "reason": reason, "evidence_ids": evidence})
-        due = base.join(LearningReview, LearningReview.question_id == Question.id).filter(
-            LearningReview.learner_id == learner_id, LearningReview.due_at <= _utcnow()).order_by(LearningReview.due_at).limit(limit).all()
-        for row in due: adopt(row, "这道题已到复习日期，建议先回顾。", [])
-        for topic in summary["mastery"][:40]:
-            if len(selected) >= limit: break
-            stage = topic.get("education_stage", "未标注")
-            if education_stage and stage != education_stage or subject and topic["subject"] != subject: continue
-            if topic["sample_count"] >= 3 and topic["score_rate"] >= 80: continue
-            matches = (literal("\n") + func.coalesce(Question.subject_topics, "") + literal("\n")).contains("\n" + topic["name"] + "\n", autoescape=True)
-            matches = or_(matches, Question.knowledge_points.any(and_(
-                QuestionKnowledgePoint.role == "main", QuestionKnowledgePoint.status == "confirmed",
-                QuestionKnowledgePoint.point.has(KnowledgePoint.name == topic["name"]))))
-            if ":code:" in topic["key"]:
-                code = topic["key"].split(":code:", 1)[1]
-                matches = or_(matches, Question.knowledge_points.any(and_(QuestionKnowledgePoint.point_code == code,
-                    QuestionKnowledgePoint.role == "main", QuestionKnowledgePoint.status == "confirmed")))
-            rows = base.filter(Question.subject == topic["subject"], Question.education_stage == stage, matches).order_by(
-                Question.created_at.desc(), Question.id.desc()).limit(30).all()
-            evidence = topic["evidence_ids"]
-            note = "记录较少，补充不同题目的证据" if topic["sample_count"] < 3 else f"最近核对得分率{topic['score_rate']}%，巩固薄弱点"
-            if topic.get("error_types"):
-                note += "；相关错因：" + "、".join(ERROR_TYPES.get(key, key) for key in topic["error_types"])
-            for row in rows: adopt(row, f"{topic['name']}：{note}。", evidence)
+        selected = recommendation_items(db, learner_id, education_stage, subject, limit)
         return {"items": selected, "basis_revision": _learner(db, learner_id).revision,
                 "note": "依据本档案的核对记录、知识点与复习日期推荐；AI自动分析可人工纠正，不代表掌握概率。"}
+
+    @router.get("/learners/{learner_id}/daily-practice")
+    def daily_practice(learner_id: int, education_stage: str = "", subject: str = "", db=Depends(get_db)):
+        _recommendation_scope(education_stage, subject)
+        db.execute(text("BEGIN"))
+        return daily_plan_result(db, _learner(db, learner_id), education_stage, subject)
+
+    @router.post("/learners/{learner_id}/daily-practice")
+    def create_daily_practice(learner_id: int, payload: dict, db=Depends(get_db)):
+        stage, subject = payload.get("education_stage", ""), payload.get("subject", "")
+        _recommendation_scope(stage, subject)
+        db.execute(text("BEGIN IMMEDIATE")); learner = _learner(db, learner_id)
+        day, start, end = _daily_clock()
+        stored = json.loads(learner.daily_practice or "{}")
+        if stored.get("date") != day: stored = {"date": day, "plans": {}}
+        key = _hash([stage, subject])
+        if key not in stored["plans"]:
+            items = recommendation_items(db, learner_id, stage, subject, 5, day=day, day_start=start, day_end=end)
+            if items:
+                records = []
+                for item in items:
+                    snapshot = question_snapshot(db.get(Question, item["id"]))
+                    records.append({"id": item["id"], "identity": snapshot["question_identity"], "revision": snapshot["question_revision"],
+                        "reason": item["reason"], "kind": item["kind"], "evidence_ids": item["evidence_ids"]})
+                stored["plans"][key] = {"generated_at": _utcnow().isoformat() + "Z", "basis_revision": learner.revision, "items": records}
+                # Only today's finite stage/subject combinations are retained; no question text or personal answer is copied.
+                learner.daily_practice = json.dumps(stored, ensure_ascii=False)
+                db.commit()
+        return daily_plan_result(db, learner, stage, subject)
 
     @router.post("/learners/{learner_id}/attempts")
     @serialize_asset_lifecycle

@@ -1006,7 +1006,8 @@ def verify_full_backup(archive_path: Path) -> dict[str, Any]:
                                 from starhope.db_migrations import _validate_learning_schema
                                 _validate_learning_schema(validation_connection,
                                                           reviews=schema_version >= 19,
-                                                          assessments=schema_version >= 23)
+                                                          assessments=schema_version >= 23,
+                                                          daily_practice=schema_version >= 24)
                             if schema_version >= 11:
                                 from starhope.db_migrations import _validate_sub_knowledge_schema
                                 _validate_sub_knowledge_schema(validation_connection)

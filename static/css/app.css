@@ -42,7 +42,7 @@ code.mb-preview-literal {
     --apple-bg-elevated: #FFFFFF;
     --apple-glass-bg: rgba(255, 255, 255, 0.72);
     --apple-glass-bg-hover: rgba(255, 255, 255, 0.85);
-    --apple-glass-border: rgba(255, 255, 255, 0.5);
+    --apple-glass-border: #e2e8f0;
     --apple-glass-blur: 20px;
     --apple-glass-saturate: 180%;
     --apple-radius-sm: 12px;
@@ -58,8 +58,8 @@ code.mb-preview-literal {
     --workspace-gap: 0.75rem;
     --workspace-radius: 1rem;
     --workspace-card-radius: 0.875rem;
-    --workspace-border: rgba(148, 163, 184, 0.18);
-    --workspace-surface: rgba(255, 255, 255, 0.94);
+    --workspace-border: #e2e8f0;
+    --workspace-surface: #fff;
     --workspace-surface-muted: #f8f9fc;
     --workspace-canvas: #f5f7fb;
     --control-transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -67,7 +67,7 @@ code.mb-preview-literal {
     /* Text hierarchy */
     --text-primary: #1E293B;
     --text-secondary: #64748B;
-    --text-tertiary: #94A3B8;
+    --text-tertiary: #64748B;
 
     /* Default Violet Theme */
     --brand-50-rgb: 245, 243, 255;
@@ -83,10 +83,10 @@ code.mb-preview-literal {
 
 /* ===== Application shell and persistent navigation ===== */
 .app-navigation {
-    width: 224px;
+    width: 208px;
     height: 100vh;
     height: 100dvh;
-    flex: 0 0 224px;
+    flex: 0 0 208px;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -196,8 +196,8 @@ code.mb-preview-literal {
     border-radius: 12px;
     color: var(--text-secondary);
     background: transparent;
-    font-size: 0.78rem;
-    font-weight: 650;
+    font-size: 0.875rem;
+    font-weight: 600;
     text-align: left;
     transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
@@ -239,7 +239,7 @@ code.mb-preview-literal {
     min-height: 40px;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
-    font-size: 0.74rem;
+    font-size: 0.8125rem;
 }
 
 .app-nav-danger:hover {
@@ -1178,14 +1178,14 @@ html {
     box-shadow: none !important;
 }
 
-/* Glassmorphism Classes - Enhanced Apple Style */
+/* Shared surfaces stay stable while the pointer moves between controls. */
 .glass-panel {
     background: var(--apple-glass-bg);
     backdrop-filter: blur(var(--apple-glass-blur)) saturate(var(--apple-glass-saturate));
     -webkit-backdrop-filter: blur(var(--apple-glass-blur)) saturate(var(--apple-glass-saturate));
     border: 1px solid var(--apple-glass-border);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), var(--apple-shadow-sm);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color var(--control-transition), box-shadow var(--control-transition);
 }
 
 .dark .glass-panel {
@@ -1193,8 +1193,8 @@ html {
 }
 
 .glass-panel:hover {
-    background: var(--apple-glass-bg-hover);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), var(--apple-shadow-md);
+    background: var(--apple-glass-bg);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), var(--apple-shadow-sm);
 }
 
 .glass-card {
@@ -1241,10 +1241,8 @@ html {
 
 /* Primary Glass Button (Brand Color) - 2D Flat Style (Restored tactile 3D) */
 .glass-btn-primary {
-    background: rgba(var(--brand-rgb), 0.75);
-    backdrop-filter: blur(12px) saturate(150%);
-    -webkit-backdrop-filter: blur(12px) saturate(150%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgb(var(--brand-700-rgb));
+    border: 1px solid transparent;
     box-shadow: 0 2px 8px rgba(var(--brand-rgb), 0.15);
     color: white;
     transition: all 0.2s ease;
@@ -1252,14 +1250,14 @@ html {
 }
 
 .glass-btn-primary:hover {
-    background: rgba(var(--brand-rgb), 0.85);
+    background: rgb(var(--brand-900-rgb));
     box-shadow: 0 4px 12px rgba(var(--brand-rgb), 0.2);
-    transform: translateY(-1px);
+    transform: none;
 }
 
 .glass-btn-primary:active {
-    transform: scale(0.97) translateY(0.5px);
-    box-shadow: 0 1px 4px rgba(var(--brand-rgb), 0.15);
+    transform: translateY(0.5px);
+    box-shadow: none;
 }
 
 /* Danger Glass Button - 2D Flat Style (Restored tactile 3D) */
@@ -1811,8 +1809,8 @@ button, a, input, select, textarea {
     pointer-events: none;
     padding: 5px 9px;
     border-radius: 8px;
-    font-size: 11px;
-    line-height: 1.35;
+    font-size: 12px;
+    line-height: 1.55;
     font-weight: 500;
     letter-spacing: 0.01em;
     color: #f8fafc;
@@ -4987,16 +4985,16 @@ button[aria-disabled="true"]:hover,
 .ui-state-title,
 .ui-state > strong {
     color: var(--text-primary);
-    font-size: 0.82rem;
-    font-weight: 800;
+    font-size: 0.9375rem;
+    font-weight: 650;
 }
 
 .ui-state-description,
 .ui-state > span:not(.ui-state-icon) {
     max-width: 28rem;
     color: var(--text-tertiary);
-    font-size: 0.68rem;
-    line-height: 1.55;
+    font-size: 0.8125rem;
+    line-height: 1.7;
 }
 
 .ui-state-error > i,
@@ -5010,10 +5008,10 @@ button[aria-disabled="true"]:hover,
     min-height: 36px;
     margin-top: 0.25rem;
     padding: 0.5rem 0.85rem;
-    border: 1px solid rgba(244, 63, 94, 0.24);
+    border: 1px solid rgba(var(--brand-500-rgb), 0.32);
     border-radius: 0.7rem;
     background: #fff;
-    color: #be123c;
+    color: rgb(var(--brand-700-rgb));
     font-size: 0.68rem;
     font-weight: 750;
 }
@@ -5058,10 +5056,13 @@ button[aria-disabled="true"]:hover,
 }
 
 .dark .ui-state-action {
-    border-color: rgba(251, 113, 133, 0.28);
+    border-color: var(--workspace-border);
     background: rgba(30, 41, 59, 0.9);
-    color: #fda4af;
+    color: var(--text-primary);
 }
+
+.ui-state-error .ui-state-action { border-color: rgba(244, 63, 94, .3); color: #be123c; }
+.dark .ui-state-error .ui-state-action { color: #fda4af; }
 
 .dark #paperQuestionStream > .space-y-4 > div[class*="rounded-2xl"] {
     border-color: rgba(71, 85, 105, 0.78) !important;
@@ -6274,7 +6275,7 @@ button[aria-disabled="true"]:hover,
 .learning-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; margin-bottom: 18px; }
 .learning-stat { padding: 14px; border-radius: 14px; }
 .learning-stat strong { display: block; font-size: 24px; }
-.learning-stat span { font-size: 12px; color: #64748b; }
+.learning-stat span { font-size: 12px; color: var(--text-secondary); }
 .learning-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .learning-shell label, .learning-dialog label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; min-width: 0; }
 .learning-shell input, .learning-shell textarea, .learning-shell select, .learning-dialog input, .learning-dialog textarea { width: 100%; max-width: 100%; min-width: 0; padding: 10px; border-radius: 10px; }
@@ -6283,7 +6284,7 @@ button[aria-disabled="true"]:hover,
 .learning-preview { font-size: 14px; line-height: 1.8; overflow-x: auto; overflow-wrap: break-word; }
 .learning-preview img { max-width: 100%; max-height: 340px; object-fit: contain; }
 .learning-row { padding: 12px; border: 1px solid rgba(var(--brand-500-rgb), .18); border-radius: 12px; text-align: left; white-space: normal; overflow-wrap: anywhere; }
-.learning-row small { display: block; margin-top: 5px; color: #64748b; }
+.learning-row small { display: block; margin-top: 5px; color: var(--text-secondary); }
 .learning-shell .learning-checks label { flex-direction: row; align-items: center; gap: 8px; min-height: 44px; }
 .learning-shell .learning-checks input { width: auto; flex: none; }
 .learning-checks { display: flex; flex-wrap: wrap; gap: 8px 18px; }
@@ -6305,4 +6306,138 @@ button[aria-disabled="true"]:hover,
     #learnerSelect { flex: 1; width: 100%; }
     .learning-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .learning-form-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Shared controls and reading surfaces, including dynamically created dialogs. */
+:root { color-scheme: light; }
+html.dark { color-scheme: dark; }
+.app-skip-link {
+    position: fixed; top: 8px; left: 8px; z-index: 100;
+    padding: 12px 18px; border-radius: 10px;
+    background: var(--apple-bg-elevated); color: var(--text-primary);
+    box-shadow: var(--apple-shadow-lg); transform: translateY(-150%);
+}
+.app-skip-link:focus { transform: none; }
+#appMain:focus { outline: none; }
+.glass-input, .glass-select { color: var(--text-primary); }
+.glass-input::placeholder { color: var(--text-secondary); opacity: .85; }
+textarea.glass-input { line-height: 1.7; resize: vertical; }
+input.glass-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select.glass-select { min-height: 38px; }
+input.glass-input[type="file"] {
+    height: auto; min-height: 44px; padding: 8px !important; line-height: 1.6;
+    white-space: normal; overflow: hidden;
+}
+input[type="file"]::file-selector-button {
+    margin-right: 10px; padding: 6px 12px; border: 1px solid var(--workspace-border);
+    border-radius: 7px; background: var(--workspace-surface-muted); color: var(--text-primary); cursor: pointer;
+}
+input[type="checkbox"], input[type="radio"] { accent-color: rgb(var(--brand-700-rgb)); }
+.ui-primary-action,
+.glass-btn.ui-primary-action {
+    background: rgb(var(--brand-700-rgb)); border: 1px solid transparent;
+    color: #fff; font-weight: 600;
+}
+.ui-primary-action:hover, .glass-btn.ui-primary-action:hover { background: rgb(var(--brand-900-rgb)); color: #fff; }
+.dark .ui-primary-action, .dark .glass-btn.ui-primary-action,
+.dark .glass-btn-primary { background: #e2e8f0 !important; border-color: #e2e8f0 !important; color: #0f172a !important; }
+.dark .ui-primary-action:hover, .dark .glass-btn.ui-primary-action:hover,
+.dark .glass-btn-primary:hover { background: #fff !important; color: #0f172a !important; }
+.ui-state-action { font-size: 13px; }
+.app-nav-item, .workspace-command-bar button, .qa-reset, .qa-categories button { touch-action: manipulation; }
+.app-nav-primary, .app-nav-utilities { flex-shrink: 0; }
+.app-navigation { overflow-y: auto; overscroll-behavior: contain; }
+.dashboard-heading p, .dashboard-panel-heading p { line-height: 1.7; }
+.dashboard-stat-card strong, .learning-stat strong { font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
+.dashboard-quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dashboard-quick-actions button { min-width: 0; }
+.dashboard-workspace, .qa-workspace, .learning-workspace { background: var(--workspace-canvas); }
+.qa-question[open] { border-color: rgba(var(--brand-500-rgb), .5); }
+.qa-question[open] > summary { color: var(--text-primary); }
+.glass-modal :is(input, select, textarea) { max-width: 100%; }
+.glass-modal :is(label, p.text-xs) { line-height: 1.7; }
+.glass-modal p.text-xs { font-size: 12px; }
+.glass-modal h3 { letter-spacing: -.015em; }
+
+/* Learning sections hide existing nodes without remounting forms or task results. */
+.learning-shell { padding: clamp(16px, 2.2vw, 28px); gap: 16px; color: var(--text-primary); }
+.learning-heading { gap: 16px; }
+.learning-heading h2 { font-size: 24px; letter-spacing: -.025em; }
+.learning-heading p { margin-top: 6px; line-height: 1.7; }
+.learning-heading > .learning-toolbar { gap: 8px; flex: 0 1 440px; }
+#learnerSelect { width: auto; max-width: 260px; flex: 1 1 150px; }
+.learning-stats { gap: 10px; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-column: 1 / -1; margin: 0; }
+.learning-stat { border-color: var(--workspace-border); background: var(--workspace-surface); box-shadow: none; }
+.learning-stat strong { margin-bottom: 6px; font-size: 26px; font-weight: 650; }
+.learning-scope {
+    gap: 12px 16px; padding: 12px 16px; border: 1px solid var(--workspace-border);
+    border-radius: 12px; background: var(--workspace-surface); margin-bottom: 14px;
+}
+.learning-scope-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.learning-scope label { flex-direction: row; align-items: center; gap: 8px; }
+.learning-scope select { width: auto; min-width: 125px; }
+.learning-section-nav {
+    display: flex; gap: 6px; overflow-x: auto; padding: 4px; margin: 0 0 18px;
+    border: 1px solid var(--workspace-border); border-radius: 12px; background: var(--workspace-surface);
+    scrollbar-width: thin;
+}
+.learning-section-nav button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    flex: 1 0 auto; min-height: 44px; padding: 8px 14px; border: 1px solid transparent;
+    border-radius: 8px; color: var(--text-secondary); font-size: 14px;
+    white-space: nowrap; transition: background-color var(--control-transition), color var(--control-transition);
+}
+.learning-section-nav button:hover { background: var(--workspace-surface-muted); color: var(--text-primary); }
+.learning-section-nav button[aria-pressed="true"] {
+    color: var(--text-primary); background: rgba(var(--brand-500-rgb), .12);
+    border-color: rgba(var(--brand-500-rgb), .25); font-weight: 650;
+}
+.learning-section-panel { align-items: start; gap: 16px; }
+.learning-section-panel[data-learning-panel="scan"] { grid-template-columns: minmax(0, 1fr); }
+.learning-section-panel > section { min-width: 0; padding: 20px; border-color: var(--workspace-border); background: var(--workspace-surface); box-shadow: none; }
+.learning-section-panel h3 { font-size: 16px; letter-spacing: -.015em; }
+.learning-section-panel p { line-height: 1.75; }
+.learning-section-panel .text-xs { font-size: 12px; }
+.learning-shell .text-slate-500, .learning-dialog .text-slate-500 { color: var(--text-secondary); }
+.learning-shell .glass-btn:not(.learning-row) { padding: 8px 12px; border-radius: 9px; font-size: 13px; }
+.learning-shell .learning-row, .learning-mastery-row { border-color: var(--workspace-border); background: var(--workspace-surface-muted); }
+button.learning-row { transition: border-color var(--control-transition), background-color var(--control-transition); }
+button.learning-row:hover { border-color: rgba(var(--brand-500-rgb), .6); background: rgba(var(--brand-500-rgb), .06); }
+.learning-row small { line-height: 1.7; }
+.learning-shell .learning-toolbar > button { flex: 0 1 auto; }
+.learning-section-panel > section > button { align-self: flex-start; }
+.learning-shell .learning-choice-option { background: var(--workspace-surface-muted); border-color: var(--workspace-border); }
+.learning-choice-option input:checked + span { color: var(--text-primary); font-weight: 800; }
+.learning-choice-option input { width: 18px !important; height: 18px; }
+.learning-shell progress { appearance: none; display: block; height: 8px; overflow: hidden; border: 0; border-radius: 999px; background: var(--workspace-border); color: rgb(var(--brand-500-rgb)); }
+.learning-shell progress::-webkit-progress-bar { background: var(--workspace-border); border-radius: 999px; }
+.learning-shell progress::-webkit-progress-value { background: rgb(var(--brand-500-rgb)); border-radius: 999px; }
+.learning-shell progress::-moz-progress-bar { background: rgb(var(--brand-500-rgb)); border-radius: 999px; }
+.learning-dialog { background: var(--apple-bg-elevated); color: var(--text-primary); }
+#learningStatus:empty, .learning-section-panel [role="status"]:empty { display: none; }
+
+@media (max-width: 1100px) { .learning-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 768px) {
+    .app-navigation { height: calc(64px + env(safe-area-inset-bottom, 0px)); padding-bottom: calc(.35rem + env(safe-area-inset-bottom, 0px)); overflow: hidden; }
+    .app-content-shell { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+    .app-nav-primary { gap: 2px; }
+    .app-nav-item { font-size: 10px; }
+    .learning-section-panel > section { padding: 16px; }
+    .learning-heading > .learning-toolbar { width: 100%; flex-basis: 100%; }
+    .learning-shell .learning-scope label { flex: 1 1 130px; flex-direction: column; align-items: stretch; }
+    .learning-scope-label { flex-basis: 100%; }
+    .learning-scope select { width: 100%; min-width: 0; }
+    .learning-section-nav button { padding: 8px 12px; font-size: 13px; }
+    .learning-shell :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
+    .glass-modal :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; }
+    .learning-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .learning-stat { padding: 12px 10px; }
+    .learning-stat span { font-size: 11px; line-height: 1.5; display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .learning-section-nav button, button.learning-row, .glass-panel { transition: none; }
+}
+@media (max-width: 600px) {
+    .learning-section-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; }
+    .learning-section-nav button { flex-direction: column; gap: 5px; min-width: 0; min-height: 58px; padding: 7px 2px; font-size: 12px; }
 }

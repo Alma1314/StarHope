@@ -95,6 +95,7 @@ def test_v21_adds_silent_index_after_backup_and_preserves_original_rows(tmp_path
         connection.exec_driver_sql("DROP INDEX idx_question_fingerprints_silent")
         connection.exec_driver_sql("ALTER TABLE question_fingerprints DROP COLUMN silent_hash")
         connection.exec_driver_sql("ALTER TABLE learning_attempts DROP COLUMN assessment")
+        connection.exec_driver_sql("ALTER TABLE learners DROP COLUMN daily_practice")
         connection.exec_driver_sql("PRAGMA user_version=21")
         connection.exec_driver_sql("INSERT INTO questions (id,content) VALUES (1,'原题，保留。')")
         connection.exec_driver_sql("INSERT INTO question_fingerprints (question_id,fingerprint_version,exact_hash) VALUES (1,3,'old-hash')")
@@ -1206,3 +1207,34 @@ def test_init_db_rejects_damaged_questions_table_before_creating_missing_tables(
         } == {"questions"}
     assert not snapshot_dir.exists()
     damaged_engine.dispose()
+
+
+def test_v23_daily_plan_column_is_backup_first_and_transactional(tmp_path, monkeypatch):
+    path = tmp_path / 'v23.sqlite3'
+    engine = create_engine(f'sqlite:///{path}')
+    database_module.Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql('ALTER TABLE learners DROP COLUMN daily_practice')
+        connection.exec_driver_sql("INSERT INTO learners (id,name,grade,goal,revision,ai_profile,created_at) VALUES (1,'旧昵称','高一','旧目标',7,'{}','2026-01-01')")
+        connection.exec_driver_sql('PRAGMA user_version=23')
+    from starhope.backup import create_full_backup, verify_full_backup
+    uploads = tmp_path / 'uploads'; uploads.mkdir()
+    archive = create_full_backup(database_path=path, uploads_dir=uploads, metadata_path=tmp_path / 'metadata.json',
+                                output_dir=tmp_path / 'backups', retention=None)
+    assert verify_full_backup(archive)['database']['schema_version'] == 23
+    monkeypatch.setattr(db_migrations, 'SCHEMA_SNAPSHOT_DIR', tmp_path / 'snapshots')
+    original = db_migrations._validate_learning_schema
+    def fail(connection, **kwargs):
+        original(connection, **kwargs)
+        raise RuntimeError('injected daily validation failure')
+    with monkeypatch.context() as patch:
+        patch.setattr(db_migrations, '_validate_learning_schema', fail)
+        with pytest.raises(RuntimeError, match='daily validation'):
+            db_migrations.migrate_database(engine)
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql('PRAGMA user_version').scalar_one() == 23
+        assert 'daily_practice' not in {row[1] for row in connection.exec_driver_sql('PRAGMA table_info(learners)')}
+    result = db_migrations.migrate_database(engine)
+    assert result['from_version'] == 23 and result['to_version'] == 24 and Path(result['backup']).is_file()
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql('SELECT name,grade,goal,revision,daily_practice FROM learners').one() == ('旧昵称','高一','旧目标',7,'{}')

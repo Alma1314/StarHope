@@ -866,6 +866,7 @@ class Learner(Base):
     auto_profile = Column(Boolean, nullable=False, default=True, server_default="1")
     profile_notes = Column(Text, nullable=False, default="", server_default="")
     profile_error = Column(Text, nullable=False, default="", server_default="")
+    daily_practice = Column(Text, nullable=False, default="{}", server_default="{}")
     created_at = Column(DateTime, nullable=False, default=_utcnow_naive)
 
 
