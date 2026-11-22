@@ -21,6 +21,8 @@ from starhope.paths import PROJECT_ROOT, project_instance_id
 from starhope.storage_access import StorageAccessError, check_startup_storage
 
 PORT = 8000
+READY_TIMEOUT_SECONDS = 60
+PORTABLE_READY_TIMEOUT_SECONDS = 180
 BASE_URL = f"http://127.0.0.1:{PORT}"
 ACTIVE_ROOT = PROJECT_ROOT
 MAX_PORT_ATTEMPTS = 20
@@ -382,6 +384,9 @@ def start_server(root: Path, python: Path) -> None:
     else:
         options["start_new_session"] = True
     print(f"正在启动题库：{BASE_URL}")
+    portable = os.environ.get("STARHOPE_PORTABLE_RUNTIME") == "1"
+    if portable:
+        print("首次启动可能需要 1–2 分钟，请勿关闭窗口。")
     with log.open("wb") as output:
         child = subprocess.Popen(
             command, cwd=root, env=environment, stdin=subprocess.DEVNULL,
@@ -392,7 +397,8 @@ def start_server(root: Path, python: Path) -> None:
         (state_dir / "server-state.json").write_text(json.dumps({
             "pid": child.pid, "launch_id": launch_id,
         }), encoding="utf-8")
-    ready, detail = wait_until_ready(child, launch_id)
+    timeout = PORTABLE_READY_TIMEOUT_SECONDS if portable else READY_TIMEOUT_SECONDS
+    ready, detail = wait_until_ready(child, launch_id, timeout)
     if not ready:
         with contextlib.suppress(OSError):
             (state_dir / "probe.log").write_text(detail, encoding="utf-8")

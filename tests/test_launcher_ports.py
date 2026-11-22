@@ -383,7 +383,7 @@ def test_ready_child_uses_one_port_for_launch_probe_memory_and_browser(tmp_path,
         commands.append(command)
         return SimpleNamespace(pid=12345)
 
-    def ready(_child, launch_id):
+    def ready(_child, launch_id, _timeout):
         assert len(launch_id) == 32
         probed.append(launcher.BASE_URL)
         return True, "ready"
@@ -395,6 +395,32 @@ def test_ready_child_uses_one_port_for_launch_probe_memory_and_browser(tmp_path,
     assert len(commands) == 1
     assert probed == opened == ["http://127.0.0.1:9001"]
     assert launcher.configured_port(tmp_path) == (9001, False)
+
+
+@pytest.mark.parametrize("portable,expected_timeout", [
+    (True, launcher.PORTABLE_READY_TIMEOUT_SECONDS),
+    (False, launcher.READY_TIMEOUT_SECONDS),
+])
+def test_portable_launch_waits_longer_and_warns_about_first_start(
+        tmp_path, monkeypatch, capsys, portable, expected_timeout):
+    (tmp_path / ".system_generated").mkdir()
+    launcher._set_port(8000)
+    if portable:
+        monkeypatch.setenv("STARHOPE_PORTABLE_RUNTIME", "1")
+    else:
+        monkeypatch.delenv("STARHOPE_PORTABLE_RUNTIME", raising=False)
+    monkeypatch.setattr(launcher.subprocess, "Popen", lambda *_, **__: SimpleNamespace(pid=12345))
+    monkeypatch.setattr(launcher, "open_browser", lambda: None)
+    timeouts = []
+
+    def ready(_child, _launch_id, timeout):
+        timeouts.append(timeout)
+        return True, "ready"
+
+    monkeypatch.setattr(launcher, "wait_until_ready", ready)
+    launcher.start_server(tmp_path, Path(sys.executable))
+    assert timeouts == [expected_timeout]
+    assert ("1–2 分钟" in capsys.readouterr().out) is portable
 
 
 def test_memory_write_failure_preserves_old_cache_and_ready_server(tmp_path, monkeypatch, capsys):
