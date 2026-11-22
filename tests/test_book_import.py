@@ -198,6 +198,64 @@ def test_cross_page_context_ownership_and_original_answer_pairing():
     assert "不能求解" in build_book_prompt("数学", METADATA)
 
 
+def test_trailing_choice_and_fill_answers_move_out_even_with_a_period():
+    pages = [{"page_number": 1, "markdown": "原文"}]
+    value = packet([row(page=1, question_type="single_choice", content="下列结论正确的是（ D ）。")])
+    adopted, _notes, _context, _incomplete = validate_batch(value, pages, [1], METADATA)
+    assert adopted[0]["answer_markdown"] == "D"
+    assert adopted[0]["content"] == "下列结论正确的是"
+
+    filled = packet([row(page=1, number="2", question_type="fill_in_blank",
+                         content=r"$x=$\fillin（3）。")])
+    adopted, _notes, _context, _incomplete = validate_batch(filled, pages, [1], METADATA)
+    assert adopted[0]["answer_markdown"] == "3"
+    assert adopted[0]["content"] == r"$x=$\fillin。"
+    assert adopted[0]["_parenthesis_answer_extracted"] is True
+
+
+def test_fill_blank_answer_written_on_the_underline_moves_out():
+    pages = [{"page_number": 1, "markdown": "原文"}]
+    cases = [
+        (r"函数的最小正周期为 \underline{2\pi}。", r"函数的最小正周期为 \fillin。", r"2\pi"),
+        (r"该数列的公差为 ____3____。", r"该数列的公差为 \fillin。", "3"),
+        (r"函数的最小正周期为 \underline{\quad}。", r"函数的最小正周期为 \underline{\quad}。", ""),
+    ]
+    for content, expected_content, answer in cases:
+        value = packet([row(page=1, question_type="fill_in_blank", content=content)])
+        adopted, _notes, _context, _incomplete = validate_batch(value, pages, [1], METADATA)
+        assert adopted[0]["content"] == expected_content
+        assert adopted[0]["answer_markdown"] == answer
+
+
+def test_prompt_keeps_interleaved_subquestion_answers_in_one_record():
+    prompt = build_book_prompt("数学", METADATA)
+    assert "每个小问后紧跟各自答案或解析" in prompt
+    assert "按对应小问标号依次合并到answer_markdown" in prompt
+    assert "不得拆成多道题" in prompt
+
+
+def test_prompt_treats_answers_written_on_the_underline_as_original_answers():
+    prompt = build_book_prompt("数学", METADATA)
+    assert "直接写在横线、下划线或空上的答案" in prompt
+
+
+def test_non_blank_parenthesized_math_is_not_mistaken_for_a_choice_answer():
+    pages = [{"page_number": 1, "markdown": "原文"}]
+    value = packet([row(page=1, question_type="single_choice", content="已知 $P(A)$")])
+    adopted, _notes, _context, _incomplete = validate_batch(value, pages, [1], METADATA)
+    assert adopted[0]["content"] == "已知 $P(A)$"
+    assert adopted[0]["answer_markdown"] == ""
+
+
+def test_prompt_requires_complete_context_and_carried_records():
+    prompt = build_book_prompt("数学", METADATA)
+    assert "上下文页中完整可见的题目或答案同样必须返回" in prompt
+    assert "不得仅因不在core_pages或担心与上一批重复" in prompt
+    assert "只要当前窗口能看到其完整续文，就必须返回完整记录" in prompt
+    assert "缺少题干不是放入incomplete的理由" in prompt
+    assert "只有当前窗口实际看到的原文本身不完整" in prompt
+
+
 def test_truncated_or_failed_batch_preserves_other_batches_and_does_not_retry():
     pages = [{"page_number": number, "markdown": "题目"} for number in range(1, 9)]
     calls = []

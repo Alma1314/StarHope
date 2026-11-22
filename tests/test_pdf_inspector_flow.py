@@ -136,6 +136,8 @@ def test_pdf_parse_system_prompt_includes_formula_and_cross_page_rules():
     assert "禁止输出裸露的" in prompt
     assert "仅在答案规则允许提取或生成时" in prompt
     assert "若规则要求空字符串则保持空白" in prompt
+    assert "多个小问各自紧跟答案或解析" in prompt
+    assert "按小问顺序合并到 `answer_markdown`" in prompt
     assert "若原试卷无答案，必须将 `answer_markdown` 设为空字符串" in prompt
     assert "若原试卷缺答案，请自动推导生成标准解答步骤" in generated_prompt
     assert "STARHOPE_PDF_PAGE:N" in prompt
