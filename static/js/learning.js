@@ -3,12 +3,14 @@ window.LearningWorkspace = (() => {
     'use strict';
     const $ = id => document.getElementById(id);
     const outcomes = {ungraded: '待核对', correct: '正确', partial: '部分正确', incorrect: '错误'};
+    const errorTypes = {concept: '概念理解', condition: '条件理解', method: '解题方法', calculation: '计算运算', expression: '表达规范', omission: '步骤遗漏', unknown: '原因待核对'};
     let initialized = false, learnerId = 0, detail = null, question = null, review = null;
     let serial = 0, querySerial = 0, questionPage = 1, historyPage = 1, masteryLimit = 100;
     let started = 0, saving = false, requestId = '', pendingPayload = null, profileTask = '', profileTimer = null;
     let candidate = null, dialog = null;
     let automaticTimer = null;
     let reviewPlan = null, mistakePlan = null, explanation = null;
+    let scanTask = '', scanData = null, scanSaved = false, scanTimer = null, scanPending = null, recommendationSerial = 0;
     function node(tag, text, host, className) {
         const element = document.createElement(tag);
         if (text !== undefined) element.textContent = text;
@@ -20,10 +22,11 @@ window.LearningWorkspace = (() => {
     function current(id, token) { return id === learnerId && token === serial; }
     async function request(path, method = 'GET', body) {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), window.StarHopeTimeouts?.QUERY_MS || 60000);
+        const multipart = body instanceof FormData;
+        const timer = setTimeout(() => controller.abort(), multipart ? (window.StarHopeTimeouts?.UPLOAD_MS || 600000) : (window.StarHopeTimeouts?.QUERY_MS || 60000));
         try {
             const response = await fetch('/api/learning/' + path, {method, signal: controller.signal,
-                ...(body === undefined ? {} : {headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})});
+                ...(body === undefined ? {} : multipart ? {body} : {headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})});
             const result = await response.json();
             if (!response.ok) { const error = new Error(typeof result.detail === 'string' ? result.detail : '学习档案请求未完成'); error.status = response.status; throw error; }
             return result;
@@ -49,7 +52,7 @@ window.LearningWorkspace = (() => {
         finally { saving = false; states.forEach(([control, disabled]) => { control.disabled = disabled; }); button?.removeAttribute('aria-busy'); }
     }
     function dirtyPractice() { return Boolean(question && $('learningAnswer').value.trim() && !review); }
-    function mayReplace() { return !dirtyPractice() || window.confirm('当前作答尚未提交。确定放弃本次未提交作答并切换？'); }
+    function mayReplace() { return (!dirtyPractice() && !(scanData && !scanSaved)) || window.confirm('当前作答或扫描结果尚未录入。确定放弃未提交的编辑并切换？'); }
     function resetPractice() {
         question = null; review = null; pendingPayload = null; requestId = '';
         explanation = null; $('learningExplanation').hidden = true;
@@ -70,6 +73,7 @@ window.LearningWorkspace = (() => {
         if (!learnerId) { message('点击“新建档案”，开始记录学习情况。'); return; }
         await refresh();
         await searchQuestions();
+        restoreScan();
     }
     async function refresh() {
         if (!learnerId) return;
@@ -82,12 +86,14 @@ window.LearningWorkspace = (() => {
         detail = data; reviewPlan = reviews; mistakePlan = mistakes;
         if (candidate && candidate.basis_revision !== data.revision) candidate = null;
         const stats = $('learningStats'); stats.replaceChildren();
-        [['练习记录', data.attempts], ['已人工核对', data.graded], ['待核对', data.ungraded],
+        [['练习记录', data.attempts], ['已核对（含自动分析）', data.graded], ['待核对', data.ungraded],
          ['错题', data.open_mistakes], ['待复习', data.review_due], ['有记录的知识点', data.mastery.length]].forEach(([label, count]) => {
             const card = node('div', undefined, stats, 'glass-panel learning-stat'); node('strong', String(count), card); node('span', label, card);
         });
         message([data.grade, data.goal].filter(Boolean).join(' · ') || '尚未填写年级或学习目标，可在“编辑档案”中补充。');
         renderMastery(); renderHistory(history); renderReviewPlan(); renderMistakes();
+        $('learningErrorTypes').textContent = (data.error_types || []).map(row => `${row.label} ${row.count}题`).join(' · ') || '暂无可归类的错误证据。';
+        loadRecommendations().catch(error => { $('learningRecommendations').textContent = error.message; });
         if (!candidate) drawProfile(data.ai_profile?.report ? data.ai_profile : null, false, data.profile_stale);
         profileTask = recalledTask(); $('learningReconnectProfile').hidden = !profileTask;
         const updating = ['queued', 'processing'].includes(data.profile_update_state);
@@ -109,7 +115,7 @@ window.LearningWorkspace = (() => {
             node('strong', `${row.education_stage || '未标注'} · ${row.subject} · ${row.name}`, card, 'text-sm');
             node('p', `${row.status} · 核对得分率 ${row.score_rate}% · ${row.sample_count} 道不同题`, card, 'text-xs text-slate-500');
             const progress = node('progress', undefined, card); progress.max = 100; progress.value = row.score_rate;
-            progress.setAttribute('aria-label', `${row.name}：${row.sample_count}道不同题的人工核对得分率${row.score_rate}%`);
+            progress.setAttribute('aria-label', `${row.name}：${row.sample_count}道不同题的核对得分率${row.score_rate}%`);
             const date = new Date(row.last_practiced_at);
             node('small', `累计核对 ${row.attempt_count} 次 · 最近 ${date.toLocaleDateString()}${Date.now() - date > 30 * 86400000 ? ' · 30天未练习' : ''}`, card, 'text-xs text-slate-500');
             const button = node('button', '查看最近一条依据', card, 'glass-btn rounded-lg px-2 py-1 text-xs'); button.type = 'button';
@@ -121,7 +127,7 @@ window.LearningWorkspace = (() => {
         const host = $('learningHistory'); host.replaceChildren();
         if (!data.items.length) node('p', '还没有作答记录。', host, 'text-sm text-slate-500');
         data.items.forEach(row => {
-            const button = node('button', `${row.subject} · ${outcomes[row.outcome]} · ${row.origin === 'manual' ? '手工录入' : '在线练习'}`, host, 'learning-row'); button.type = 'button';
+            const button = node('button', `${row.subject} · ${outcomes[row.outcome]} · ${row.assessment_source === 'scan_ai' ? '扫描作答' : row.origin === 'manual' ? '手工录入' : '在线练习'}`, host, 'learning-row'); button.type = 'button';
             node('small', row.content_excerpt, button); node('small', new Date(row.created_at).toLocaleString(), button);
             button.addEventListener('click', action(() => openAttempt(row.id)));
         });
@@ -133,7 +139,7 @@ window.LearningWorkspace = (() => {
         const rows = reviewPlan?.items || [];
         $('learningReviewDue').textContent = rows.length ? `到期 ${reviewPlan.total} 题` : '今天没有到期题目';
         $('learningStartReview').disabled = !rows.some(row => row.question_id);
-        if (!rows.length) node('p', '完成一次人工核对后，这里会按日期安排回顾。', host, 'text-sm text-slate-500');
+        if (!rows.length) node('p', '完成核对或录入扫描分析后，这里会按日期安排回顾。', host, 'text-sm text-slate-500');
         rows.forEach(row => {
             const card = node('div', undefined, host, 'learning-row');
             node('strong', `${row.subject || '未知学科'} · ${row.content_excerpt}`, card, 'text-sm');
@@ -179,7 +185,7 @@ window.LearningWorkspace = (() => {
     }
     async function explain() {
         if (!review || saving) return;
-        if (!['incorrect', 'partial'].includes(review.outcome)) { message('请先人工核对为错误或部分正确，再分析错因。'); return; }
+        if (!['incorrect', 'partial'].includes(review.outcome)) { message('请先核对为错误或部分正确，再分析错因。'); return; }
         const id = learnerId, token = serial, identifier = review.id;
         const host = $('learningExplanation'); host.hidden = false; host.replaceChildren();
         node('p', '正在对照本题作答分析具体错误步骤，不会改动学习记录…', host, 'text-sm text-slate-500');
@@ -301,6 +307,23 @@ window.LearningWorkspace = (() => {
         $('learningReviewAnswer').textContent = row.student_answer || '（未填写作答文字）';
         renderQuestionPreviewContent($('learningReference'), row.reference_answer || '本题没有原答案，请本人或老师另行核对。');
         $('learningReviewOutcome').value = row.outcome; $('learningReviewNotes').value = row.notes;
+        const types = $('learningReviewErrorTypes'); types.querySelectorAll('label').forEach(label => label.remove());
+        Object.entries(errorTypes).forEach(([value, text]) => {
+            const label = node('label', undefined, types); const input = node('input', undefined, label);
+            input.type = 'checkbox'; input.value = value; input.checked = (row.error_types || []).includes(value); node('span', text, label);
+        });
+        const host = $('learningReviewAssessment'); host.replaceChildren();
+        const assessment = row.assessment || {};
+        if (assessment.source === 'scan_ai') {
+            node('p', assessment.human_reviewed ? '已人工复核；以下保留原 AI 分析作为历史依据。' : 'AI 自动分析，可人工纠正；参考解答可能由 AI 生成。', host, 'text-xs text-slate-500');
+            node('p', assessment.reason || '', host, 'text-sm whitespace-pre-wrap');
+            node('p', assessment.suggestion || '', host, 'text-sm whitespace-pre-wrap');
+            const evidence = node('details', undefined, host); node('summary', '查看扫描作答原图', evidence, 'cursor-pointer text-sm');
+            (assessment.evidence_images || []).forEach((path, index) => {
+                const url = window.StarHopeSafe.safeImageUrl(path);
+                if (url) { const image = node('img', undefined, evidence); image.src = url; image.alt = `本次作答扫描原图 ${index + 1}`; image.loading = 'lazy'; }
+            });
+        }
     }
     async function openAttempt(identifier) {
         if (saving || !mayReplace()) return;
@@ -312,7 +335,8 @@ window.LearningWorkspace = (() => {
     async function grade() {
         if (!review) return;
         const id = learnerId, identifier = review.id;
-        const payload = {outcome: $('learningReviewOutcome').value, notes: $('learningReviewNotes').value, revision: review.revision};
+        const payload = {outcome: $('learningReviewOutcome').value, notes: $('learningReviewNotes').value, revision: review.revision,
+            error_types: [...$('learningReviewErrorTypes').querySelectorAll('input:checked')].map(input => input.value)};
         await mutate($('learningGrade'), async () => {
             showReview(await request(`learners/${id}/attempts/${identifier}`, 'PATCH', payload)); await refresh();
             message('人工核对结果已保存，知识掌握统计已更新。');
@@ -333,7 +357,7 @@ window.LearningWorkspace = (() => {
             });
         });
         profile.report.study_plan.forEach((value, index) => node('p', `${index + 1}. ${value}`, host, 'text-sm whitespace-pre-wrap'));
-        node('p', `生成于 ${new Date(profile.generated_at).toLocaleString()} · ${profile.model} · 依据 ${profile.sample_count} 条人工核对记录（文本节选）`, host, 'text-xs text-slate-500');
+        node('p', `生成于 ${new Date(profile.generated_at).toLocaleString()} · ${profile.model} · 依据 ${profile.sample_count} 条核对记录（含自动分析，文本节选）`, host, 'text-xs text-slate-500');
     }
     async function pollProfile() {
         clearTimeout(profileTimer);
@@ -419,20 +443,186 @@ window.LearningWorkspace = (() => {
         });
         dialog.addEventListener('close', () => returnFocus?.focus(), {once: true}); dialog.showModal(); name.focus();
     }
+    async function loadRecommendations() {
+        if (!learnerId) return;
+        const owner = learnerId, token = serial, generation = ++recommendationSerial;
+        const filters = new URLSearchParams({education_stage: $('learningEducationStage').value, subject: $('learningSubject').value});
+        const result = await request(`learners/${owner}/recommendations?` + filters);
+        if (!current(owner, token) || generation !== recommendationSerial) return;
+        const host = $('learningRecommendations'); host.replaceChildren();
+        if (!result.items.length) node('p', '暂无符合当前范围的推荐题。先录入并核对作答、补充知识点，或调整练习筛选。', host, 'text-sm text-slate-500');
+        result.items.forEach(row => {
+            const card = node('div', undefined, host, 'learning-row');
+            node('strong', `#${row.id} · ${row.education_stage} · ${row.subject}`, card, 'text-sm');
+            node('p', row.content_excerpt, card, 'text-sm whitespace-pre-wrap');
+            node('p', row.reason, card, 'text-xs text-slate-500 mt-2');
+            const toolbar = node('div', undefined, card, 'learning-toolbar mt-2');
+            const start = node('button', '练习这道题', toolbar, 'glass-btn px-3 py-2 rounded-xl'); start.type = 'button';
+            start.addEventListener('click', action(() => chooseQuestion(row.id)));
+            if (row.evidence_ids?.length) {
+                const evidence = node('button', '查看推荐依据', toolbar, 'glass-btn px-3 py-2 rounded-xl'); evidence.type = 'button';
+                evidence.addEventListener('click', action(() => openAttempt(row.evidence_ids[0])));
+            }
+        });
+    }
+    function scanStorageKey() { return 'starhope.learning.scan-task.' + learnerId; }
+    function rememberScan() { try { scanTask ? sessionStorage.setItem(scanStorageKey(), scanTask) : sessionStorage.removeItem(scanStorageKey()); } catch (_) {} }
+    function restoreScan() {
+        clearTimeout(scanTimer);
+        if (!scanTask) { try { scanTask = sessionStorage.getItem(scanStorageKey()) || ''; } catch (_) {} }
+        $('learningScanReconnect').hidden = !scanTask;
+        if (scanTask && !scanData) pollScan().catch(scanError);
+    }
+    function scanError(error) {
+        $('learningScanStatus').textContent = (error.message || '扫描任务暂不可用') + '；请接回同一任务或查看作答历史，不要重复新建扫描。';
+        $('learningScanReconnect').hidden = !scanTask;
+    }
+    async function startScan(event) {
+        event.preventDefault();
+        if (!learnerId || saving || (scanData && !scanSaved && !window.confirm('当前扫描结果尚未录入。确定开始另一份扫描？'))) return;
+        const files = [...$('learningScanFiles').files];
+        if (!files.length) return;
+        if (scanTask && !scanSaved && !scanData) { await pollScan(); return; }
+        const owner = learnerId, token = serial;
+        clearTimeout(scanTimer); scanTask = crypto.randomUUID(); scanData = null; scanSaved = false; scanPending = null; rememberScan();
+        $('learningScanReconnect').hidden = false; $('learningScanCancel').hidden = false;
+        $('learningScanResults').replaceChildren(); $('learningScanWarnings').hidden = true; $('learningScanApply').hidden = true;
+        $('learningScanStatus').textContent = '正在上传扫描文件；识别和分析将在后台继续。';
+        const form = new FormData(); form.append('request_id', scanTask);
+        form.append('subject', $('learningScanSubject').value); form.append('education_stage', $('learningScanStage').value);
+        files.forEach(file => form.append('files', file));
+        await mutate($('learningScanStart'), async () => {
+            try { await request(`learners/${owner}/scan-tasks`, 'POST', form); }
+            catch (error) {
+                if ([400, 404, 409, 422, 429].includes(error.status)) { scanTask = ''; rememberScan(); }
+                throw error;
+            }
+        });
+        if (current(owner, token)) await pollScan();
+    }
+    async function pollScan() {
+        if (!scanTask || !learnerId) return;
+        clearTimeout(scanTimer);
+        const owner = learnerId, token = serial, task = scanTask;
+        const data = await request(`learners/${owner}/scan-tasks/${task}`);
+        if (!current(owner, token) || task !== scanTask) return;
+        $('learningScanReconnect').hidden = false; $('learningScanCancel').hidden = false;
+        $('learningScanStatus').textContent = data.error || `${data.message || '正在排队'}${data.status === 'completed' ? '' : ' · ' + (data.progress || 0) + '%'}`;
+        if (data.status === 'completed') {
+            if (data.imported) {
+                scanSaved = true; scanPending = null; $('learningScanApply').hidden = true;
+                $('learningScanStatus').textContent = '本次扫描已录入。请在作答历史查看和纠正结果。';
+                await refresh();
+            } else if (!scanData && !scanSaved) { scanData = data; renderScan(data, owner, task); }
+        } else if (!['error', 'cancelled'].includes(data.status) && document.body.dataset.workspace === 'learning') {
+            scanTimer = setTimeout(() => pollScan().catch(scanError), 2000);
+        }
+    }
+    function scanField(host, text, key, value, maximum, rows = 3) {
+        const label = node('label', text, host);
+        const input = node('textarea', undefined, label, 'glass-input');
+        input.dataset.scanField = key; input.value = value; input.maxLength = maximum; input.rows = rows;
+        return input;
+    }
+    function scanCheck(host, text, key, checked = false) {
+        const label = node('label', undefined, host);
+        const input = node('input', undefined, label); input.type = 'checkbox'; input.dataset.scanField = key; input.checked = checked;
+        node('span', text, label); return input;
+    }
+    function renderScan(data, owner, task) {
+        const warnings = $('learningScanWarnings'); warnings.hidden = !data.warnings?.length;
+        const noteHost = warnings.querySelector('div'); noteHost.replaceChildren();
+        (data.warnings || []).forEach(text => node('p', text, noteHost));
+        const host = $('learningScanResults'); host.replaceChildren();
+        data.records.forEach((row, index) => {
+            const card = node('details', undefined, host, 'learning-row learning-scan-card'); card.dataset.scanRecord = row.record_id; card.open = index === 0;
+            node('summary', `题${row.number || index + 1} · ${outcomes[row.grade.outcome]} · 第${row.start_page}–${row.end_page}页`, card, 'font-semibold');
+            const body = node('div', undefined, card, 'learning-stack');
+            const checks = node('div', undefined, body, 'learning-checks');
+            scanCheck(checks, '录入这道题及本次作答', 'selected', row.complete);
+            if (!row.complete) node('p', '跨页题尚未收全，默认不选中。请补全题干后再录入。', body, 'text-sm text-amber-700');
+            if (row.recognition !== 'clear') node('p', '存在识别不清的内容，自动结果保留待核对。', body, 'text-sm text-amber-700');
+            scanField(body, '题干（不含学生作答）', 'content', row.content, 20000, 4);
+            scanField(body, '学生实际作答', 'student_answer', row.student_answer, 10000, 4);
+            scanField(body, row.printed_answer || row.bank_reference ? '参考解答（AI分析，依据扫描或题库候选答案）' : '参考解答（AI生成，仅保存在本次个人作答记录）', 'reference_answer', row.grade.reference_answer, 20000, 3);
+            scanField(body, '知识点建议（每行一个，可修正）', 'subject_topics', row.subject_topics, 2000, 2);
+            const preview = node('details', undefined, body); node('summary', '查看识别题干预览', preview, 'cursor-pointer text-sm');
+            const formula = node('div', undefined, preview, 'learning-preview'); renderQuestionPreviewContent(formula, row.content);
+            node('p', `自动分析：${row.grade.reason}`, body, 'text-sm whitespace-pre-wrap');
+            node('p', `错误类型：${row.grade.error_types.map(type => errorTypes[type] || type).join('、') || '暂无明确错误类型'}。改进：${row.grade.suggestion}`, body, 'text-sm whitespace-pre-wrap');
+            if (row.grade.evidence) node('p', '作答依据：' + row.grade.evidence, body, 'text-sm whitespace-pre-wrap');
+            const resultLabel = node('label', '本次记录的结果', body); const result = node('select', undefined, resultLabel, 'glass-select'); result.dataset.scanField = 'outcome';
+            Object.entries(outcomes).forEach(([value, text]) => { const option = node('option', text, result); option.value = value; }); result.value = row.grade.outcome;
+            const confirmations = node('div', undefined, body, 'learning-checks');
+            scanCheck(confirmations, '我已人工核对上述作答与结果', 'human_reviewed');
+            node('p', '修改题干、作答、参考解答或判定后，原自动判断会失效；未勾选人工核对时保存为待核对。', body, 'text-xs text-slate-500');
+            if (row.figures.length) {
+                const figures = node('div', undefined, body, 'learning-stack');
+                row.figures.forEach((figure, i) => { const image = node('img', undefined, figures); image.src = `/api/learning/learners/${owner}/scan-tasks/${task}/images/${figure.id}`; image.alt = `候选题图${i + 1}，请核对没有手写作答或个人信息`; image.loading = 'lazy'; });
+                scanCheck(confirmations, '确认这些题图不含学生作答或个人信息，并作为题图录入', 'include_figures');
+            }
+            if (row.figures_required) node('p', '此题依赖题图。未确认题图时将保留“题图待补充”，自动判定不计入画像统计。', body, 'text-xs text-slate-500');
+            const original = node('details', undefined, body); node('summary', '对照扫描原页', original, 'cursor-pointer text-sm');
+            for (let page = row.start_page; page <= row.end_page; page++) {
+                const image = node('img', undefined, original); image.src = `/api/learning/learners/${owner}/scan-tasks/${task}/images/page-${page}`; image.alt = `作答扫描第${page}页`; image.loading = 'lazy';
+            }
+        });
+        $('learningScanApply').hidden = false;
+        $('learningScanStatus').textContent = `${data.education_stage} · ${data.subject} · 识别 ${data.records.length} 题。核对后点击“录入选中题目”，同题将复用题库已有题目。`;
+    }
+    async function applyScan() {
+        if (!scanData || !scanTask || scanSaved || saving) return;
+        const items = [...$('learningScanResults').querySelectorAll('[data-scan-record]')].filter(card => card.querySelector('[data-scan-field="selected"]').checked).map(card => {
+            const item = {record_id: card.dataset.scanRecord};
+            card.querySelectorAll('[data-scan-field]').forEach(input => {
+                if (input.dataset.scanField !== 'selected') item[input.dataset.scanField] = input.type === 'checkbox' ? input.checked : input.value;
+            }); return item;
+        });
+        if (!items.length) { $('learningScanStatus').textContent = '请至少选择一道题。'; return; }
+        const payload = scanPending || {items};
+        const owner = learnerId, token = serial, task = scanTask;
+        await mutate($('learningScanApply'), async () => {
+            scanPending = payload;
+            let result;
+            try { result = await request(`learners/${owner}/scan-tasks/${task}/apply`, 'POST', payload); }
+            catch (error) { if ([400, 404, 409, 422].includes(error.status)) scanPending = null; throw error; }
+            if (!current(owner, token) || task !== scanTask) return;
+            scanSaved = true; scanPending = null; $('learningScanApply').hidden = true;
+            const pending = result.items.filter(row => row.outcome === 'ungraded').length;
+            $('learningScanStatus').textContent = `已保存 ${result.items.length} 条作答，其中 ${pending} 条待核对。错题本、知识统计与推荐已更新，自动画像在后台继续。`;
+            historyPage = 1; await refresh(); await searchQuestions();
+        });
+    }
     function initialize() {
         initialized = true;
+        [...$('learningSubject').options].filter(option => option.value).forEach(option => $('learningScanSubject').append(option.cloneNode(true)));
+        $('learningScanSubject').value = '数学';
+        $('learningScanForm').addEventListener('submit', action(startScan));
+        $('learningScanReconnect').addEventListener('click', action(pollScan));
+        $('learningScanApply').addEventListener('click', action(applyScan));
+        $('learningRecommend').addEventListener('click', action(loadRecommendations));
+        $('learningScanCancel').addEventListener('click', action(async () => {
+            if (!scanTask || !window.confirm('取消或丢弃本次尚未录入的扫描结果？已保存的学习记录保留。')) return;
+            try { await request(`learners/${learnerId}/scan-tasks/${scanTask}`, 'DELETE'); }
+            catch (error) { if (error.status !== 404) throw error; }
+            clearTimeout(scanTimer); scanTask = ''; scanData = null; scanPending = null; scanSaved = false; rememberScan();
+            $('learningScanResults').replaceChildren(); $('learningScanApply').hidden = true; $('learningScanCancel').hidden = true; $('learningScanReconnect').hidden = true;
+            $('learningScanStatus').textContent = '扫描已取消。';
+        }));
         $('learnerCreate').addEventListener('click', () => editProfile(true)); $('learnerEdit').addEventListener('click', () => editProfile(false));
         $('learningCorrectProfile').addEventListener('click', () => editProfile(false));
         $('learnerSelect').addEventListener('change', action(async () => {
             const id = Number($('learnerSelect').value);
             if (!mayReplace()) { $('learnerSelect').value = String(learnerId); return; }
-            clearTimeout(profileTimer); serial++; learnerId = id; historyPage = 1; candidate = null; resetPractice();
+            clearTimeout(profileTimer); clearTimeout(scanTimer); scanTask = ''; scanData = null; scanPending = null; scanSaved = false;
+            $('learningScanResults').replaceChildren(); $('learningScanStatus').textContent = ''; $('learningScanApply').hidden = true;
+            serial++; learnerId = id; historyPage = 1; candidate = null; resetPractice();
             $('learningProfileStatus').textContent = ''; $('learningApplyProfile').hidden = true; $('learningCancelProfile').hidden = true;
-            $('learningGenerateProfile').disabled = false; await refresh();
+            $('learningGenerateProfile').disabled = false; await refresh(); restoreScan();
         }));
         $('learningQuestionSearch').addEventListener('submit', action(event => { event.preventDefault(); questionPage = 1; return searchQuestions(); }));
-        $('learningEducationStage').addEventListener('change', action(() => { questionPage = 1; return searchQuestions(); }));
-        $('learningSubject').addEventListener('change', action(() => { questionPage = 1; return searchQuestions(); }));
+        $('learningEducationStage').addEventListener('change', action(() => { questionPage = 1; return Promise.all([searchQuestions(), loadRecommendations()]); }));
+        $('learningSubject').addEventListener('change', action(() => { questionPage = 1; return Promise.all([searchQuestions(), loadRecommendations()]); }));
         $('learningQuestionsPrev').addEventListener('click', action(() => { questionPage--; return searchQuestions(); }));
         $('learningQuestionsNext').addEventListener('click', action(() => { questionPage++; return searchQuestions(); }));
         $('learningOrigin').addEventListener('change', syncOrigin);
@@ -465,7 +655,7 @@ window.LearningWorkspace = (() => {
     }
     return {open: () => {
         if (!initialized) { initialize(); loadProfiles().catch(error => message(error.message)); }
-        else if (learnerId) refresh().catch(error => message(error.message));
+        else if (learnerId) { refresh().catch(error => message(error.message)); restoreScan(); }
         else loadProfiles().catch(error => message(error.message));
     }};
 })();

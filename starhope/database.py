@@ -911,6 +911,7 @@ class LearningAttempt(Base):
     elapsed_seconds = Column(Integer, nullable=True)
     origin = Column(String(20), nullable=False)
     notes = Column(Text, nullable=False, default="")
+    assessment = Column(Text, nullable=False, default="{}", server_default="{}")
     revision = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime, nullable=False, default=_utcnow_naive)
 

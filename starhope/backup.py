@@ -367,8 +367,14 @@ def _database_upload_references(
                     _upload_archive_name(match.group(0), url_prefix=url_prefix)
                 )
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='learning_attempts'").fetchone():
-        for content, answer in connection.execute("SELECT content, reference_answer FROM learning_attempts"):
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(learning_attempts)")}
+        assessment_column = "assessment" if "assessment" in columns else "'{}'"
+        for content, answer, assessment in connection.execute(
+                f"SELECT content, reference_answer, {assessment_column} FROM learning_attempts"):
             for reference in embedded_question_assets(content, answer):
+                references.add(_upload_archive_name(reference, url_prefix=url_prefix))
+            from starhope.learning import assessment_images
+            for reference in assessment_images(assessment):
                 references.add(_upload_archive_name(reference, url_prefix=url_prefix))
     return references
 
@@ -999,7 +1005,8 @@ def verify_full_backup(archive_path: Path) -> dict[str, Any]:
                             if schema_version >= 18:
                                 from starhope.db_migrations import _validate_learning_schema
                                 _validate_learning_schema(validation_connection,
-                                                          reviews=schema_version >= 19)
+                                                          reviews=schema_version >= 19,
+                                                          assessments=schema_version >= 23)
                             if schema_version >= 11:
                                 from starhope.db_migrations import _validate_sub_knowledge_schema
                                 _validate_sub_knowledge_schema(validation_connection)

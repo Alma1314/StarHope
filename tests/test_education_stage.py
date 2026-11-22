@@ -25,7 +25,7 @@ def form(stage='高中', **kwargs):
 def test_saved_stage_is_validated_preserved_and_filtered_before_pagination(client, db_session):
     ids = {}
     for stage in EDUCATION_STAGES:
-        response = client.post('/api/questions', data=form(stage))
+        response = client.post('/api/questions', data={**form(stage), 'content': f'{stage}函数专项：求函数的值。'})
         assert response.status_code == 200, response.text
         q = response.json()['question']; ids[stage] = q['id']
         assert q['education_stage'] == stage
@@ -37,7 +37,7 @@ def test_saved_stage_is_validated_preserved_and_filtered_before_pagination(clien
     qid = ids['高中']
     old_client = form(); old_client.pop('education_stage')
     assert client.put(f'/api/questions/{qid}', data=old_client).json()['question']['education_stage'] == '高中'
-    assert client.post('/api/questions', data=old_client).json()['question']['education_stage'] == '未标注'
+    assert client.post('/api/questions', data={**old_client, 'content': '旧客户端新增函数专项。'}).json()['question']['education_stage'] == '未标注'
     assert client.post('/api/questions', data=form('高一')).status_code == 400
     assert client.get('/api/questions', params={'education_stage': 'invalid'}).status_code == 400
     # A direct display-number lookup still cannot escape the selected stage.

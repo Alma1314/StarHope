@@ -1322,6 +1322,23 @@
                 <div id="learningEmpty" class="glass-panel rounded-2xl p-6"><h3 class="font-semibold">从一份学习档案开始</h3><p class="mt-2 text-sm text-slate-500">可使用昵称，为每个人分别保存学习目标和作答。这里是同一台电脑上的档案切换，不提供独立登录或访问隔离。</p></div>
                 <div id="learningContent" hidden>
                     <div id="learningStats" class="learning-stats"></div>
+                    <section class="glass-panel rounded-2xl p-4 learning-stack mb-5" aria-labelledby="learningScanTitle">
+                        <h3 id="learningScanTitle" class="font-semibold">扫描已做题目或试卷</h3>
+                        <p class="text-sm text-slate-500">上传单题照片、多页照片或扫描 PDF，识别题干和你的作答，自动分析对错与错误类型。核对后录入当前档案，更新错题本、画像与推荐。识别不清、缺图或证据不足的题目保留待核对。</p>
+                        <form id="learningScanForm" class="learning-stack">
+                            <div class="learning-form-grid">
+                                <label>扫描题目的教育学段<select id="learningScanStage" class="glass-select"><option>未标注</option><option>小学</option><option>初中</option><option>高中</option><option>本科</option><option>研究生</option><option>其他</option></select></label>
+                                <label>扫描题目的学科<select id="learningScanSubject" class="glass-select"></select></label>
+                            </div>
+                            <label>照片或 PDF（照片按选择顺序排列）<input id="learningScanFiles" type="file" class="glass-input" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" multiple required></label>
+                            <div class="learning-toolbar"><button id="learningScanStart" type="submit" class="glass-btn px-4 py-2 rounded-xl font-semibold text-brand-700">开始识别与分析</button><button id="learningScanReconnect" type="button" class="glass-btn px-3 py-2 rounded-xl" hidden>接回扫描任务</button><button id="learningScanCancel" type="button" class="glass-btn px-3 py-2 rounded-xl" hidden>取消或丢弃扫描</button></div>
+                        </form>
+                        <p id="learningScanStatus" role="status" aria-live="polite" class="text-sm text-slate-500"></p>
+                        <details id="learningScanWarnings" hidden><summary class="cursor-pointer text-sm">查看识别说明与待核对项</summary><div class="learning-stack text-sm mt-2"></div></details>
+                        <div id="learningScanResults" class="learning-stack"></div>
+                        <button id="learningScanApply" type="button" class="glass-btn px-4 py-2 rounded-xl font-semibold text-brand-700" hidden>录入选中题目并记入当前档案</button>
+                        <p class="text-xs text-slate-500">会向已配置的识图与解题模型发送所选扫描页、题目和作答。原页仅保留在学习记录中；题库只收录题干及你确认的题图。AI 参考解答与分析保留在个人记录，可随时人工纠正。扫描待录入结果只保留在本次服务运行期间。</p>
+                    </section>
                     <div class="learning-columns">
                         <div class="learning-stack">
                             <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningPracticeTitle">
@@ -1354,6 +1371,8 @@
                                     <p class="text-xs font-semibold">题库原答案（可能需核对）</p><div id="learningReference" class="learning-preview"></div>
                                     <label>核对结果<select id="learningReviewOutcome" class="glass-select"><option value="ungraded">待核对，不计入掌握统计</option><option value="correct">正确</option><option value="partial">部分正确</option><option value="incorrect">错误</option></select></label>
                                     <label>核对备注<textarea id="learningReviewNotes" class="glass-input" rows="2" maxlength="2000"></textarea></label>
+                                    <fieldset id="learningReviewErrorTypes" class="learning-checks"><legend class="text-sm font-semibold">错误类型（可多选）</legend></fieldset>
+                                    <div id="learningReviewAssessment" class="learning-stack"></div>
                                     <div class="learning-toolbar"><button id="learningGrade" type="button" class="glass-btn px-3 py-2 rounded-xl">保存核对结果</button><button id="learningExplain" type="button" class="glass-btn px-3 py-2 rounded-xl">AI 分析错因</button><button id="learningDeleteAttempt" type="button" class="glass-btn px-3 py-2 rounded-xl text-red-600">删除这条记录</button></div>
                                     <div id="learningExplanation" hidden class="learning-stack" aria-live="polite"></div>
                                 </section>
@@ -1364,21 +1383,28 @@
                             </section>
                         </div>
                         <div class="learning-stack">
+                            <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningRecommendationsTitle">
+                                <h3 id="learningRecommendationsTitle" class="font-semibold">为你推荐的练习</h3>
+                                <p class="text-xs text-slate-500">根据当前档案的薄弱知识点、核对证据与复习日期，沿用左侧练习的学段、学科筛选；优先推荐尚未做对的题目。</p>
+                                <p id="learningErrorTypes" class="text-sm text-slate-500"></p>
+                                <button id="learningRecommend" type="button" class="glass-btn px-3 py-2 rounded-xl">更新推荐</button>
+                                <div id="learningRecommendations" class="learning-stack"></div>
+                            </section>
                             <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningReviewPlanTitle">
                                 <h3 id="learningReviewPlanTitle" class="font-semibold">今日复习</h3>
-                                <p class="text-xs text-slate-500">按人工核对结果排期：错误或部分正确次日复习，连续正确后间隔逐步延长。到期只表示建议回顾，不自动判分。</p>
+                                <p class="text-xs text-slate-500">按核对结果（含扫描自动分析）排期：错误或部分正确次日复习，连续正确后间隔逐步延长。到期只表示建议回顾，不自动判分。</p>
                                 <div class="learning-toolbar"><button id="learningStartReview" type="button" class="glass-btn px-3 py-2 rounded-xl">开始复习第一题</button><span id="learningReviewDue" class="text-xs text-slate-500"></span></div>
                                 <div id="learningReviewList" class="learning-stack"></div>
                             </section>
                             <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningMistakesTitle">
                                 <h3 id="learningMistakesTitle" class="font-semibold">错题本</h3>
-                                <p class="text-xs text-slate-500">最近一次人工核对仍为错误或部分正确的题目。再练并核对为正确后自动移出；已攻克的题仍保留在作答历史。</p>
+                                <p class="text-xs text-slate-500">最近一次核对仍为错误或部分正确的题目（含扫描自动分析，可人工纠正）。再练并核对为正确后自动移出；已攻克的题仍保留在作答历史。</p>
                                 <div class="learning-toolbar"><button id="learningExportMistakes" type="button" class="glass-btn px-3 py-2 rounded-xl">导出错题卷</button><button id="learningExportMistakesAnswers" type="button" class="glass-btn px-3 py-2 rounded-xl">含答案导出</button><span id="learningMistakeCount" class="text-xs text-slate-500"></span></div>
                                 <div id="learningMistakeList" class="learning-stack"></div>
                             </section>
                             <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningMasteryTitle">
                                 <h3 id="learningMasteryTitle" class="font-semibold">知识掌握记录</h3>
-                                <p class="text-xs text-slate-500">每个知识点取最近20道不同题的人工核对结果：正确记1、部分正确记0.5、错误记0。重复做同一道题只取最近一次；少于3道题显示“证据不足”。这里的得分率不是掌握概率。</p>
+                                <p class="text-xs text-slate-500">每个知识点取最近20道不同题的核对结果（含扫描自动分析）：正确记1、部分正确记0.5、错误记0。重复做同一道题只取最近一次；少于3道题显示“证据不足”。这里的得分率不是掌握概率。</p>
                                 <label>筛选知识点<input id="learningMasteryQuery" class="glass-input" type="search" placeholder="学科或知识点名称"></label>
                                 <div id="learningMastery" class="learning-stack"></div><button id="learningMasteryMore" type="button" class="glass-btn">显示更多知识点</button>
                             </section>

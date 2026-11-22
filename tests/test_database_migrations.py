@@ -94,6 +94,7 @@ def test_v21_adds_silent_index_after_backup_and_preserves_original_rows(tmp_path
     with engine.begin() as connection:
         connection.exec_driver_sql("DROP INDEX idx_question_fingerprints_silent")
         connection.exec_driver_sql("ALTER TABLE question_fingerprints DROP COLUMN silent_hash")
+        connection.exec_driver_sql("ALTER TABLE learning_attempts DROP COLUMN assessment")
         connection.exec_driver_sql("PRAGMA user_version=21")
         connection.exec_driver_sql("INSERT INTO questions (id,content) VALUES (1,'原题，保留。')")
         connection.exec_driver_sql("INSERT INTO question_fingerprints (question_id,fingerprint_version,exact_hash) VALUES (1,3,'old-hash')")
@@ -120,7 +121,7 @@ def test_v21_adds_silent_index_after_backup_and_preserves_original_rows(tmp_path
         assert "silent_hash" not in {row[1] for row in connection.exec_driver_sql("PRAGMA table_info(question_fingerprints)")}
     result = db_migrations.migrate_database(engine)
     assert result["from_version"] == 21
-    assert result["to_version"] == 22
+    assert result["to_version"] == db_migrations.LATEST_SCHEMA_VERSION
     backup = Path(result["backup"])
     assert backup.is_file()
     with _sqlite_connection(backup) as connection:
