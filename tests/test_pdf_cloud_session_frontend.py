@@ -190,3 +190,38 @@ def test_partial_pdf_completion_waits_for_pending_import_receipt(pdf_script):
 })().catch(error=>{console.error(error);process.exitCode=1});
 """
     assert 'completed' in run_node(script)
+
+
+def test_pdf_preview_completion_applies_visual_verification_despite_default_metadata(pdf_script):
+    script = cloud_script(pdf_script) + r"""
+(async()=>{
+ const preview={...verifiedQuestion(),pdf_review_card_id:'task-0',subject:'',
+   source_review:{required:true,reasons:['题干文字或公式位置与原文未能完整对应，请对照原文核对。'],source_excerpt:'原题 0'}};
+ show([preview]);
+ session.begin({taskId:'task',documentType:'pdf',phase:'source_verification'});
+ assert.equal(session.previewPdfReview({task_id:'task',taskId:'task',document_type:'pdf',
+   status:'source_verification',pdf_review_preview:true,data:[preview],diagnostics:{}}),true);
+ // The subject select renders a deterministic default; this is not a teacher edit.
+ parsedQuestionsData[0].subject='数学';
+ const checked={...preview,source_review:{required:false,verified_by:'vision',
+   verification:{decision:'equivalent',evidence:'原页逐字一致'}}};
+ const merged=session.mergeCompletion([checked],{taskId:'task'});
+ assert.equal(merged.length,1);
+ assert.equal(merged[0].source_review.required,false,'visual confirmation must survive metadata defaults');
+ assert.equal(merged[0].source_review.verified_by,'vision');
+ assert.equal(merged[0].subject,'数学');
+
+ session.clear();
+ const preview2={...preview,pdf_review_card_id:'task2-0',subject:'数学'};
+ show([preview2]);
+ session.begin({taskId:'task2',documentType:'pdf',phase:'source_verification'});
+ assert.equal(session.previewPdfReview({task_id:'task2',taskId:'task2',document_type:'pdf',
+   status:'source_verification',pdf_review_preview:true,data:[preview2],diagnostics:{}}),true);
+ edit(document.getElementById('parsed-card-0'),'.card-content-textarea','教师校对后的题干');
+ const merged2=session.mergeCompletion([{...checked,pdf_review_card_id:'task2-0'}],{taskId:'task2'});
+ assert.equal(merged2[0].content,'教师校对后的题干','genuine source edits still win');
+ assert.equal(merged2[0].source_review.required,true,'old verification cannot cover edited content');
+ console.log('completed');
+})().catch(error=>{console.error(error);process.exitCode=1});
+"""
+    assert 'completed' in run_node(script)

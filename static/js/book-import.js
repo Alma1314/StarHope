@@ -28,17 +28,20 @@ function renderParsedSubjectFields(card, question, index) {
     topics.className = 'card-subject-topics glass-input w-full px-2 py-2 rounded-lg';
     topics.value = question.subject_topics || ''; topicsLabel.append(topics); host.append(topicsLabel);
     card.insertBefore(host, card.children[1]);
-    const update = () => {
-        question.education_stage = stage.value; question.subject = select.value; question.subject_topics = topics.value;
+    const syncVisibility = () => {
         const math = parsedUsesMathCurriculum(question);
         [card.querySelector('.card-compulsory')?.parentElement, card.querySelector('.card-knowledge-points'),
             card.querySelector('.card-classification-review')].filter(Boolean).forEach(el => {
                 el.hidden = !math; el.style.display = math ? '' : 'none';
             });
+    };
+    const update = () => {
+        question.education_stage = stage.value; question.subject = select.value; question.subject_topics = topics.value;
+        syncVisibility();
         updateParsedSavedState(index);
         window.StarHopeDocumentImportSession?.saveSoon();
     };
-    stage.addEventListener('change', update); select.addEventListener('change', update); topics.addEventListener('input', update); update();
+    stage.addEventListener('change', update); select.addEventListener('change', update); topics.addEventListener('input', update); syncVisibility();
     if (question.book_import) {
         const note = document.createElement('p'); note.className = 'text-xs text-slate-500';
         note.textContent = '书籍题目按原书章节和 PDF 页码记录来源；知识点与难度是待核对的 AI 建议。'; host.after(note);

@@ -289,6 +289,17 @@
 
     const verificationFields = ['content', 'answer_markdown', 'image_paths'];
 
+    // Preview cards may receive deterministic UI defaults (for example the
+    // subject select) that are not teacher edits. Only these source fields may
+    // block adopting a later visual-verification result.
+    function previewSourceSnapshot(question) {
+        return JSON.stringify([
+            String(question?.content ?? ''),
+            String(question?.answer_markdown ?? ''),
+            Array.isArray(question?.image_paths) ? question.image_paths : []
+        ]);
+    }
+
     function mergeCompletion(incoming, options = {}) {
         if (state?.pdfReviewTaskId && state.pdfReviewTaskId === options.taskId) {
             const current = questionsSnapshot();
@@ -304,7 +315,7 @@
                 const checked = reviewed.get(item.pdf_review_card_id);
                 if (!original || !checked) return item;
                 const edited = item.document_import_source_edited === true
-                    || correctionSnapshot(item) !== correctionSnapshot(original);
+                    || previewSourceSnapshot(item) !== previewSourceSnapshot(original);
                 const fixedFields = verificationFields.filter(field =>
                     JSON.stringify(original[field]) !== JSON.stringify(checked[field]));
                 const corrected = fixedFields.some(field =>
@@ -312,13 +323,26 @@
                 if (edited || item.saved_id || item.savedSnapshot || item.saved) {
                     if (corrected) {
                         item.project_incoming_candidate = {...clone(checked), pdf_source_verification: fixedFields};
-                    } else if (!edited) {
-                        if (checked.source_review) item.source_review = clone(checked.source_review);
-                        else delete item.source_review;
                     }
                     return item;
                 }
-                return {...checked, document_import_selected: item.document_import_selected};
+                // The source is unchanged: adopt the verified source result while
+                // keeping any non-source edits made during verification.
+                const merged = clone(checked);
+                Object.keys(item).forEach(key => {
+                    if (key === 'document_import_selected' || key === 'source_review'
+                            || verificationFields.includes(key)) return;
+                    if (JSON.stringify(item[key] ?? null) !== JSON.stringify(original[key] ?? null)) {
+                        merged[key] = clone(item[key]);
+                    }
+                });
+                merged.document_import_selected = item.document_import_selected;
+                if (checked.source_review) merged.source_review = clone(checked.source_review);
+                else delete merged.source_review;
+                verificationFields.forEach(field => {
+                    if (checked[field] !== undefined) merged[field] = clone(checked[field]);
+                });
+                return merged;
             });
         }
         if (partialPdfCheckpoint() && options.taskId === state.taskId) {
