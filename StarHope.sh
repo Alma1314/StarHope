@@ -1,6 +1,9 @@
 #!/bin/sh
 # Thin portable launcher shared by macOS (.command) and Linux (.sh).
 cd "$(dirname "$0")" || exit 1
+if [ -f "StarHope-Portable.zip" ]; then
+  exec sh ./scripts/upgrade_portable.sh
+fi
 case "$(uname -s):$(uname -m)" in
   Darwin:arm64) target=macos-arm64 ;;
   Darwin:x86_64) target=macos-x64 ;;

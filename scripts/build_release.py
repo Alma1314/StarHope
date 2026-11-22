@@ -874,6 +874,9 @@ def validate_portable_tree(root):
         "starhope/__init__.py",
         "scripts/portable_launcher.py",
         "scripts/local_launcher.py",
+        "scripts/upgrade_portable.sh",
+        "scripts/upgrade_portable.ps1",
+        "scripts/upgrade_shutdown.py",
         "static/index.html",
         "static/uploads/.gitkeep",
         *PORTABLE_LAUNCHERS,
@@ -901,6 +904,9 @@ def validate_portable_archive(path):
         required = {
             "StarHope.bat", "StarHope.command", "StarHope.sh",
             "scripts/portable_launcher.py",
+            "scripts/upgrade_portable.sh",
+            "scripts/upgrade_portable.ps1",
+            "scripts/upgrade_shutdown.py",
             "runtime/win-x64/python/python.exe",
             *(f"runtime/{target}/python/bin/python3.14" for target in PORTABLE_RUNTIMES),
         }
@@ -1079,7 +1085,7 @@ def stage_portable_launchers(destination):
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     batch.write_bytes(normalized.replace("\n", "\r\n").encode("ascii"))
     validate_windows_launcher(batch)
-    for name in ("StarHope.command", "StarHope.sh"):
+    for name in ("StarHope.command", "StarHope.sh", "scripts/upgrade_portable.sh"):
         path = destination / name
         path.chmod(0o755)
 

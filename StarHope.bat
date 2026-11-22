@@ -2,6 +2,20 @@
 setlocal EnableExtensions DisableDelayedExpansion
 chcp 65001 >nul 2>&1
 cd /d "%~dp0"
+if exist "StarHope-Portable.zip" goto upgrade
+goto launch
+
+:upgrade
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\upgrade_portable.ps1"
+if errorlevel 1 goto upgrade_failed
+goto launch
+
+:upgrade_failed
+if "%STARHOPE_NO_PAUSE%"=="1" exit /b 1
+pause
+exit /b 1
+
+:launch
 if not exist "runtime\win-x64\python\python.exe" goto missing_runtime
 set "STARHOPE_PORTABLE_RUNTIME=1"
 "%~dp0runtime\win-x64\python\python.exe" -B -m scripts.portable_launcher %*
