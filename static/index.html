@@ -279,6 +279,7 @@
                     <div class="dashboard-heading">
                         <span class="dashboard-heading-icon" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
                         <div>
+                            <span class="dashboard-eyebrow"><span class="dashboard-eyebrow-dot" aria-hidden="true"></span>本地题库 · 离线可用</span>
                             <h1 id="dashboardTitle">积累好题，轻松备课</h1>
                             <p>管理题目、编排试卷，让日常教学准备更有条理。</p>
                         </div>
@@ -287,22 +288,34 @@
 
                 <section class="dashboard-stat-grid" aria-label="题库概览">
                     <article class="dashboard-stat-card dashboard-stat-card-primary">
-                        <span class="dashboard-stat-label">题库总量</span>
+                        <div class="dashboard-stat-top">
+                            <span class="dashboard-stat-label">题库总量</span>
+                            <span class="dashboard-stat-icon" aria-hidden="true"><i class="fa-solid fa-database"></i></span>
+                        </div>
                         <strong id="dashboardQuestionTotal">--</strong>
                         <small id="dashboardQuestionTotalMeta">正在读取题库</small>
                     </article>
                     <article class="dashboard-stat-card dashboard-stat-card-warning">
-                        <span class="dashboard-stat-label">易错题</span>
+                        <div class="dashboard-stat-top">
+                            <span class="dashboard-stat-label">易错题</span>
+                            <span class="dashboard-stat-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                        </div>
                         <strong id="dashboardReviewCount">--</strong>
                         <small id="dashboardReviewMeta">按题库统计更新</small>
                     </article>
                     <article class="dashboard-stat-card dashboard-stat-card-blue">
-                        <span class="dashboard-stat-label">已保存试卷</span>
+                        <div class="dashboard-stat-top">
+                            <span class="dashboard-stat-label">已保存试卷</span>
+                            <span class="dashboard-stat-icon" aria-hidden="true"><i class="fa-solid fa-file-lines"></i></span>
+                        </div>
                         <strong id="dashboardPaperCount">--</strong>
                         <small id="dashboardPaperMeta">可从试卷记录继续编排</small>
                     </article>
                     <article class="dashboard-stat-card dashboard-stat-card-success">
-                        <span class="dashboard-stat-label">本月新增</span>
+                        <div class="dashboard-stat-top">
+                            <span class="dashboard-stat-label">本月新增</span>
+                            <span class="dashboard-stat-icon" aria-hidden="true"><i class="fa-solid fa-arrow-trend-up"></i></span>
+                        </div>
                         <strong id="dashboardMonthAdditions">--</strong>
                         <small id="dashboardMonthMeta">正在读取本月数据</small>
                     </article>
@@ -335,10 +348,10 @@
                                 </div>
                             </div>
                             <div class="dashboard-quick-actions">
-                                <button type="button" onclick="selectWorkspace('import', '导入中心')"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入 PDF 试卷</span></button>
-                                <button type="button" onclick="startManualQuestion()"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>手动录入题目</span></button>
-                                <button type="button" onclick="selectWorkspace('paper', '智能组卷')"><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>创建试卷草稿</span></button>
-                                <button type="button" onclick="selectWorkspace('learning', '学习档案')"><i class="fa-solid fa-user-graduate" aria-hidden="true"></i><span>开始每日练习</span></button>
+                                <button type="button" onclick="selectWorkspace('import', '导入中心')"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入 PDF 试卷</span><i class="fa-solid fa-arrow-right dashboard-quick-arrow" aria-hidden="true"></i></button>
+                                <button type="button" onclick="startManualQuestion()"><i class="fa-solid fa-camera" aria-hidden="true"></i><span>拍照识题 / 手动录入</span><i class="fa-solid fa-arrow-right dashboard-quick-arrow" aria-hidden="true"></i></button>
+                                <button type="button" onclick="selectWorkspace('paper', '智能组卷')"><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>创建试卷草稿</span><i class="fa-solid fa-arrow-right dashboard-quick-arrow" aria-hidden="true"></i></button>
+                                <button type="button" onclick="selectWorkspace('learning', '学习档案')"><i class="fa-solid fa-user-graduate" aria-hidden="true"></i><span>开始每日练习</span><i class="fa-solid fa-arrow-right dashboard-quick-arrow" aria-hidden="true"></i></button>
                             </div>
                         </section>
 
@@ -1430,6 +1443,11 @@
                     </div>
                     <div id="learning-panel-profile" class="learning-columns learning-section-panel" data-learning-panel="profile" role="region" aria-label="学习画像" hidden>
                         <div id="learningStats" class="learning-stats" aria-label="学习记录概览"></div>
+                        <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningAbilityTitle">
+                            <h3 id="learningAbilityTitle" class="font-semibold">六维学习画像</h3>
+                            <p class="text-xs text-slate-500">基于本机学习记录计算核对完成、正确率、稳定掌握、错题攻克、练习广度与题量积累。它是描述性参考，不是能力测评或掌握概率。</p>
+                            <div id="learningAbility" class="learning-ability"></div>
+                        </section>
                         <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningProfileTitle">
                             <h3 id="learningProfileTitle" class="font-semibold">学习画像与练习重点</h3>
                             <p id="learningProfileEvidence" class="text-xs text-slate-500"></p>
@@ -1444,6 +1462,11 @@
                             <p class="text-xs text-slate-500">每个知识点取最近20道不同题的核对结果（含扫描自动分析）：正确记1、部分正确记0.5、错误记0。重复做同一道题只取最近一次；少于3道题显示“证据不足”。这里的得分率不是掌握概率。</p>
                             <label>筛选知识点<input id="learningMasteryQuery" class="glass-input" type="search" placeholder="学科或知识点名称"></label>
                             <div id="learningMastery" class="learning-stack"></div><button id="learningMasteryMore" type="button" class="glass-btn">显示更多知识点</button>
+                        </section>
+                        <section class="glass-panel rounded-2xl p-4 learning-stack" aria-labelledby="learningResourcesTitle">
+                            <h3 id="learningResourcesTitle" class="font-semibold">数学资源索引</h3>
+                            <p class="text-xs text-slate-500">常用免费数学学习资源，点击会在新标签页打开，需要联网；与本地题库和学习记录分离。</p>
+                            <ul id="learningResources" class="learning-resource-list"></ul>
                         </section>
                     </div>
                 </div>

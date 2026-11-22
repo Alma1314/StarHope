@@ -4165,6 +4165,9 @@
                             <button type="button" class="saved-paper-pdf-action" onclick="quickExportPaperPdf(${paperId})" title="快速编译 PDF">
                                 <i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>导出 PDF</span>
                             </button>
+                            <button type="button" class="saved-paper-report-action" onclick="openPaperReport(${paperId})" title="查看题型、难度与知识点结构分析">
+                                <i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>分析</span>
+                            </button>
                             <button type="button" class="saved-paper-delete-action" onclick="deleteSavedPaper(${paperId})" aria-label="删除试卷 ${title}" title="删除此保存试卷">
                                 <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                             </button>
@@ -4173,6 +4176,112 @@
                 `;
             }).join('')}</div>`;
     };
+
+    const reportTypeLabels = {single_choice: '单选题', multi_choice: '多选题', fill_in_blank: '填空题', detailed_answer: '解答题'};
+    const reportDifficultyLabels = {normal: '常规题', easy_error: '易错题', challenge: '挑战题'};
+
+    // Pure structure analysis; intentionally contains no grading or attempt data.
+    function composePaperReport(questions) {
+        const rows = Array.isArray(questions) ? questions : [];
+        const types = new Map(), difficulties = new Map(), points = new Map(), chapters = new Map();
+        let totalScore = 0;
+        rows.forEach(item => {
+            const question = item && item.question ? item.question : {};
+            const score = Number(item && item.score);
+            if (Number.isFinite(score)) totalScore += score;
+            const type = question.question_type || 'unknown';
+            types.set(type, (types.get(type) || 0) + 1);
+            const difficulty = question.difficulty || 'unknown';
+            difficulties.set(difficulty, (difficulties.get(difficulty) || 0) + 1);
+            (Array.isArray(question.knowledge_points) ? question.knowledge_points : []).forEach(point => {
+                const name = point && point.name ? String(point.name) : '';
+                if (!name) return;
+                const entry = points.get(name) || {name, count: 0, main: 0};
+                entry.count += 1;
+                if (point.role === 'main') entry.main += 1;
+                points.set(name, entry);
+            });
+            const chapter = [question.category_compulsory, question.category_chapter].filter(Boolean).join(' · ') || '未标注';
+            chapters.set(chapter, (chapters.get(chapter) || 0) + 1);
+        });
+        const sortedPairs = map => [...map.entries()]
+            .map(([key, count]) => ({key, count}))
+            .sort((a, b) => b.count - a.count || String(a.key).localeCompare(String(b.key), 'zh-CN'));
+        return {
+            count: rows.length, totalScore,
+            types: sortedPairs(types), difficulties: sortedPairs(difficulties),
+            points: [...points.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN')),
+            chapters: sortedPairs(chapters)
+        };
+    }
+    window.composePaperReport = composePaperReport;
+
+    function reportBars(rows, labels) {
+        if (!rows.length) return '<p class="paper-report-empty">暂无数据。</p>';
+        const max = Math.max(1, ...rows.map(row => row.count));
+        return rows.map(row => `
+            <div class="paper-report-bar">
+                <span class="paper-report-bar-label">${escapeHtml(labels[row.key] || row.key)}</span>
+                <span class="paper-report-bar-track"><span style="width:${Math.round(row.count / max * 100)}%"></span></span>
+                <span class="paper-report-bar-count">${row.count}</span>
+            </div>`).join('');
+    }
+
+    async function openPaperReport(paperId) {
+        try {
+            const response = await fetch(`/api/papers/${paperId}`);
+            const payload = await response.json();
+            if (!response.ok || payload.status !== 'success') throw new Error(payload.message || '无法读取试卷');
+            const paper = payload.data || {};
+            const report = composePaperReport(paper.questions);
+            const typeLabel = {exam_19: '19题高考卷', exam: '常规试卷', quiz: '日常小练', handout: '讲义/教案'}[paper.paper_type] || '试卷';
+            const created = paper.created_at ? new Date(paper.created_at).toLocaleDateString('zh-CN') : '未知时间';
+            const pointsHtml = report.points.length
+                ? report.points.slice(0, 10).map(point => `<li><span>${escapeHtml(point.name)}</span><small>${point.count} 题${point.main ? ` · 主要 ${point.main}` : ''}</small></li>`).join('')
+                : '<li class="paper-report-empty">暂无知识点标注。</li>';
+            const chaptersHtml = report.chapters.length
+                ? report.chapters.slice(0, 8).map(row => `<li><span>${escapeHtml(row.key)}</span><small>${row.count} 题</small></li>`).join('')
+                : '<li class="paper-report-empty">暂无教材定位。</li>';
+            const overlay = document.createElement('div');
+            overlay.className = 'paper-report-overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'paperReportTitle');
+            overlay.innerHTML = `
+                <div class="paper-report-surface" data-modal-surface>
+                    <div class="paper-report-head">
+                        <div>
+                            <p class="paper-report-eyebrow">试卷结构分析 · 不含作答与评分</p>
+                            <h3 id="paperReportTitle">${escapeHtml(paper.title || '未命名试卷')}</h3>
+                            <p class="paper-report-subtitle">${escapeHtml(typeLabel)} · ${report.count} 题 · 保存于 ${escapeHtml(created)}</p>
+                        </div>
+                        <button type="button" class="paper-report-close" data-report-close aria-label="关闭试卷分析"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="paper-report-kpis">
+                        <div class="paper-report-kpi"><strong>${report.count}</strong><span>题目数</span></div>
+                        <div class="paper-report-kpi"><strong>${report.totalScore}</strong><span>总分</span></div>
+                        <div class="paper-report-kpi"><strong>${report.points.length}</strong><span>知识点</span></div>
+                        <div class="paper-report-kpi"><strong>${report.chapters.length}</strong><span>教材位置</span></div>
+                    </div>
+                    <div class="paper-report-grid">
+                        <section><h4>题型分布</h4>${reportBars(report.types, reportTypeLabels)}</section>
+                        <section><h4>难度分布</h4>${reportBars(report.difficulties, reportDifficultyLabels)}</section>
+                        <section><h4>知识点覆盖</h4><ul class="paper-report-list">${pointsHtml}</ul></section>
+                        <section><h4>教材位置</h4><ul class="paper-report-list">${chaptersHtml}</ul></section>
+                    </div>
+                    <p class="paper-report-note">分析基于保存试卷时记录的题目结构；不判断题目难度是否准确，也不包含学生作答或得分。</p>
+                </div>`;
+            document.body.appendChild(overlay);
+            const close = () => { window.StarHopeModal.close(overlay); overlay.remove(); };
+            overlay.querySelector('[data-report-close]').addEventListener('click', close);
+            overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+            window.StarHopeModal.open(overlay, {onEscape: close});
+        } catch (error) {
+            if (window.showToast) window.showToast(error.message || '试卷分析失败', 'error');
+            else console.error(error);
+        }
+    }
+    window.openPaperReport = openPaperReport;
 
     async function renderSavedPapersWorkspace() {
         const sequence = ++savedPaperLoadSequence;

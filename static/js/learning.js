@@ -20,6 +20,104 @@ window.LearningWorkspace = (() => {
         return element;
     }
     function message(value) { $('learningStatus').textContent = value; }
+    const resourceLinks = [
+        {name: 'GeoGebra', note: '动态几何、函数与立体绘图', url: 'https://www.geogebra.org/'},
+        {name: 'Desmos 图形计算器', note: '在线函数图像与动态参数', url: 'https://www.desmos.com/calculator'},
+        {name: '3Blue1Brown（B 站）', note: '用动画直观讲解高等数学', url: 'https://space.bilibili.com/88461692'},
+        {name: 'Khan Academy 数学', note: '分学段的系统课程与练习', url: 'https://zh.khanacademy.org/math'},
+        {name: 'Wolfram MathWorld', note: '数学概念与公式百科', url: 'https://mathworld.wolfram.com/'},
+        {name: 'MIT OpenCourseWare 数学', note: '大学数学公开课资料', url: 'https://ocw.mit.edu/search/?d=Mathematics'},
+        {name: 'Art of Problem Solving', note: '竞赛数学题库与讨论社区', url: 'https://artofproblemsolving.com/'}
+    ];
+    function clampPercent(value) { return Math.max(0, Math.min(100, Math.round(value))); }
+    // Descriptive learning-state metrics; not a calibrated ability model.
+    function computeAbility(data) {
+        const attempts = Number(data?.attempts) || 0, graded = Number(data?.graded) || 0;
+        const correct = Number(data?.correct) || 0, partial = Number(data?.partial) || 0;
+        const incorrect = Number(data?.incorrect) || 0, mastered = Number(data?.mastered) || 0;
+        const open = Number(data?.open_mistakes) || 0;
+        const mastery = Array.isArray(data?.mastery) ? data.mastery : [];
+        const solid = mastery.filter(row => Number(row.sample_count) >= 3);
+        const stable = solid.filter(row => row.status === '较稳定').length;
+        return [
+            {key: 'graded', label: '核对完成', value: attempts ? clampPercent(graded / attempts * 100) : 0,
+                detail: graded ? `已核对 ${graded} / ${attempts} 条记录` : '还没有已核对记录'},
+            {key: 'accuracy', label: '正确率', value: graded ? clampPercent((correct + partial * 0.5) / graded * 100) : 0,
+                detail: graded ? `正确 ${correct} · 部分正确 ${partial} · 错误 ${incorrect}` : '还没有已核对记录'},
+            {key: 'stability', label: '稳定掌握', value: solid.length ? clampPercent(stable / solid.length * 100) : 0,
+                detail: solid.length ? `${stable} / ${solid.length} 个知识点达到“较稳定”` : '知识点至少 3 道不同题后启用'},
+            {key: 'recovery', label: '错题攻克', value: (mastered + open) ? clampPercent(mastered / (mastered + open) * 100) : 0,
+                detail: (mastered + open) ? `已攻克 ${mastered} · 仍待巩固 ${open}` : '暂无错题记录'},
+            {key: 'breadth', label: '练习广度', value: clampPercent(mastery.length / 10 * 100),
+                detail: `已记录 ${mastery.length} 个知识点（10 个记满）`},
+            {key: 'volume', label: '题量积累', value: clampPercent(graded / 30 * 100),
+                detail: `已核对 ${graded} 条（30 条记满）`}
+        ];
+    }
+    function renderResources() {
+        const host = $('learningResources');
+        if (!host || host.childElementCount) return;
+        resourceLinks.forEach(resource => {
+            const item = node('li', undefined, host, 'learning-resource-item');
+            const link = node('a', resource.name, item, 'learning-resource-link');
+            link.href = resource.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            node('small', resource.note, item, 'learning-resource-note');
+        });
+    }
+    function svgNode(tag, attributes) {
+        const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        Object.entries(attributes || {}).forEach(([key, value]) => element.setAttribute(key, value));
+        return element;
+    }
+    function renderAbility(data) {
+        const host = $('learningAbility');
+        if (!host) return;
+        host.replaceChildren();
+        const rows = computeAbility(data);
+        if (!(Number(data?.attempts) > 0)) {
+            node('p', '完成并核对几道题后，这里会显示六维学习画像。', host, 'text-sm text-slate-500');
+            return;
+        }
+        const size = 260, center = size / 2, radius = 92;
+        const point = (index, ratio) => {
+            const angle = -Math.PI / 2 + index * Math.PI / 3;
+            return [center + Math.cos(angle) * radius * ratio, center + Math.sin(angle) * radius * ratio];
+        };
+        const svg = svgNode('svg', {viewBox: `0 0 ${size} ${size}`, class: 'learning-ability-chart', role: 'img',
+            'aria-label': rows.map(row => `${row.label} ${row.value}%`).join('，')});
+        [0.25, 0.5, 0.75, 1].forEach(ratio => {
+            svg.append(svgNode('polygon', {class: 'learning-ability-ring',
+                points: rows.map((_, index) => point(index, ratio).join(',')).join(' ')}));
+        });
+        rows.forEach((row, index) => {
+            const angle = -Math.PI / 2 + index * Math.PI / 3;
+            const [x, y] = point(index, 1), [lx, ly] = point(index, 1.18);
+            svg.append(svgNode('line', {class: 'learning-ability-axis', x1: center, y1: center, x2: x, y2: y}));
+            const label = svgNode('text', {class: 'learning-ability-label', x: lx, y: ly,
+                'text-anchor': Math.cos(angle) > 0.2 ? 'start' : Math.cos(angle) < -0.2 ? 'end' : 'middle',
+                'dominant-baseline': 'middle'});
+            label.textContent = row.label;
+            svg.append(label);
+        });
+        svg.append(svgNode('polygon', {class: 'learning-ability-polygon',
+            points: rows.map((row, index) => point(index, row.value / 100).join(',')).join(' ')}));
+        rows.forEach((row, index) => {
+            const [x, y] = point(index, row.value / 100);
+            svg.append(svgNode('circle', {class: 'learning-ability-dot', cx: x, cy: y, r: 2.6}));
+        });
+        const figure = node('div', undefined, host, 'learning-ability-figure');
+        figure.append(svg);
+        const legend = node('ul', undefined, host, 'learning-ability-legend');
+        rows.forEach(row => {
+            const item = node('li', undefined, legend, 'learning-ability-item');
+            const head = node('div', undefined, item, 'learning-ability-item-head');
+            node('strong', row.label, head);
+            node('span', `${row.value}%`, head);
+            node('small', row.detail, item);
+        });
+    }
     function showPanel(name) {
         const target = document.querySelector(`[data-learning-panel="${name}"]`);
         if (!target) return;
@@ -106,6 +204,7 @@ window.LearningWorkspace = (() => {
          ['错题', data.open_mistakes], ['待复习', data.review_due], ['有记录的知识点', data.mastery.length]].forEach(([label, count]) => {
             const card = node('div', undefined, stats, 'glass-panel learning-stat'); node('strong', String(count), card); node('span', label, card);
         });
+        renderAbility(data);
         message([data.grade, data.goal].filter(Boolean).join(' · ') || '尚未填写年级或学习目标，可在“编辑档案”中补充。');
         renderMastery(); renderHistory(history); renderReviewPlan(); renderMistakes();
         $('learningErrorTypes').textContent = (data.error_types || []).map(row => `${row.label} ${row.count}题`).join(' · ') || '暂无可归类的错误证据。';
@@ -704,6 +803,7 @@ window.LearningWorkspace = (() => {
     }
     function initialize() {
         initialized = true;
+        renderResources();
         document.querySelectorAll('[data-learning-section]').forEach(button => {
             button.addEventListener('click', () => showPanel(button.dataset.learningSection));
         });
@@ -772,7 +872,7 @@ window.LearningWorkspace = (() => {
             });
         }));
     }
-    return {receivePhoto: file => {
+    return {computeAbility, receivePhoto: file => {
         if (!initialized || saving) { showToast('请等待学习档案加载或保存完成。','info'); return false; }
         const input = $('learningScanFiles');
         if (input.files.length && !confirm('替换当前尚未提交的扫描文件？已有扫描结果会保留。')) return false;
