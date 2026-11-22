@@ -59,6 +59,63 @@ const $=()=>({focus(){}});const pairDevice=async()=>{paired++;};
 """)
 
 
+def test_phone_pairs_as_connected_before_optional_connection_metadata():
+    source = (ROOT/'static/js/mobile.js').read_text()
+    start = source.index('async function pairDevice(payload)')
+    function = source[start:source.index("$('pairForm').addEventListener", start)]
+    run("""
+const assert=require('node:assert/strict');
+const DEFAULT_LIMIT=10485760;
+let token='', pairing=false, limit=0, stored=null, shown=null, said='';
+const $=id=>({value:'',disabled:false,querySelector:()=>({disabled:false})});
+const sessionStorage={setItem:(key,value)=>{stored=value;},removeItem(){}};
+let request=async path=>{if(path==='/api/pair')return{token:'issued'};throw new TypeError('Failed to fetch');};
+const connected=value=>{shown=value;};const say=value=>{said=value;};
+""" + function + """
+(async()=>{
+  await pairDevice({code:'12345678'});
+  assert.equal(token,'issued');assert.equal(stored,'issued');assert.equal(shown,true);
+  assert.equal(limit,10485760);
+})().catch(error=>{console.error(error);process.exit(1);});
+""")
+
+def test_phone_shrinks_only_oversized_or_very_large_photos():
+    source = (ROOT/'static/js/mobile.js').read_text()
+    start = source.index('function needsShrink(')
+    function = source[start:source.index('async function request(', start)]
+    run("""
+const assert=require('node:assert/strict');
+const MAX_IMAGE_EDGE=3000, LIMIT=10*1024*1024;
+""" + function + """
+assert.equal(needsShrink(11*1024*1024,1200,900,LIMIT),true);
+assert.equal(needsShrink(2*1024*1024,3001,900,LIMIT),true);
+assert.equal(needsShrink(2*1024*1024,3000,3000,LIMIT),false);
+assert.equal(needsShrink(2*1024*1024,1200,900,LIMIT),false);
+""")
+
+def test_phone_network_failure_explains_lan_prerequisites():
+    source = (ROOT/'static/js/mobile.js').read_text()
+    start = source.index('function friendlyError(')
+    function = source[start:source.index('// Compress only', start)]
+    run("""
+const assert=require('node:assert/strict');
+""" + function + """
+assert.match(friendlyError(new TypeError('Failed to fetch')),/同一 Wi-Fi/);
+assert.match(friendlyError(new TypeError('Failed to fetch')),/防火墙/);
+assert.match(friendlyError(Object.assign(new Error('x'),{name:'AbortError'})),/超时/);
+assert.equal(friendlyError(new Error('配对码错误')),'配对码错误');
+""")
+
+def test_phone_page_exposes_progress_retake_and_lan_help():
+    html = (ROOT/'static/mobile.html').read_text()
+    for marker in ('id="uploadProgress"', 'id="retake"', 'id="connectionHelp"', 'AP 隔离'):
+        assert marker in html
+
+def test_desktop_mobile_panel_offers_copy_and_lan_checks():
+    html = (ROOT/'static/index.html').read_text()
+    for marker in ('id="mobileLinkCopy"', 'AP 隔离'):
+        assert marker in html
+
 def test_learning_photo_handoff_checks_busy_and_preserves_existing_files_on_cancel():
     source=(ROOT/'static/js/learning.js').read_text()
     start=source.index('receivePhoto: file => {')

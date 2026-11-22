@@ -30,6 +30,10 @@ from .storage_access import check_directory_access
 PRIVATE_NETWORKS = tuple(ipaddress.ip_network(value) for value in
                          ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8"))
 
+# Slow 2.4 GHz Wi-Fi still needs headroom for a single phone photo upload.
+UPLOAD_BODY_TIMEOUT_SECONDS = 120
+THUMBNAIL_MAX_EDGE = 360
+
 
 def private_ipv4(value):
     try:
@@ -183,7 +187,10 @@ class MobileLink:
             token = secrets.token_urlsafe(32)
             self.sessions[hashlib.sha256(token.encode()).hexdigest()] = now + 12 * 3600
             if using_qr:
-                self.qr_ticket = ""
+                # One scan consumes one ticket.  Reissue immediately so the open
+                # desktop panel shows a fresh QR without resetting the manual code.
+                self.qr_ticket = secrets.token_urlsafe(24)
+                self.qr_revision = secrets.token_hex(8)
             return {"token": token, "expires_seconds": 12 * 3600}
 
     def authorize(self, request):
@@ -245,6 +252,24 @@ class MobileLink:
             if path.is_symlink() or not path.is_file():
                 raise HTTPException(409, "照片文件不可用，请重新传送。")
             return row, path
+
+    def thumbnail(self, identity, edge=THUMBNAIL_MAX_EDGE):
+        from PIL import Image
+        row, data = self.photo_bytes(identity)
+        edge = max(64, min(int(edge), THUMBNAIL_MAX_EDGE))
+        with Image.open(io.BytesIO(data)) as source:
+            source.draft("RGB", (edge, edge))
+            if source.mode in ("RGBA", "LA") or (source.mode == "P" and "transparency" in source.info):
+                picture = source.convert("RGBA")
+                background = Image.new("RGB", picture.size, "white")
+                background.paste(picture, mask=picture.getchannel("A"))
+                picture = background
+            else:
+                picture = source.convert("RGB")
+            picture.thumbnail((edge, edge))
+            output = io.BytesIO()
+            picture.save(output, format="JPEG", quality=80)
+        return output.getvalue()
 
     def photo_bytes(self, identity):
         row, path = self.photo(identity)
@@ -324,6 +349,11 @@ class MobileLink:
             return Response(data, media_type=row["media_type"], headers={"Cache-Control": "no-store",
                 "Content-Disposition": f'attachment; filename="phone-{identity}{row["extension"]}"'})
 
+        @router.get("/photos/{identity}/thumb")
+        def thumbnail(identity: str):
+            return Response(self.thumbnail(identity), media_type="image/jpeg",
+                            headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
+
         @router.delete("/photos/{identity}")
         def remove(identity: str):
             return self.remove(identity)
@@ -362,7 +392,7 @@ class MobileLink:
                             if size > maximum:
                                 raise HTTPException(413, "照片超过上传上限。")
                             chunks.append(chunk)
-                    await asyncio.wait_for(bounded_body(), timeout=30)
+                    await asyncio.wait_for(bounded_body(), timeout=UPLOAD_BODY_TIMEOUT_SECONDS)
                     request._body = b"".join(chunks)
                 response = await call_next(request)
             except HTTPException as exc:

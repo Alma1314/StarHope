@@ -7,10 +7,25 @@
     }
     const qrTicket = takeQrTicket();
     const $ = id => document.getElementById(id);
+    const DEFAULT_LIMIT = 10485760;
     let token = sessionStorage.getItem('starhope-mobile-token') || '';
-    let file = null, identity = '', preview = '', page = 1, serial = 0, busy = false, limit = 0;
+    let file = null, identity = '', preview = '', page = 1, serial = 0, busy = false, limit = 0, selectSerial = 0;
     const say = value => { $('status').textContent = value; };
     function connected(value) { $('pairPanel').hidden = value; $('connected').hidden = !value; }
+
+    // Phone photo errors: keep the cause understandable on a LAN page.
+    function friendlyError(error) {
+        if (error && error.name === 'AbortError') return '连接超时，请保留照片或重试。';
+        if (error instanceof TypeError) return '连不上电脑：请确认手机与电脑连接同一 Wi-Fi、关闭手机移动数据，并允许电脑防火墙访问专用网络。';
+        return (error && error.message) || '操作失败，请重试。';
+    }
+
+    // Compress only photos that exceed the upload size or resolution budget.
+    const MAX_IMAGE_EDGE = 3000;
+    function needsShrink(size, width, height, limitBytes) {
+        return size > limitBytes || Math.max(width, height) > MAX_IMAGE_EDGE;
+    }
+
     async function request(path, options = {}) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), path.startsWith('/api/photos') ? 600000 : 30000);
@@ -24,7 +39,8 @@
             return value;
         } finally { clearTimeout(timer); }
     }
-    function action(fn) { return event => { event.preventDefault(); Promise.resolve().then(() => fn(event)).catch(error => say(error.name === 'AbortError' ? '连接超时，请保留照片后重试。' : error.message)); }; }
+    function action(fn) { return event => { if (event) event.preventDefault(); Promise.resolve().then(() => fn(event)).catch(error => say(friendlyError(error))); }; }
+
     let pairing = false;
     async function pairDevice(payload) {
         if (pairing) return;
@@ -33,8 +49,13 @@
         try {
             const data = await request('/api/pair', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
             token = data.token; sessionStorage.setItem('starhope-mobile-token', token); $('code').value = '';
-            limit = (await request('/api/connection')).max_image_bytes;
             connected(true); say('已连接电脑。可以拍照传送，或查看共享题库。');
+            // Upload metadata is optional; failing it must not leave us stuck on the pairing screen.
+            try { limit = (await request('/api/connection')).max_image_bytes; }
+            catch (error) {
+                limit = limit || DEFAULT_LIMIT;
+                if (!token) { connected(false); say('连接已失效，请重新扫码或输入配对码。'); }
+            }
         } finally { button.disabled = false; pairing = false; }
     }
     $('pairForm').addEventListener('submit', action(() => pairDevice({code:$('code').value.trim()})));
@@ -43,38 +64,124 @@
         $(button).addEventListener('click', () => {
             for (const id of ['photoPanel','bankPanel']) $(id).hidden = id !== target;
             $('photoTab').setAttribute('aria-pressed', String(target === 'photoPanel')); $('bankTab').setAttribute('aria-pressed', String(target === 'bankPanel'));
-            if (target === 'bankPanel') loadBank().catch(error => say(error.message));
+            if (target === 'bankPanel') loadBank().catch(error => say(friendlyError(error)));
         });
     }
-    function select(input) {
+
+    async function loadImage(source) {
+        if (window.createImageBitmap) {
+            const bitmap = await createImageBitmap(source);
+            return {node: bitmap, width: bitmap.width, height: bitmap.height, release: () => bitmap.close && bitmap.close()};
+        }
+        const url = URL.createObjectURL(source);
+        try {
+            const image = await new Promise((resolve, reject) => {
+                const node = new Image();
+                node.onload = () => resolve(node);
+                node.onerror = () => reject(new Error('无法读取这张照片，请换一张或重拍。'));
+                node.src = url;
+            });
+            return {node: image, width: image.naturalWidth, height: image.naturalHeight, release: () => URL.revokeObjectURL(url)};
+        } catch (error) { URL.revokeObjectURL(url); throw error; }
+    }
+
+    function toBlob(canvas, quality) {
+        return new Promise((resolve, reject) => canvas.toBlob(blob => blob
+            ? resolve(blob) : reject(new Error('照片压缩失败，请重试。')), 'image/jpeg', quality));
+    }
+
+    async function shrink(source, limitBytes) {
+        const image = await loadImage(source);
+        try {
+            if (!needsShrink(source.size, image.width, image.height, limitBytes)) return {file: source, note: ''};
+            const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(image.width, image.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+            canvas.getContext('2d').drawImage(image.node, 0, 0, canvas.width, canvas.height);
+            let blob = await toBlob(canvas, 0.9);
+            for (const quality of [0.8, 0.7, 0.6]) { if (blob.size <= limitBytes) break; blob = await toBlob(canvas, quality); }
+            if (blob.size > limitBytes) throw new Error('照片压缩后仍超过上传上限，请降低相机分辨率后重拍。');
+            const name = (source.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+            return {file: new File([blob], name, {type:'image/jpeg'}),
+                    note: `已压缩 ${(source.size/1048576).toFixed(1)} → ${(blob.size/1048576).toFixed(1)} MiB`};
+        } finally { image.release(); }
+    }
+
+    function cleared() {
+        if (preview) URL.revokeObjectURL(preview);
+        preview = ''; file = null; identity = '';
+        $('preview').removeAttribute('src'); $('preview').hidden = true;
+        $('photoInfo').textContent = ''; $('retake').hidden = true; $('send').disabled = true;
+    }
+
+    async function select(input) {
         if (busy || !input.files[0]) return;
         const next = input.files[0]; input.value = '';
         if (!next.type.startsWith('image/')) { say('请选择照片。'); return; }
-        if (limit && next.size > limit) { say(`照片过大，上限 ${Math.floor(limit/1048576)} MiB，请降低相机分辨率后重试。`); return; }
-        if (preview) URL.revokeObjectURL(preview);
-        file = next;
+        const generation = ++selectSerial;
+        cleared(); $('preview').hidden = true; $('photoInfo').textContent = '正在准备照片…';
+        say('正在准备照片…');
+        let prepared;
+        try { prepared = await shrink(next, limit || DEFAULT_LIMIT); }
+        catch (error) { if (generation === selectSerial) { $('photoInfo').textContent = ''; say(friendlyError(error)); } return; }
+        if (generation !== selectSerial) return;
+        file = prepared.file;
         // Native randomUUID requires HTTPS on some Android browsers; HTTP LAN uses getRandomValues.
         const bytes = crypto.getRandomValues(new Uint8Array(16)); bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
         const hex = [...bytes].map(value => value.toString(16).padStart(2,'0')).join('');
         identity = `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
         preview = URL.createObjectURL(file); $('preview').src = preview; $('preview').hidden = false;
-        $('photoInfo').textContent = `${file.name} · ${(file.size/1048576).toFixed(1)} MiB`; $('send').disabled = false; say('照片已选择，请确认清晰后传给电脑。');
+        $('photoInfo').textContent = `${file.name} · ${(file.size/1048576).toFixed(1)} MiB` + (prepared.note ? ' · ' + prepared.note : '');
+        $('retake').hidden = false; $('send').disabled = false; say('照片已选择，请确认清晰后传给电脑。');
     }
-    $('camera').addEventListener('change', () => select($('camera')));
-    $('album').addEventListener('change', () => select($('album')));
+    $('camera').addEventListener('change', () => { select($('camera')).catch(error => say(friendlyError(error))); });
+    $('album').addEventListener('change', () => { select($('album')).catch(error => say(friendlyError(error))); });
+    $('retake').addEventListener('click', () => {
+        if (busy) return;
+        selectSerial++; cleared(); say('已移除照片，可以重新拍摄或选择。');
+    });
+
+    function upload(form, onProgress) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/photos?identity=' + encodeURIComponent(identity));
+            if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.timeout = 600000;
+            xhr.upload.onprogress = event => { if (event.lengthComputable && onProgress) onProgress(event.loaded / event.total); };
+            xhr.onload = () => {
+                let value = {};
+                try { value = JSON.parse(xhr.responseText); } catch (_) { /* non-JSON errors keep their status */ }
+                if (xhr.status === 401) { token = ''; sessionStorage.removeItem('starhope-mobile-token'); connected(false); }
+                if (xhr.status >= 200 && xhr.status < 300) resolve(value);
+                else reject(new Error(typeof value.detail === 'string' ? value.detail : '传送失败，请保留照片后重试。'));
+            };
+            xhr.onerror = () => reject(new TypeError('Network request failed'));
+            xhr.ontimeout = () => reject(new Error('传送超时，请保留照片后重试。'));
+            xhr.send(form);
+        });
+    }
+
     $('send').addEventListener('click', action(async () => {
         if (busy || !file) return;
-        busy = true; $('send').disabled = true; $('camera').disabled = true; $('album').disabled = true;
+        busy = true; $('send').disabled = true; $('camera').disabled = true; $('album').disabled = true; $('retake').disabled = true;
+        $('uploadProgress').hidden = false; $('uploadProgress').value = 0; $('progressText').textContent = '0%';
         say('正在传送，请保持本页开启…');
         try {
             const form = new FormData(); form.append('file', file);
-            await request('/api/photos?identity=' + encodeURIComponent(identity), {method:'POST', body:form});
+            await upload(form, ratio => {
+                $('uploadProgress').value = ratio; $('progressText').textContent = Math.round(ratio*100) + '%';
+                if (ratio >= 1) say('已发送，电脑正在保存照片…');
+            });
             const row = document.createElement('li'); row.textContent = '电脑已接收 · ' + new Date().toLocaleTimeString() + ' · ' + file.name; $('receipts').prepend(row);
-            file = null; identity = ''; $('preview').hidden = true; $('photoInfo').textContent = '';
-            if (preview) URL.revokeObjectURL(preview); preview = '';
+            cleared();
             say('电脑已接收并保存照片，请在电脑「手机互联」中校对录入。可以继续拍下一题。');
-        } finally { busy = false; $('send').disabled = !file; $('camera').disabled = false; $('album').disabled = false; }
+        } finally {
+            busy = false; $('camera').disabled = false; $('album').disabled = false; $('retake').disabled = false;
+            $('uploadProgress').hidden = true; $('send').disabled = !file;
+        }
     }));
+
     async function loadBank() {
         const generation = ++serial;
         const result = await request('/api/library?q=' + encodeURIComponent($('query').value.trim()) + '&page=' + page);
@@ -109,7 +216,7 @@
             } catch (error) { /* 401 already cleared token; retry pairing below. */ }
         }
         say('正在扫码连接电脑…');
-        pairDevice({ticket}).catch(error => { say(error.name === 'AbortError' ? '扫码连接超时，请在电脑更换二维码后重试，或手动配对。' : error.message); $('code').focus(); });
+        pairDevice({ticket}).catch(error => { say(error && error.name === 'AbortError' ? '扫码连接超时，请在电脑更换二维码后重试，或手动配对。' : friendlyError(error)); $('code').focus(); });
     }
     // Scanners that reuse an open tab may not navigate; re-check on focus and bfcache restore.
     function scanTicket() { const ticket = takeQrTicket(); if (ticket) connectQr(ticket); }
@@ -117,5 +224,10 @@
     window.addEventListener('pageshow', scanTicket);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) scanTicket(); });
     if (qrTicket) connectQr(qrTicket);
-    else if (token) request('/api/connection').then(data => { limit=data.max_image_bytes; connected(true); say('已恢复与电脑的连接。'); }).catch(error => say(error.message));
+    else if (token) request('/api/connection').then(data => { limit = data.max_image_bytes || DEFAULT_LIMIT; connected(true); say('已恢复与电脑的连接。'); }).catch(error => {
+        say(error instanceof TypeError
+            ? '连不上电脑：请确认电脑题库已开启手机互联，且手机与电脑在同一 Wi-Fi。'
+            : friendlyError(error));
+        connected(false);
+    });
 })();

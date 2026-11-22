@@ -1587,10 +1587,10 @@
             <div id="mobileLinkConnection" class="my-4" hidden>
                 <p class="text-sm font-semibold">用安卓手机相机或扫一扫扫码，打开后自动连接</p>
                 <p class="text-xs text-slate-500 my-2">先连接同一 Wi-Fi。若扫码工具无法打开局域网页面，请选择“在浏览器中打开”。</p>
-                <label for="mobileLinkAddress" class="text-sm">连接地址（打不开时可切换后重新扫码）</label><select id="mobileLinkAddress" class="glass-input w-full my-2 px-3 py-2 rounded-xl border border-slate-200 min-h-[44px]"></select>
+                <label for="mobileLinkAddress" class="text-sm">连接地址（打不开时可切换后重新扫码）</label><div class="flex gap-2 my-2"><select id="mobileLinkAddress" class="glass-input flex-1 px-3 py-2 rounded-xl border border-slate-200 min-h-[44px]"></select><button id="mobileLinkCopy" type="button" class="glass-btn px-3 rounded-xl min-h-[44px]" aria-label="复制当前连接地址">复制地址</button></div>
                 <div class="flex justify-center my-3"><img id="mobileLinkQr" alt="安卓手机扫码连接二维码" class="hidden" width="270" height="270" style="max-width:100%;height:auto;image-rendering:pixelated;background:white;border-radius:8px"></div>
                 <p id="mobileLinkQrStatus" role="status" class="text-sm text-center text-slate-500"></p>
-                <details class="my-3"><summary class="cursor-pointer text-sm py-2">无法扫码？手动输入地址连接</summary><div id="mobileLinkUrls" class="my-2 break-all"></div></details><p class="text-sm">配对码 <strong id="mobileLinkPin" class="text-2xl tracking-widest select-all"></strong></p><p id="mobileLinkDevices" class="text-sm text-slate-500"></p><p class="text-xs text-slate-500">地址随网络变化。若无法打开，请检查电脑防火墙、Wi-Fi 客户端隔离或访客网络；无地址时检查电脑是否已连接局域网。本入口使用 HTTP，请勿做公网端口映射。</p></div>
+                <details class="my-3"><summary class="cursor-pointer text-sm py-2">无法扫码？手动输入地址连接</summary><div id="mobileLinkUrls" class="my-2 break-all"></div></details><p class="text-sm">配对码 <strong id="mobileLinkPin" class="text-2xl tracking-widest select-all"></strong></p><p id="mobileLinkDevices" class="text-sm text-slate-500"></p><p class="text-xs text-slate-500">地址随网络变化。若手机打不开：确认两台设备连接同一 Wi-Fi，关闭手机移动数据与智能网络切换；检查电脑防火墙是否允许“专用网络”，以及路由器是否开启 AP 隔离、客户端隔离或访客网络。无地址时检查电脑是否已连接局域网。本入口使用 HTTP，请勿做公网端口映射。</p></div>
             <h3 class="font-semibold mt-5">手机照片收件箱</h3><p class="text-sm text-slate-500 my-2">最多 20 张 / 128 MiB，断网和重启后保留。识别会使用当前 OCR 配置；请核对后保存，处理完再移除。收件箱不属于正式题库备份。</p><div id="mobileLinkInbox"></div>
         </div>
     </div>

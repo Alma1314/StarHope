@@ -73,9 +73,13 @@ def test_generated_qr_decodes_and_exchanges_once_without_leaking_control_token(l
         headers={'Authorization':'Bearer '+result.json()['token']}
         assert c.get('/api/connection',headers=headers).status_code==200
         assert c.post('/api/pair',json={'ticket':ticket}).status_code==403
-        assert not link.status()['qr_revision']
-        assert desktop.get('/api/mobile-link/qr?address=192.168.1.10').status_code==410
-        # The manual code remains a usable fallback after QR consumption.
+        # A consumed QR is replaced immediately so a second phone can scan again.
+        assert link.qr_ticket and link.qr_ticket != ticket
+        assert link.status()['qr_revision']
+        refreshed=desktop.get('/api/mobile-link/qr?address=192.168.1.10')
+        assert refreshed.status_code==200
+        assert decode_qr(refreshed.content)!=decode_qr(response.content)
+        # The manual code remains a usable fallback and keeps its expiry.
         assert c.post('/api/pair',json={'code':link.code}).status_code==200
         link.close()
         assert c.get('/api/connection',headers=headers).status_code==401

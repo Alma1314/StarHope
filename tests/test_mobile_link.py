@@ -111,6 +111,27 @@ def test_normalized_idempotent_inbox_survives_disconnect_and_restart(link):
         assert replacement.list_photos()==[]
 
 
+def test_desktop_inbox_thumbnail_is_bounded_jpeg_and_identity_checked(link):
+    from fastapi import FastAPI
+    desktop = TestClient(FastAPI())
+    desktop.app.include_router(link.desktop_router())
+    buffer = io.BytesIO()
+    Image.new('RGB', (640, 480), 'white').save(buffer, 'PNG')
+    row = link.accept(str(uuid.uuid4()), buffer.getvalue())
+    response = desktop.get(f'/api/mobile-link/photos/{row["id"]}/thumb')
+    assert response.status_code == 200, response.text
+    assert response.headers['content-type'] == 'image/jpeg'
+    with Image.open(io.BytesIO(response.content)) as picture:
+        assert picture.format == 'JPEG'
+        assert max(picture.size) <= 360
+    assert desktop.get('/api/mobile-link/photos/not-a-uuid/thumb').status_code == 400
+
+
+def test_lan_photo_body_upload_gets_more_than_thirty_seconds():
+    from starhope import mobile_link
+    assert mobile_link.UPLOAD_BODY_TIMEOUT_SECONDS >= 120
+
+
 def test_request_size_and_memory_concurrency_are_bounded(link):
     with client(link) as c:
         headers=pair(link,c)

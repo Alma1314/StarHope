@@ -41,8 +41,9 @@ def test_android_pair_photo_library_and_desktop_scan_handoff(browser, tmp_path):
         browser.evaluate("document.getElementById('bankTab').click();true")
         wait("document.getElementById('questions').textContent.includes(" + json.dumps(unique) + ")")
         assert browser.evaluate("document.getElementById('questions').querySelectorAll('img,script').length") == 0
-        browser.evaluate("""document.getElementById('photoTab').click();(async()=>{const canvas=document.createElement('canvas');canvas.width=64;canvas.height=48;const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg'));const transfer=new DataTransfer();transfer.items.add(new File([blob],'synthetic-camera.jpg',{type:'image/jpeg'}));const camera=document.getElementById('camera');camera.files=transfer.files;camera.dispatchEvent(new Event('change'));return true;})()""")
+        browser.evaluate("""document.getElementById('photoTab').click();(async()=>{const canvas=document.createElement('canvas');canvas.width=3200;canvas.height=200;const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg'));const transfer=new DataTransfer();transfer.items.add(new File([blob],'synthetic-camera.jpg',{type:'image/jpeg'}));const camera=document.getElementById('camera');camera.files=transfer.files;camera.dispatchEvent(new Event('change'));return true;})()""")
         wait("!document.getElementById('send').disabled")
+        wait("document.getElementById('photoInfo').textContent.includes('已压缩')")
         browser.command('screenshot', str(tmp_path/'android-photo.png'))
         browser.evaluate("document.getElementById('send').click();true")
         wait("document.getElementById('receipts').children.length===1")
@@ -54,6 +55,7 @@ def test_android_pair_photo_library_and_desktop_scan_handoff(browser, tmp_path):
         wait("typeof LearningWorkspace==='object'")
         browser.evaluate("document.getElementById('mobileLinkOpen').click();true")
         wait("document.getElementById('mobileLinkInbox').textContent.includes('识别为新题')")
+        wait("document.querySelector('#mobileLinkInbox img')&&document.querySelector('#mobileLinkInbox img').naturalWidth>0")
         final = browser.evaluate("fetch('/api/mobile-link',{headers:{'X-Local-Token':window.__localToken}}).then(r=>r.json())")
         assert len(final['photos']) == 1 and final['devices'] == 0
         browser.evaluate("[...document.getElementById('mobileLinkInbox').querySelectorAll('button')].find(b=>b.textContent==='用于已做题扫描').click();true")
@@ -92,7 +94,8 @@ def test_fresh_qr_rescan_in_open_page_reconnects(browser,tmp_path):
         browser.evaluate("location.hash='pair='+"+json.dumps(second.split('#pair=',1)[1])+";true")
         wait("document.getElementById('pairPanel').hidden")
         assert browser.evaluate('location.hash')==''
-        assert not json.loads(desktop('/api/mobile-link'))['qr_revision']
+        # The consumed QR is replaced for the next device by the same polling loop.
+        assert json.loads(desktop('/api/mobile-link'))['qr_revision']
         browser.command('screenshot',str(tmp_path/'android-open-page-rescan.png'))
     finally:
         browser.command('set','viewport','1440','1000')
