@@ -291,6 +291,9 @@ def environment_works(python: Path, code: str, root: Path) -> bool:
 
 
 def prepare_python(root: Path) -> tuple[Path, Path | None]:
+    if os.environ.get("STARHOPE_PORTABLE_RUNTIME") == "1":
+        # The portable launcher already selected a self-contained interpreter.
+        return Path(sys.executable), None
     if sys.platform != "darwin":
         # Windows BAT already selects the embedded interpreter or source venv.
         return Path(sys.executable), None
@@ -321,7 +324,7 @@ def ensure_dependencies(root: Path, python: Path) -> None:
     if portable:
         if not environment_works(python, IMPORT_CHECK, root):
             run_checked([str(python), "-c", IMPORT_CHECK], root,
-                        "便携包中的依赖不完整，请重新解压完整 Windows 包并替换同名文件")
+                        "便携包中的依赖不完整，请重新解压完整便携包并替换同名文件")
         return
     manifest = root / "pyproject.toml"
     if not manifest.is_file():

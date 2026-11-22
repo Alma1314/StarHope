@@ -1,8 +1,11 @@
-"""Build verified Windows and macOS release archives for StarHope.
+"""Build the verified four-runtime portable StarHope archive.
 
-The release builder deliberately fails closed: downloaded runtimes must match
-their pinned SHA-256 values, cached downloads are rechecked on every build, and
-only an explicit application allowlist is copied into staging directories.
+One staging folder contains Windows, macOS (arm64/x64) and Linux CPython
+runtimes plus a shared application/data root.  The release builder deliberately
+fails closed: downloaded runtimes must match their pinned SHA-256 values,
+cached downloads are rechecked on every build, and only an explicit application
+allowlist is copied into staging directories.  Set STARHOPE_PBS_BASE_URL to a
+python-build-standalone mirror base when GitHub is unreachable.
 """
 
 import hashlib
@@ -13,6 +16,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import urllib.parse
 import urllib.request
@@ -34,6 +38,8 @@ WHEELS_DIR = os.path.join(DIST_DIR, "wheels")
 SITE_PACKAGES = os.path.join(PYTHON_DIR, "site-packages")
 CACHE_DIR = str(BUILD_CACHE_DIR)
 MACOS_BUILD_DIR = os.path.join(DIST_DIR, "starhope-macos")
+PORTABLE_BUILD_DIR = os.path.join(DIST_DIR, "starhope-portable")
+PORTABLE_RUNTIME_DIR = os.path.join(PORTABLE_BUILD_DIR, "runtime")
 
 PYTHON_VERSION = "3.14.10"
 PYTHON_ZIP_URL = (
@@ -46,6 +52,36 @@ NUGET_ZIP_URL = (
     f"python.{PYTHON_VERSION}.nupkg"
 )
 NUGET_ZIP_SHA256 = "f54ba67c9951c3d773ea47d2bb095150c037c399f0423a968bcda22809241784"
+
+# Portable bundle: one shared application/data folder with a self-contained
+# CPython for every desktop OS.  Set STARHOPE_PBS_BASE_URL to a mirror prefix
+# if GitHub is unreachable; the pinned SHA-256 below is always enforced.
+PYTHON_BUILD_STANDALONE_TAG = "20261110"
+PYTHON_BUILD_STANDALONE_BASE = (
+    "https://github.com/astral-sh/python-build-standalone/releases/download/"
+    f"{PYTHON_BUILD_STANDALONE_TAG}"
+)
+PORTABLE_RUNTIMES = {
+    "macos-arm64": (
+        "aarch64-apple-darwin",
+        "42031ed5f0d38777335252c8c77d64708c8010dd67c128246bdec25000672666",
+    ),
+    "macos-x64": (
+        "x86_64-apple-darwin",
+        "f6c82fcf867b4aaadd373ac97699ad95fbb9c96f9ecf9b25775943aa5458b87f",
+    ),
+    "linux-x64": (
+        "x86_64-unknown-linux-gnu",
+        "3fe0d7c0538eb5d190c34582992d26230532551355cbd789fabc6591621cfc07",
+    ),
+}
+PORTABLE_WINDOWS_TARGET = "win-x64"
+PORTABLE_TARGETS = (PORTABLE_WINDOWS_TARGET, *PORTABLE_RUNTIMES)
+PORTABLE_LAUNCHERS = ("StarHope.bat", "StarHope.command", "StarHope.sh")
+PORTABLE_REQUIRED_MODULES = (
+    "fastapi", "uvicorn", "sqlalchemy", "greenlet", "colorama", "pymupdf",
+    "pdf_inspector", "sqlite_vec", "cozo_embedded", "pycozo",
+)
 
 # Microsoft Visual C++ Runtime used by the pinned Windows wheels.  The
 # production DLLs below come from the Visual Studio 2026 Stable VC\Redist
@@ -173,6 +209,8 @@ RELEASE_OUTPUT_NAMES = (
     "StarHope-Windows-x64.zip.sha256",
     "StarHope-macOS.zip",
     "StarHope-macOS.zip.sha256",
+    "StarHope-Portable.zip",
+    "StarHope-Portable.zip.sha256",
 )
 # These directories are shipped by pinned wheels but are not needed at runtime.
 # Keep the list explicit so a newly introduced package payload still fails the
@@ -242,13 +280,35 @@ def validate_zip(path, label="archive"):
         raise RuntimeError(f"{label} contains a corrupt member: {corrupt_member}")
 
 
+def validate_tar_gz(path, label="archive"):
+    """Check gzip/tar structure and reject absolute or traversing members."""
+
+    try:
+        with tarfile.open(path, "r:gz") as archive:
+            for member in archive:
+                member_path = PurePosixPath(member.name.replace("\\", "/"))
+                if member_path.is_absolute() or ".." in member_path.parts:
+                    raise RuntimeError(
+                        f"{label} contains an unsafe member path: {member.name}"
+                    )
+    except (OSError, tarfile.TarError) as exc:
+        raise RuntimeError(f"{label} is not a valid tar.gz archive") from exc
+
+
+def extract_tar_gz(path, destination):
+    """Extract a validated archive with the standard data-safety filter."""
+
+    with tarfile.open(path, "r:gz") as archive:
+        archive.extractall(destination, filter="data")
+
+
 def _validate_https_url(url, label):
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme.lower() != "https" or not parsed.hostname:
         raise RuntimeError(f"{label} download URL must use HTTPS")
 
 
-def download_verified(url, cache_path, expected_sha256, label):
+def download_verified(url, cache_path, expected_sha256, label, *, validator=validate_zip):
     """Return a verified cache file, downloading atomically when necessary."""
     _validate_https_url(url, label)
     expected = str(expected_sha256).strip().lower()
@@ -260,7 +320,7 @@ def download_verified(url, cache_path, expected_sha256, label):
     if os.path.isfile(cache_path):
         try:
             verify_sha256(cache_path, expected, label)
-            validate_zip(cache_path, label)
+            validator(cache_path, label)
             print(f"[cache] Using verified cached {label}...")
             return cache_path
         except RuntimeError as exc:
@@ -287,7 +347,7 @@ def download_verified(url, cache_path, expected_sha256, label):
             shutil.copyfileobj(response, target, length=1024 * 1024)
 
         verify_sha256(temporary_path, expected, label)
-        validate_zip(temporary_path, label)
+        validator(temporary_path, label)
         os.replace(temporary_path, cache_path)
     finally:
         if os.path.exists(temporary_path):
@@ -450,7 +510,7 @@ def _remove_release_outputs():
 def clean_directories():
     print("[build] Cleaning old directories...")
     os.makedirs(DIST_DIR, exist_ok=True)
-    for path in (BUILD_DIR, WHEELS_DIR, MACOS_BUILD_DIR):
+    for path in (BUILD_DIR, WHEELS_DIR, MACOS_BUILD_DIR, PORTABLE_BUILD_DIR):
         shutil.rmtree(path, ignore_errors=True)
     _remove_release_outputs()
     os.makedirs(PYTHON_DIR, exist_ok=True)
@@ -458,7 +518,8 @@ def clean_directories():
     os.makedirs(SITE_PACKAGES, exist_ok=True)
 
 
-def download_python():
+def download_python(python_dir=None):
+    destination = Path(python_dir or PYTHON_DIR)
     cache_path = os.path.join(CACHE_DIR, "python_embed.zip")
     download_verified(
         PYTHON_ZIP_URL,
@@ -467,11 +528,14 @@ def download_python():
         f"Python {PYTHON_VERSION} embedded runtime",
     )
     print("[build] Extracting Python...")
+    os.makedirs(destination, exist_ok=True)
     with zipfile.ZipFile(cache_path, "r") as zip_ref:
-        zip_ref.extractall(PYTHON_DIR, members=_safe_zip_members(zip_ref))
+        zip_ref.extractall(destination, members=_safe_zip_members(zip_ref))
 
 
-def download_and_extract_sqlite():
+def download_and_extract_sqlite(python_dir=None, site_packages=None):
+    destination = Path(python_dir or PYTHON_DIR)
+    packages = Path(site_packages or SITE_PACKAGES)
     cache_path = os.path.join(CACHE_DIR, "python_nuget.zip")
     download_verified(
         NUGET_ZIP_URL,
@@ -482,8 +546,8 @@ def download_and_extract_sqlite():
 
     print("[build] Extracting sqlite3 binaries...")
     required_members = {
-        "tools/DLLs/_sqlite3.pyd": os.path.join(PYTHON_DIR, "_sqlite3.pyd"),
-        "tools/DLLs/sqlite3.dll": os.path.join(PYTHON_DIR, "sqlite3.dll"),
+        "tools/DLLs/_sqlite3.pyd": os.path.join(destination, "_sqlite3.pyd"),
+        "tools/DLLs/sqlite3.dll": os.path.join(destination, "sqlite3.dll"),
     }
     extracted_members = set()
     with zipfile.ZipFile(cache_path, "r") as zip_ref:
@@ -496,7 +560,7 @@ def download_and_extract_sqlite():
                 extracted_members.add(member)
             elif member.startswith("tools/Lib/sqlite3/") and not member.endswith("/"):
                 relative_path = Path(member).relative_to("tools/Lib")
-                target_path = Path(SITE_PACKAGES, relative_path)
+                target_path = Path(packages, relative_path)
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 with zip_ref.open(member) as source, open(target_path, "wb") as target:
                     shutil.copyfileobj(source, target)
@@ -507,9 +571,10 @@ def download_and_extract_sqlite():
     print("[ok] sqlite3 binaries injected successfully.")
 
 
-def download_and_extract_msvc_runtime():
+def download_and_extract_msvc_runtime(python_dir=None):
     """Inject the pinned production x64 MSVC Runtime from Microsoft's VSIX."""
 
+    destination = Path(python_dir or PYTHON_DIR)
     cache_path = os.path.join(CACHE_DIR, "msvc145_runtime_x64.vsix")
     cache_path = download_verified(
         MSVC_REDIST_VSIX_URL,
@@ -544,10 +609,10 @@ def download_and_extract_msvc_runtime():
             validated_payloads[filename] = payload
 
     for filename, payload in validated_payloads.items():
-        _atomic_write_bytes(Path(PYTHON_DIR, filename), payload)
+        _atomic_write_bytes(destination / filename, payload)
 
     _atomic_write_text(
-        Path(PYTHON_DIR, MSVC_RUNTIME_NOTICE_NAME),
+        destination / MSVC_RUNTIME_NOTICE_NAME,
         MSVC_RUNTIME_NOTICE,
     )
     print("[ok] Microsoft VC Runtime injected: " + ", ".join(validated_payloads))
@@ -592,10 +657,12 @@ def uv_executable():
     return uv
 
 
-def download_and_extract_wheels():
-    print("[build] Installing Windows target dependencies with uv...")
+def install_target_dependencies(site_packages, python_platform):
+    """Install the locked dependencies for one target platform with uv."""
+
+    print(f"[build] Installing {python_platform} target dependencies with uv...")
     validate_target_requirements()
-    os.makedirs(SITE_PACKAGES, exist_ok=True)
+    os.makedirs(site_packages, exist_ok=True)
     os.makedirs(CACHE_DIR, exist_ok=True)
 
     cmd = [
@@ -603,11 +670,11 @@ def download_and_extract_wheels():
         "pip",
         "install",
         "--python-platform",
-        "x86_64-pc-windows-msvc",
+        python_platform,
         "--python-version",
         "3.14",
         "--target",
-        SITE_PACKAGES,
+        os.fspath(site_packages),
         "--cache-dir",
         os.path.join(CACHE_DIR, "uv"),
         "--no-config",
@@ -616,7 +683,11 @@ def download_and_extract_wheels():
     ]
     print(f"Running command: {subprocess.list2cmdline(cmd)}")
     subprocess.check_call(cmd, cwd=BASE_DIR)
-    _prune_dependency_test_artifacts(SITE_PACKAGES)
+    _prune_dependency_test_artifacts(site_packages)
+
+
+def download_and_extract_wheels(site_packages=None, python_platform="x86_64-pc-windows-msvc"):
+    install_target_dependencies(Path(site_packages or SITE_PACKAGES), python_platform)
 
 
 def _prune_dependency_test_artifacts(site_packages):
@@ -625,6 +696,266 @@ def _prune_dependency_test_artifacts(site_packages):
     root = Path(site_packages)
     for relative_path in DEPENDENCY_TEST_PATHS:
         shutil.rmtree(root / relative_path, ignore_errors=True)
+
+
+def pbs_asset_name(triple):
+    return (
+        f"cpython-{PYTHON_VERSION}+{PYTHON_BUILD_STANDALONE_TAG}-"
+        f"{triple}-install_only.tar.gz"
+    )
+
+
+def pbs_download_url(triple):
+    """Return a pinned python-build-standalone URL, with an optional mirror base."""
+
+    base = os.environ.get(
+        "STARHOPE_PBS_BASE_URL", PYTHON_BUILD_STANDALONE_BASE
+    ).strip().rstrip("/")
+    _validate_https_url(base, "python-build-standalone")
+    return f"{base}/{urllib.parse.quote(pbs_asset_name(triple))}"
+
+
+def portable_target_dir(target):
+    return Path(PORTABLE_RUNTIME_DIR, target)
+
+
+def configure_portable_python_path(python_dir):
+    """Point the embedded Windows interpreter at the shared app and dependencies."""
+
+    python_dir = Path(python_dir)
+    path_file = python_dir / "python314._pth"
+    if not path_file.is_file():
+        raise RuntimeError("embedded Python archive is missing python314._pth")
+    new_lines = []
+    application_root_added = False
+    site_packages_added = False
+    for line in path_file.read_text(encoding="utf-8").splitlines():
+        if line.strip() == "#import site":
+            new_lines.append("import site")
+        else:
+            new_lines.append(line)
+        if line.strip() == ".":
+            # python/ -> win-x64/ -> runtime/ -> application root
+            new_lines.append("../../..")
+            application_root_added = True
+            new_lines.append("../site-packages")
+            site_packages_added = True
+    if not application_root_added or not site_packages_added:
+        raise RuntimeError("embedded Python path file has no application path entry")
+    path_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8", newline="\n")
+
+
+def build_windows_portable_runtime(target_root):
+    target_root = Path(target_root)
+    python_dir = target_root / "python"
+    site_packages = target_root / "site-packages"
+    print("[build] Building Windows x64 portable runtime...")
+    shutil.rmtree(target_root, ignore_errors=True)
+    os.makedirs(python_dir, exist_ok=True)
+    os.makedirs(site_packages, exist_ok=True)
+    download_python(python_dir)
+    download_and_extract_sqlite(python_dir, site_packages)
+    download_and_extract_msvc_runtime(python_dir)
+    configure_portable_python_path(python_dir)
+    install_target_dependencies(site_packages, "x86_64-pc-windows-msvc")
+    validate_windows_portable_runtime(target_root)
+
+
+def validate_windows_portable_runtime(target_root):
+    target_root = Path(target_root)
+    required = (
+        target_root / "python" / "python.exe",
+        target_root / "python" / "python314._pth",
+        target_root / "python" / "_sqlite3.pyd",
+        target_root / "python" / "sqlite3.dll",
+        *(target_root / "python" / name for name in MSVC_RUNTIME_DLLS),
+        target_root / "python" / MSVC_RUNTIME_NOTICE_NAME,
+        *(target_root / "site-packages" / name for name in PORTABLE_REQUIRED_MODULES),
+        target_root / "site-packages" / "sqlite3",
+    )
+    missing = [str(path.relative_to(target_root)) for path in required if not path.exists()]
+    if missing:
+        raise RuntimeError(f"Windows portable runtime is missing: {missing}")
+    path_lines = {
+        line.strip()
+        for line in (target_root / "python" / "python314._pth")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    required_lines = {".", "../../..", "../site-packages", "import site"}
+    missing_lines = sorted(required_lines - path_lines)
+    if missing_lines:
+        raise RuntimeError(
+            f"Windows portable python314._pth is missing: {missing_lines}"
+        )
+
+
+def build_standalone_runtime(target, target_root):
+    triple, expected_sha256 = PORTABLE_RUNTIMES[target]
+    target_root = Path(target_root)
+    print(f"[build] Downloading Python {PYTHON_VERSION} {target} runtime...")
+    archive = download_verified(
+        pbs_download_url(triple),
+        os.path.join(CACHE_DIR, pbs_asset_name(triple)),
+        expected_sha256,
+        f"Python {PYTHON_VERSION} {target} runtime",
+        validator=validate_tar_gz,
+    )
+    print(f"[build] Extracting {target} Python runtime...")
+    shutil.rmtree(target_root, ignore_errors=True)
+    os.makedirs(target_root)
+    extract_tar_gz(archive, target_root)
+    python_dir = target_root / "python"
+    executable = python_dir / "bin" / "python3.14"
+    if not executable.is_file():
+        raise RuntimeError(f"{target} archive has no python/bin/python3.14")
+    for candidate in (python_dir / "bin").glob("python*"):
+        if candidate.is_file():
+            candidate.chmod(candidate.stat().st_mode | 0o111)
+    install_target_dependencies(target_root / "site-packages", triple)
+    validate_standalone_runtime(target, target_root)
+
+
+def host_portable_target():
+    if sys.platform.startswith("linux"):
+        import platform as host_platform
+        return "linux-x64" if host_platform.machine().lower() in {"x86_64", "amd64"} else ""
+    if sys.platform == "darwin":
+        import platform as host_platform
+        machine = host_platform.machine().lower()
+        if machine in {"arm64", "aarch64"}:
+            return "macos-arm64"
+        if machine in {"x86_64", "amd64"}:
+            return "macos-x64"
+        return ""
+    if os.name == "nt":
+        return "win-x64"
+    return ""
+
+
+def validate_standalone_runtime(target, target_root):
+    target_root = Path(target_root)
+    site_packages = target_root / "site-packages"
+    missing = [name for name in PORTABLE_REQUIRED_MODULES if not (site_packages / name).exists()]
+    executable = target_root / "python" / "bin" / "python3.14"
+    if not executable.is_file():
+        missing.append("python/bin/python3.14")
+    if missing:
+        raise RuntimeError(f"{target} portable runtime is missing: {missing}")
+    if host_portable_target() != target:
+        return
+    environment = os.environ.copy()
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    environment["PYTHONPATH"] = os.pathsep.join(
+        value for value in (
+            str(site_packages), str(PORTABLE_BUILD_DIR), environment.get("PYTHONPATH", "")
+        ) if value
+    )
+    smoke = (
+        "import fastapi,uvicorn,sqlalchemy,greenlet,colorama,pymupdf;"
+        "import pdf_inspector,sqlite_vec,cozo_embedded,pycozo;"
+        "sqlite_vec.loadable_path();import starhope.paths,scripts.portable_launcher"
+    )
+    subprocess.check_call(
+        [str(executable), "-B", "-c", smoke],
+        cwd=PORTABLE_BUILD_DIR,
+        env=environment,
+    )
+
+
+def validate_portable_tree(root):
+    root = Path(root)
+    required = {
+        "main.py",
+        "pyproject.toml",
+        "覆盖升级说明.txt",
+        "README.md",
+        "starhope/__init__.py",
+        "scripts/portable_launcher.py",
+        "scripts/local_launcher.py",
+        "static/index.html",
+        "static/uploads/.gitkeep",
+        *PORTABLE_LAUNCHERS,
+        "runtime/win-x64/python/python.exe",
+        "runtime/win-x64/python/python314._pth",
+        *(f"runtime/{target}/python/bin/python3.14" for target in PORTABLE_RUNTIMES),
+        *(f"runtime/{target}/site-packages/fastapi" for target in PORTABLE_TARGETS),
+    }
+    missing = sorted(name for name in required if not (root / name).exists())
+    if missing:
+        raise RuntimeError(f"portable staging tree is missing required files: {missing}")
+    forbidden = (
+        "starhope.db", "starhope.db-wal", "starhope.db-shm", ".env",
+        ".system_generated", "data_backup", "venv",
+    )
+    present = [name for name in forbidden if (root / name).exists()]
+    if present:
+        raise RuntimeError(f"portable staging tree contains local data: {present}")
+
+
+def validate_portable_archive(path):
+    validate_zip(path, Path(path).name)
+    with zipfile.ZipFile(path, "r") as archive:
+        names = set(archive.namelist())
+        required = {
+            "StarHope.bat", "StarHope.command", "StarHope.sh",
+            "scripts/portable_launcher.py",
+            "runtime/win-x64/python/python.exe",
+            *(f"runtime/{target}/python/bin/python3.14" for target in PORTABLE_RUNTIMES),
+        }
+        missing = sorted(required - names)
+        if missing:
+            raise RuntimeError(f"finished portable archive is missing: {missing}")
+        for name in (
+            "StarHope.command", "StarHope.sh",
+            *(f"runtime/{target}/python/bin/python3.14" for target in PORTABLE_RUNTIMES),
+        ):
+            info = archive.getinfo(name)
+            if info.create_system == 3 and not (info.external_attr >> 16) & 0o111:
+                raise RuntimeError(f"finished portable archive member is not executable: {name}")
+
+
+def zip_portable_release():
+    print("[build] Zipping portable release package...")
+    validate_portable_tree(PORTABLE_BUILD_DIR)
+    archive_path = Path(DIST_DIR, "StarHope-Portable.zip")
+    checksum_path = Path(str(archive_path) + ".sha256")
+    archive_path.unlink(missing_ok=True)
+    checksum_path.unlink(missing_ok=True)
+    try:
+        archive_path = Path(
+            shutil.make_archive(
+                os.path.join(DIST_DIR, "StarHope-Portable"), "zip", PORTABLE_BUILD_DIR
+            )
+        )
+        validate_portable_archive(archive_path)
+        checksum_path = _write_archive_checksum(archive_path)
+    except Exception:
+        archive_path.unlink(missing_ok=True)
+        checksum_path.unlink(missing_ok=True)
+        raise
+    print(f"[ok] Portable archive created: {archive_path}")
+    print(f"[ok] Archive checksum created: {checksum_path}")
+    return os.fspath(archive_path)
+
+
+def build_portable_release():
+    """Build one folder holding every desktop runtime and a shared data root."""
+
+    if os.name == "nt":
+        raise RuntimeError(
+            "build the portable bundle on macOS or Linux so ZIP executable bits are preserved"
+        )
+    print("[build] Building the Windows, macOS and Linux portable bundle...")
+    shutil.rmtree(PORTABLE_BUILD_DIR, ignore_errors=True)
+    copy_app_files(PORTABLE_BUILD_DIR, PORTABLE_LAUNCHERS)
+    stage_portable_launchers(PORTABLE_BUILD_DIR)
+    build_windows_portable_runtime(portable_target_dir(PORTABLE_WINDOWS_TARGET))
+    for target in PORTABLE_RUNTIMES:
+        build_standalone_runtime(target, portable_target_dir(target))
+    validate_portable_tree(PORTABLE_BUILD_DIR)
+    return zip_portable_release()
 
 
 def _is_internal_tool_release_path(relative_path):
@@ -700,7 +1031,7 @@ def _copy_allowlisted_entry(source, destination):
         raise RuntimeError(f"required release source is missing: {source}")
 
 
-def copy_app_files(destination, launcher_name):
+def copy_app_files(destination, launcher_name=None):
     """Copy only approved application assets into a release staging tree."""
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
@@ -710,7 +1041,13 @@ def copy_app_files(destination, launcher_name):
         _copy_allowlisted_entry(
             Path(BASE_DIR, relative_name), destination / relative_name
         )
-    _copy_allowlisted_entry(Path(BASE_DIR, launcher_name), destination / launcher_name)
+    launcher_names = ()
+    if isinstance(launcher_name, str):
+        launcher_names = (launcher_name,)
+    elif launcher_name:
+        launcher_names = tuple(launcher_name)
+    for name in launcher_names:
+        _copy_allowlisted_entry(Path(BASE_DIR, name), destination / name)
     _copy_allowlisted_entry(Path(BASE_DIR, "starhope"), destination / "starhope")
     _copy_allowlisted_entry(Path(BASE_DIR, "scripts"), destination / "scripts")
 
@@ -728,6 +1065,23 @@ def copy_app_files(destination, launcher_name):
     templates_source = Path(BASE_DIR, "templates")
     if templates_source.is_dir():
         _copy_allowlisted_entry(templates_source, destination / "templates")
+
+
+def stage_portable_launchers(destination):
+    """Normalize the batch launcher and keep the Unix launchers executable."""
+
+    destination = Path(destination)
+    batch = destination / "StarHope.bat"
+    try:
+        text = batch.read_text(encoding="ascii")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("StarHope.bat must contain ASCII bytes only") from exc
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    batch.write_bytes(normalized.replace("\n", "\r\n").encode("ascii"))
+    validate_windows_launcher(batch)
+    for name in ("StarHope.command", "StarHope.sh"):
+        path = destination / name
+        path.chmod(0o755)
 
 
 def create_launcher():
@@ -1220,27 +1574,11 @@ def zip_release():
     )
 
 
-def zip_macos_release():
-    print("[build] Zipping macOS release package...")
-    macos_build_dir = MACOS_BUILD_DIR
-    copy_app_files(macos_build_dir, "启动题库系统.command")
-    launcher_path = os.path.join(macos_build_dir, "启动题库系统.command")
-    os.chmod(launcher_path, 0o755)
-    try:
-        return _build_archive(
-            macos_build_dir,
-            os.path.join(DIST_DIR, "StarHope-macOS"),
-            "macos",
-            "启动题库系统.command",
-        )
-    finally:
-        shutil.rmtree(macos_build_dir, ignore_errors=True)
-
-
 def cleanup_temp():
     print("[build] Cleaning up temporary files...")
     shutil.rmtree(WHEELS_DIR, ignore_errors=True)
     shutil.rmtree(BUILD_DIR, ignore_errors=True)
+    shutil.rmtree(PORTABLE_BUILD_DIR, ignore_errors=True)
 
 
 def main():
@@ -1251,20 +1589,12 @@ def main():
         validate_release_source()
         validate_target_requirements()
         clean_directories()
-        download_python()
-        download_and_extract_sqlite()
-        download_and_extract_msvc_runtime()
-        configure_python_path()
-        download_and_extract_wheels()
-        copy_app_files(BUILD_DIR, "启动题库系统.bat")
-        create_launcher()
-        zip_release()
-        zip_macos_release()
+        build_portable_release()
         cleanup_temp()
-        print("[ok] Windows and macOS Release packages built successfully.")
+        print("[ok] Portable Release package built successfully.")
     except Exception as exc:
-        # The two platform archives are one release set.  If either side fails,
-        # remove both known outputs while preserving every unrelated dist file.
+        # One archive is the release set.  Remove known outputs while
+        # preserving every unrelated dist file.
         _remove_release_outputs()
         print(f"[error] Error during packaging: {exc}")
         raise

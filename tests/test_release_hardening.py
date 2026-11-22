@@ -1069,34 +1069,25 @@ def test_main_failure_removes_stale_and_partial_cross_platform_outputs(
     unrelated = dist / "teacher-notes.txt"
     unrelated.write_text("keep", encoding="utf-8")
     monkeypatch.setattr(build_release, "DIST_DIR", str(dist))
-
-    def write_windows_output():
-        (dist / "StarHope-Windows-x64.zip").write_bytes(b"partial")
-        (dist / "StarHope-Windows-x64.zip.sha256").write_text(
-            "partial\n", encoding="utf-8"
-        )
-
-    for function_name in (
-        "validate_target_requirements",
-        "clean_directories",
-        "download_python",
-        "download_and_extract_sqlite",
-        "download_and_extract_msvc_runtime",
-        "configure_python_path",
-        "download_and_extract_wheels",
-        "copy_app_files",
-        "create_launcher",
-    ):
-        monkeypatch.setattr(build_release, function_name, lambda *_args: None)
-    monkeypatch.setattr(build_release, "validate_release_source", lambda: None)
-    monkeypatch.setattr(build_release, "zip_release", write_windows_output)
     monkeypatch.setattr(
-        build_release,
-        "zip_macos_release",
-        lambda: (_ for _ in ()).throw(RuntimeError("macOS injected failure")),
+        build_release, "PORTABLE_BUILD_DIR", str(dist / "starhope-portable")
     )
 
-    with pytest.raises(RuntimeError, match="macOS injected failure"):
+    def write_partial_then_fail():
+        (dist / "StarHope-Portable.zip").write_bytes(b"partial")
+        (dist / "StarHope-Portable.zip.sha256").write_text(
+            "partial\n", encoding="utf-8"
+        )
+        raise RuntimeError("portable injected failure")
+
+    monkeypatch.setattr(build_release, "validate_target_requirements", lambda: None)
+    monkeypatch.setattr(build_release, "clean_directories", lambda: None)
+    monkeypatch.setattr(build_release, "validate_release_source", lambda: None)
+    monkeypatch.setattr(
+        build_release, "build_portable_release", write_partial_then_fail
+    )
+
+    with pytest.raises(RuntimeError, match="portable injected failure"):
         build_release.main()
 
     assert unrelated.read_text(encoding="utf-8") == "keep"
@@ -1123,15 +1114,18 @@ def test_clean_directories_preserves_unrelated_dist_artifacts(tmp_path, monkeypa
     build_dir = dist / "starhope-windows"
     wheels_dir = dist / "wheels"
     macos_dir = dist / "starhope-macos"
-    for directory in (build_dir, wheels_dir, macos_dir):
+    portable_dir = dist / "starhope-portable"
+    for directory in (build_dir, wheels_dir, macos_dir, portable_dir):
         directory.mkdir()
         (directory / "old").write_text("remove", encoding="utf-8")
     (dist / "StarHope-macOS.zip").write_bytes(b"old")
+    (dist / "StarHope-Portable.zip").write_bytes(b"old")
 
     monkeypatch.setattr(build_release, "DIST_DIR", str(dist))
     monkeypatch.setattr(build_release, "BUILD_DIR", str(build_dir))
     monkeypatch.setattr(build_release, "WHEELS_DIR", str(wheels_dir))
     monkeypatch.setattr(build_release, "MACOS_BUILD_DIR", str(macos_dir))
+    monkeypatch.setattr(build_release, "PORTABLE_BUILD_DIR", str(portable_dir))
     monkeypatch.setattr(build_release, "PYTHON_DIR", str(build_dir / "python"))
     monkeypatch.setattr(
         build_release,
@@ -1143,6 +1137,8 @@ def test_clean_directories_preserves_unrelated_dist_artifacts(tmp_path, monkeypa
 
     assert unrelated.read_text(encoding="utf-8") == "keep"
     assert not (dist / "StarHope-macOS.zip").exists()
+    assert not (dist / "StarHope-Portable.zip").exists()
+    assert not portable_dir.exists()
     assert (build_dir / "python" / "site-packages").is_dir()
 
 
