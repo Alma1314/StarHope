@@ -101,7 +101,6 @@ ROOT_FILE_ALLOWLIST = (
     "覆盖升级说明.txt",
     "pyproject.toml",
     "README.md",
-    "README_EN.md",
     "LICENSE",
 )
 STATIC_ALLOWLIST = (
@@ -200,7 +199,6 @@ OVERLAY_MANAGED_ROOTS = (
     "覆盖升级说明.txt",
     "pyproject.toml",
     "README.md",
-    "README_EN.md",
     "LICENSE",
     "starhope",
     "scripts",

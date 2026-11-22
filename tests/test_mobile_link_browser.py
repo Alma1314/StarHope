@@ -65,6 +65,42 @@ def test_android_pair_photo_library_and_desktop_scan_handoff(browser, tmp_path):
         browser.evaluate("fetch('/api/mobile-link/stop',{method:'POST'}).then(r=>r.ok)")
 
 
+def test_fresh_qr_rescan_in_open_page_reconnects(browser,tmp_path):
+    import urllib.request, urllib.parse
+    base=browser.evaluate('location.origin')
+    def wait(source):browser.command('wait','--fn',source)
+    try:
+        browser.evaluate("document.getElementById('mobileLinkOpen').click();true")
+        browser.evaluate("document.getElementById('mobileLinkStart').click();true")
+        wait("document.getElementById('mobileLinkQr').complete&&document.getElementById('mobileLinkQr').naturalWidth>0")
+        token=browser.evaluate('window.__localToken')
+        def desktop(path,body=None):
+            request=urllib.request.Request(base+path,data=None if body is None else json.dumps(body).encode(),
+                headers={'X-Local-Token':token},method='GET' if body is None else 'POST')
+            with urllib.request.urlopen(request,timeout=10) as response:return response.read()
+        status=json.loads(desktop('/api/mobile-link'));address=urllib.parse.urlsplit(status['urls'][0]).hostname
+        first=decode_qr(desktop('/api/mobile-link/qr?address='+address))
+        browser.command('set','viewport','393','851')
+        browser.command('open',first)
+        wait("document.body.dataset.mobileReady==='true'&&document.getElementById('pairPanel').hidden")
+        browser.evaluate("document.getElementById('disconnect').click();true")
+        wait("!document.getElementById('pairPanel').hidden")
+        desktop('/api/mobile-link/code',{})
+        second=decode_qr(desktop('/api/mobile-link/qr?address='+address))
+        assert second!=first
+        # The open page gets a new fragment without reloading, as a scanner reusing the tab would.
+        browser.evaluate("location.hash='pair='+"+json.dumps(second.split('#pair=',1)[1])+";true")
+        wait("document.getElementById('pairPanel').hidden")
+        assert browser.evaluate('location.hash')==''
+        assert not json.loads(desktop('/api/mobile-link'))['qr_revision']
+        browser.command('screenshot',str(tmp_path/'android-open-page-rescan.png'))
+    finally:
+        browser.command('set','viewport','1440','1000')
+        browser.command('open',base)
+        wait("typeof LearningWorkspace==='object'")
+        browser.evaluate("fetch('/api/mobile-link/stop',{method:'POST'}).then(r=>r.ok)")
+
+
 def test_qr_address_selection_and_used_code_falls_back_to_manual(browser,tmp_path):
     base=browser.evaluate('location.origin')
     def wait(source):browser.command('wait','--fn',source)
@@ -82,6 +118,12 @@ def test_qr_address_selection_and_used_code_falls_back_to_manual(browser,tmp_pat
         browser.command('set','viewport','393','851')
         browser.command('open',url)
         wait("document.body.dataset.mobileReady==='true'&&document.getElementById('pairPanel').hidden")
+        assert browser.evaluate('location.hash')==''
+        # Scanner reuses the already-open page: same fragment, no reload, must stay connected.
+        ticket=url.split('#pair=',1)[1]
+        browser.evaluate("location.hash='pair='+"+json.dumps(ticket)+";true")
+        wait("document.getElementById('status').textContent.includes('无需重复扫码')")
+        assert browser.evaluate("document.getElementById('pairPanel').hidden")
         assert browser.evaluate('location.hash')==''
         browser.evaluate("document.getElementById('disconnect').click();true")
         wait("!document.getElementById('pairPanel').hidden")
