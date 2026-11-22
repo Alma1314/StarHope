@@ -467,7 +467,8 @@ def create_learning_router(get_db, *, updater=None):
         if question is None:
             raise HTTPException(404, "题目已删除")
         snapshot = question_snapshot(question)
-        return {key: value for key, value in snapshot.items() if key not in {"reference_answer", "question_identity"}}
+        return {**{key: value for key, value in snapshot.items() if key not in {"reference_answer", "question_identity"}},
+                "question_type": question.question_type}
 
     @router.get("/learners/{learner_id}/recommendations")
     def recommendations(learner_id: int, education_stage: str = "", subject: str = "", limit: int = 10, db=Depends(get_db)):

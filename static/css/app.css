@@ -6287,6 +6287,9 @@ button[aria-disabled="true"]:hover,
 .learning-shell .learning-checks label { flex-direction: row; align-items: center; gap: 8px; min-height: 44px; }
 .learning-shell .learning-checks input { width: auto; flex: none; }
 .learning-checks { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.learning-shell .learning-choice-option { min-width: 72px; padding: 8px 16px; border: 1px solid rgba(var(--brand-500-rgb), .3); border-radius: 10px; cursor: pointer; }
+.learning-choice-option:focus-within { outline: 2px solid rgb(var(--brand-500-rgb)); outline-offset: 2px; }
+.learning-choice-option input { accent-color: rgb(var(--brand-500-rgb)); }
 .learning-scan-card summary { cursor: pointer; min-height: 44px; padding: 8px 0; }
 .learning-scan-card img, #learningReviewAssessment img { display: block; max-width: 100%; max-height: 400px; object-fit: contain; }
 .learning-mastery-row { padding: 12px; border: 1px solid rgba(var(--brand-500-rgb), .18); border-radius: 12px; }

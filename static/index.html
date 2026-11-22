@@ -1354,7 +1354,8 @@
                                 <form id="learningAttemptForm" hidden class="learning-stack">
                                     <p id="learningQuestionMeta" class="text-xs text-slate-500"></p>
                                     <div id="learningQuestionBody" class="learning-preview"></div>
-                                    <label>你的作答<textarea id="learningAnswer" class="glass-input" rows="5" maxlength="10000" placeholder="填写答案与解题步骤，可使用 LaTeX"></textarea></label>
+                                    <fieldset id="learningChoiceAnswer" hidden class="learning-stack"><legend id="learningChoiceLegend" class="text-sm font-semibold">选择答案</legend><div id="learningChoiceOptions" class="learning-checks"></div></fieldset>
+                                    <label><span id="learningAnswerLabel">你的作答</span><textarea id="learningAnswer" class="glass-input" rows="5" maxlength="10000" placeholder="填写答案与解题步骤，可使用 LaTeX"></textarea></label>
                                     <label>备注<textarea id="learningNotes" class="glass-input" rows="2" maxlength="2000" placeholder="例如：用了提示、计算出错、线下考试"></textarea></label>
                                     <div id="learningManualFields" hidden class="learning-form-grid">
                                         <label>人工核对结果<select id="learningManualOutcome" class="glass-select"><option value="ungraded">待核对</option><option value="correct">正确</option><option value="partial">部分正确</option><option value="incorrect">错误</option></select></label>

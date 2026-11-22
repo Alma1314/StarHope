@@ -47,6 +47,9 @@ def record(env, qid=1, *, owner=None, **changes):
 def test_practice_records_then_manual_grading_updates_only_its_learner(isolated):
     client, factory, _, learner, _ = isolated
     assert 'reference_answer' not in client.get('/api/learning/practice/1').json()
+    with factory() as db:
+        db.get(Question, 1).question_type = 'multi_choice'; db.commit()
+    assert client.get('/api/learning/practice/1').json()['question_type'] == 'multi_choice'
     other = client.post('/api/learning/learners', json={'name': '昵称乙'}).json()
     row, _ = record(isolated)
     assert row['reference_answer'] == '原答案1'

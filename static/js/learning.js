@@ -51,12 +51,19 @@ window.LearningWorkspace = (() => {
         try { return await handler(); }
         finally { saving = false; states.forEach(([control, disabled]) => { control.disabled = disabled; }); button?.removeAttribute('aria-busy'); }
     }
-    function dirtyPractice() { return Boolean(question && $('learningAnswer').value.trim() && !review); }
+    function selectedChoices() { return [...$('learningChoiceOptions').querySelectorAll('input:checked')].map(input => input.value); }
+    function isChoiceQuestion() { return ['single_choice', 'multi_choice'].includes(question?.question_type); }
+    function practiceAnswer() {
+        const text = $('learningAnswer').value.trim();
+        return isChoiceQuestion() ? [selectedChoices().join('、'), text].filter(Boolean).join('\n') : $('learningAnswer').value;
+    }
+    function dirtyPractice() { return Boolean(question && practiceAnswer().trim() && !review); }
     function mayReplace() { return (!dirtyPractice() && !(scanData && !scanSaved)) || window.confirm('当前作答或扫描结果尚未录入。确定放弃未提交的编辑并切换？'); }
     function resetPractice() {
         question = null; review = null; pendingPayload = null; requestId = '';
         explanation = null; $('learningExplanation').hidden = true;
         $('learningAttemptForm').hidden = true; $('learningReview').hidden = true;
+        $('learningChoiceOptions').replaceChildren(); $('learningChoiceAnswer').hidden = true;
     }
     function storageKey() { return 'starhope.learning.profile-task.' + learnerId; }
     function rememberTask(value) { try { value ? sessionStorage.setItem(storageKey(), value) : sessionStorage.removeItem(storageKey()); } catch (_) {} }
@@ -264,7 +271,26 @@ window.LearningWorkspace = (() => {
         const manual = $('learningOrigin').value === 'manual';
         $('learningManualFields').hidden = !manual;
         $('learningSubmit').textContent = manual ? '保存学习记录' : '提交作答并查看原答案';
-        $('learningAnswer').required = !manual;
+        const choice = isChoiceQuestion();
+        $('learningAnswer').required = !manual && !choice;
+        $('learningAnswer').maxLength = choice ? 9950 : 10000;
+        $('learningAnswerLabel').textContent = choice ? '解题步骤或补充说明（选填）' : '你的作答';
+        $('learningAnswer').placeholder = choice ? '可补充解题思路，无需输入选项字母' : '填写答案与解题步骤，可使用 LaTeX';
+    }
+    function renderChoiceAnswer() {
+        const host = $('learningChoiceOptions'); host.replaceChildren();
+        const choice = isChoiceQuestion(); $('learningChoiceAnswer').hidden = !choice;
+        if (!choice) return;
+        const multiple = question.question_type === 'multi_choice';
+        $('learningChoiceLegend').textContent = multiple ? '选择答案（可多选）' : '选择答案（单选）';
+        // Reuse the preview's option labels; older text/image questions use A–D.
+        const labels = [...$('learningQuestionBody').querySelectorAll('.choices-label')].map(item => item.textContent.trim().replace(/[.．、]$/, ''));
+        const values = labels.length >= 2 && labels.length <= 8 && labels.every((value, index) => value === 'ABCDEFGH'[index]) ? labels : ['A', 'B', 'C', 'D'];
+        values.forEach(value => {
+            const label = node('label', undefined, host, 'learning-choice-option');
+            const input = node('input', undefined, label); input.type = multiple ? 'checkbox' : 'radio'; input.name = 'learning-choice'; input.value = value;
+            node('span', value, label);
+        });
     }
     async function chooseQuestion(id) {
         if (saving || !mayReplace()) return;
@@ -276,15 +302,19 @@ window.LearningWorkspace = (() => {
         $('learningManualOutcome').value = 'ungraded';
         $('learningQuestionMeta').textContent = `#${id} · ${data.subject} · ${data.topics.map(topic => topic.name).join('、') || '尚未标注知识点，记录后暂不计入知识点统计'}`;
         renderQuestionPreviewContent($('learningQuestionBody'), data.content);
+        renderChoiceAnswer();
         $('learningAttemptForm').hidden = false; syncOrigin();
         $('learningQuestionBody').scrollIntoView({block: 'nearest', behavior: 'smooth'});
     }
     async function submitAttempt(event) {
         event.preventDefault(); if (!question || !learnerId || saving) return;
         const manual = $('learningOrigin').value === 'manual';
+        if (!pendingPayload && !manual && isChoiceQuestion() && !selectedChoices().length) {
+            message('请先选择答案，再提交作答。'); $('learningChoiceOptions').querySelector('input')?.focus(); return;
+        }
         if (pendingPayload && !window.confirm('上次提交结果尚未确认。将使用原请求标识查询/重试原作答，当前新修改尚不会提交。继续？')) return;
         const payload = pendingPayload || {request_id: requestId, question_id: question.question_id,
-            question_revision: question.question_revision, student_answer: $('learningAnswer').value,
+            question_revision: question.question_revision, student_answer: practiceAnswer(),
             notes: $('learningNotes').value, origin: manual ? 'manual' : 'practice',
             outcome: manual ? $('learningManualOutcome').value : 'ungraded', elapsed_seconds: manual
                 ? ($('learningElapsed').value === '' ? null : Number($('learningElapsed').value))
