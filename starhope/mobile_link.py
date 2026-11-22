@@ -5,7 +5,10 @@ import asyncio
 import hashlib
 import hmac
 import ipaddress
+import io
 import json
+import os
+import stat
 import secrets
 import socket
 import threading
@@ -17,10 +20,10 @@ from fastapi import APIRouter, FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse, Response
 import uvicorn
 
-from .asset_security import (MAX_SINGLE_IMAGE_BYTES, InvalidImageError,
+from .asset_security import (MAX_SINGLE_IMAGE_BYTES, MAX_NORMALIZED_IMAGE_BYTES, MAX_IMAGE_PIXELS, InvalidImageError,
     UploadTooLargeError, normalize_raster_image, read_stream_limited,
     write_private_text_atomic, harden_private_path)
-from .paths import STATIC_DIR, SYSTEM_GENERATED_DIR
+from .paths import STATIC_DIR, MOBILE_INBOX_DIR
 from .storage_access import check_directory_access
 
 
@@ -38,6 +41,7 @@ def private_ipv4(value):
 
 def local_addresses():
     addresses = set()
+    preferred = ""
     try:
         addresses.update(row[4][0] for row in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET))
     except OSError:
@@ -46,16 +50,18 @@ def local_addresses():
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
             probe.connect(("192.168.1.1", 9))
-            addresses.add(probe.getsockname()[0])
+            preferred = probe.getsockname()[0]
+            addresses.add(preferred)
     except OSError:
         pass
-    return sorted(value for value in addresses if private_ipv4(value) and not value.startswith("127."))
+    return sorted((value for value in addresses if private_ipv4(value) and not value.startswith("127.")),
+                  key=lambda value: (value != preferred, ipaddress.IPv4Address(value)))
 
 
 class MobileLink:
     def __init__(self, read_library, inbox=None, clock=time.monotonic):
         self.read_library = read_library
-        self.inbox = Path(inbox) if inbox is not None else SYSTEM_GENERATED_DIR / "mobile_inbox"
+        self.inbox = Path(inbox) if inbox is not None else MOBILE_INBOX_DIR
         self.clock = clock
         self.lock = threading.RLock()
         self.upload_slots = threading.BoundedSemaphore(2)
@@ -63,6 +69,7 @@ class MobileLink:
         self.port = 0
         self.code = ""
         self.code_until = 0
+        self.qr_ticket = self.qr_revision = ""
         self.sessions = {}
         self.failures = []
         self.mobile_app = self._mobile_app()
@@ -76,12 +83,14 @@ class MobileLink:
                     "urls": [f"http://{address}:{self.port}" for address in local_addresses()] if running else [],
                     "pairing_code": self.code if running and self.code_until > now else "",
                     "code_seconds": max(0, int(self.code_until - now)) if running else 0,
+                    "qr_revision": self.qr_revision if running and self.qr_ticket and self.code_until > now else "",
                     "devices": len(self.sessions), "photos": self.list_photos()}
 
     def start(self):
         with self.lock:
             if self.thread and self.thread.is_alive():
                 raise HTTPException(409, "互联服务正在运行或停止，请稍后刷新。")
+            self._check_root()
             check_directory_access(self.inbox, label="手机照片收件箱")
             harden_private_path(self.inbox, directory=True)
             listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -116,6 +125,7 @@ class MobileLink:
             self.sessions.clear()
             self.code = ""
             self.code_until = 0
+            self.qr_ticket = self.qr_revision = ""
             if server:
                 server.should_exit = True
         if thread and thread is not threading.current_thread():
@@ -126,24 +136,54 @@ class MobileLink:
         with self.lock:
             self.code = f"{secrets.randbelow(100_000_000):08d}"
             self.code_until = self.clock() + 600
+            self.qr_ticket = secrets.token_urlsafe(24)
+            self.qr_revision = secrets.token_hex(8)
             # Rotating a code must not reset the global brute-force budget.
             return {"pairing_code": self.code, "code_seconds": 600}
 
-    def pair(self, code):
+    def qr_png(self, address):
+        import qrcode
+        with self.lock:
+            if not (self.server and self.server.started and self.thread.is_alive()):
+                raise HTTPException(409, "请先开启局域网互联。")
+            if address not in local_addresses():
+                raise HTTPException(400, "请选择当前电脑显示的局域网地址。")
+            if not self.qr_ticket or self.clock() >= self.code_until:
+                raise HTTPException(410, "二维码已使用或过期，请更换二维码。")
+            # The fragment never goes to the HTTP server or request/referrer logs.
+            url = f"http://{address}:{self.port}/#pair={self.qr_ticket}"
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=6, border=4)
+        qr.add_data(url)
+        qr.make(fit=True)
+        output = io.BytesIO()
+        qr.make_image(fill_color="black", back_color="white").save(output, format="PNG")
+        return output.getvalue()
+
+    def pair(self, code=None, *, ticket=None):
         with self.lock:
             now = self.clock()
             self.failures = [stamp for stamp in self.failures if stamp > now - 60]
             if len(self.failures) >= 5:
                 raise HTTPException(429, "配对尝试过多，请一分钟后重试。")
-            if (not isinstance(code, str) or now >= self.code_until or not self.code
-                    or not hmac.compare_digest(code, self.code)):
+            using_qr = ticket is not None
+            if using_qr:
+                valid = (code is None and isinstance(ticket, str) and len(ticket) == 32
+                         and ticket.isascii() and bool(self.qr_ticket)
+                         and hmac.compare_digest(ticket, self.qr_ticket))
+            else:
+                valid = (isinstance(code, str) and len(code) == 8 and code.isascii() and code.isdecimal()
+                         and bool(self.code) and hmac.compare_digest(code, self.code))
+            if not valid or now >= self.code_until:
                 self.failures.append(now)
-                raise HTTPException(403, "配对码错误或已过期，请查看电脑端。")
+                raise HTTPException(403, "二维码已使用或过期，请在电脑更换二维码或手动配对。" if using_qr
+                                    else "配对码错误或已过期，请查看电脑端。")
             self.sessions = {key: expiry for key, expiry in self.sessions.items() if expiry > now}
             if len(self.sessions) >= 10:
                 raise HTTPException(409, "已连接十台设备，请在电脑端关闭并重新开启互联。")
             token = secrets.token_urlsafe(32)
             self.sessions[hashlib.sha256(token.encode()).hexdigest()] = now + 12 * 3600
+            if using_qr:
+                self.qr_ticket = ""
             return {"token": token, "expires_seconds": 12 * 3600}
 
     def authorize(self, request):
@@ -164,17 +204,31 @@ class MobileLink:
             raise HTTPException(400, "照片编号无效。")
         return value
 
+    def _check_root(self):
+        if self.inbox.is_symlink():
+            raise HTTPException(409, "手机收件箱目录不能是符号链接。")
+
     def list_photos(self):
+        self._check_root()
         if not self.inbox.exists():
             return []
         rows = []
         for path in sorted(self.inbox.glob("*.json")):
             try:
                 self._id(path.stem)
-                if path.is_symlink():
+                if path.is_symlink() or path.stat().st_size > 4096:
                     raise ValueError()
                 row = json.loads(path.read_text(encoding="utf-8"))
-                if row["id"] != path.stem or row["extension"] not in (".jpg", ".png", ".webp", ".gif"):
+                if (not isinstance(row, dict) or row.get("id") != path.stem
+                        or row.get("extension") not in (".jpg", ".png", ".webp", ".gif")
+                        or row.get("media_type") not in ("image/jpeg", "image/png", "image/webp", "image/gif")
+                        or any(type(row.get(key)) is not int or row[key] <= 0
+                               for key in ("size", "width", "height", "created_at"))
+                        or row["size"] > MAX_NORMALIZED_IMAGE_BYTES
+                        or row["width"] * row["height"] > MAX_IMAGE_PIXELS
+                        or any(not isinstance(row.get(key), str) or len(row[key]) != 64
+                               or any(char not in "0123456789abcdef" for char in row[key])
+                               for key in ("sha256", "normalized_sha256"))):
                     raise ValueError()
                 rows.append(row)
             except Exception:
@@ -192,6 +246,17 @@ class MobileLink:
                 raise HTTPException(409, "照片文件不可用，请重新传送。")
             return row, path
 
+    def photo_bytes(self, identity):
+        row, path = self.photo(identity)
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(descriptor, "rb") as handle:
+            if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                raise HTTPException(409, "照片文件类型异常。")
+            data = handle.read(row["size"] + 1)
+        if len(data) != row["size"] or hashlib.sha256(data).hexdigest() != row["normalized_sha256"]:
+            raise HTTPException(409, "照片校验失败，请保留文件并检查。")
+        return row, data
+
     def accept(self, identity, raw):
         identity = self._id(identity)
         digest = hashlib.sha256(raw).hexdigest()
@@ -201,7 +266,7 @@ class MobileLink:
             if previous:
                 if previous["sha256"] != digest:
                     raise HTTPException(409, "同一传送编号的照片已变化，请重新选择照片。")
-                self.photo(identity)
+                self.photo_bytes(identity)
                 return previous
         image = normalize_raster_image(raw)
         with self.lock:
@@ -214,14 +279,19 @@ class MobileLink:
             check_directory_access(self.inbox, label="手机照片收件箱")
             path = self.inbox / (identity + image.extension)
             row = {"id": identity, "sha256": digest, "extension": image.extension,
+                   "normalized_sha256": hashlib.sha256(image.data).hexdigest(),
                    "media_type": image.media_type, "size": len(image.data),
                    "width": image.width, "height": image.height, "created_at": int(time.time())}
-            with path.open("xb") as handle:
-                harden_private_path(path)
-                handle.write(image.data)
-                handle.flush()
-                import os
-                os.fsync(handle.fileno())
+            if path.exists() or path.is_symlink():
+                # Recover a crash after image fsync but before its receipt was committed.
+                if path.is_symlink() or path.stat().st_size != len(image.data) or path.read_bytes() != image.data:
+                    raise HTTPException(409, "未完成传送的照片文件存在冲突，请保留文件并检查。")
+            else:
+                with path.open("xb") as handle:
+                    harden_private_path(path)
+                    handle.write(image.data)
+                    handle.flush()
+                    os.fsync(handle.fileno())
             try:
                 write_private_text_atomic(self.inbox / (identity + ".json"), json.dumps(row))
             except Exception:
@@ -243,11 +313,16 @@ class MobileLink:
         router.add_api_route("/stop", self.close, methods=["POST"])
         router.add_api_route("/code", self.rotate_code, methods=["POST"])
 
+        @router.get("/qr")
+        def qr(address: str = Query(..., max_length=15)):
+            return Response(self.qr_png(address), media_type="image/png", headers={
+                "Cache-Control": "no-store, private", "X-Content-Type-Options": "nosniff"})
+
         @router.get("/photos/{identity}")
         def download(identity: str):
-            row, path = self.photo(identity)
-            return FileResponse(path, media_type=row["media_type"], filename="phone-" + identity + row["extension"],
-                                headers={"Cache-Control": "no-store"})
+            row, data = self.photo_bytes(identity)
+            return Response(data, media_type=row["media_type"], headers={"Cache-Control": "no-store",
+                "Content-Disposition": f'attachment; filename="phone-{identity}{row["extension"]}"'})
 
         @router.delete("/photos/{identity}")
         def remove(identity: str):
@@ -302,6 +377,10 @@ class MobileLink:
                 "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"})
             return response
 
+        @app.exception_handler(OSError)
+        async def storage_error(_request, _error):
+            return JSONResponse({"detail": "收件箱读写失败，请在电脑检查空间、权限或占用；照片未确认传送时请保留原图。"}, 503)
+
         @app.get("/")
         def page():
             return FileResponse(STATIC_DIR / "mobile.html")
@@ -318,9 +397,18 @@ class MobileLink:
         async def pair(request: Request):
             try:
                 payload = await request.json()
-                return self.pair(payload.get("code") if isinstance(payload, dict) else None)
+                if not isinstance(payload, dict):
+                    raise HTTPException(400, "配对请求格式无效。")
+                return self.pair(payload.get("code"), ticket=payload.get("ticket"))
             except (ValueError, UnicodeError):
                 raise HTTPException(400, "配对请求格式无效。")
+
+        @app.post("/api/disconnect")
+        def disconnect(request: Request):
+            digest = self.authorize(request)
+            with self.lock:
+                self.sessions.pop(digest, None)
+            return {"disconnected": True}
 
         @app.get("/api/library")
         def library(q: str = Query("", max_length=200), page: int = Query(1, ge=1, le=100000)):

@@ -1748,7 +1748,7 @@ def test_bank_browser_uses_detail_first_layout_and_card_based_editor_dialog():
     assert "function openQuestionEditorModal(panelId = 'content')" in editor_source
     assert "switchContentTab('ocr')" in editor_source
     assert "function closeQuestionEditorModal()" in editor_source
-    assert "function openNewQuestionEditor()" in editor_source
+    assert "function openNewQuestionEditor(onReady)" in editor_source
     assert "function setBankSplitRatio(value" in editor_source
     assert "ratioFromPointer(event.clientX)" in editor_source
     assert "window.setBankSplitRatio = setBankSplitRatio" in editor_source

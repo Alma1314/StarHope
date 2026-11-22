@@ -187,6 +187,7 @@
         </div>
 
         <div id="headerUtilityActions" class="flex items-center space-x-4">
+            <button type="button" id="mobileLinkOpen" class="glass-btn w-11 h-11 rounded-xl shrink-0" aria-label="手机互联与拍照收件箱" title="安卓手机互联"><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i></button>
             <!-- Connection Status -->
             <div id="apiStatusIndicator" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
                 <span class="h-2 w-2 rounded-full bg-slate-400"></span>
@@ -1577,6 +1578,23 @@
         </div>
     </div>
 
+    <div id="mobileLinkModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobileLinkTitle" class="fixed inset-0 glass-modal-overlay z-50 flex items-center justify-center hidden">
+        <div class="glass-modal rounded-2xl w-full max-w-2xl p-5 max-h-[90vh] overflow-auto">
+            <div class="flex items-center justify-between"><h2 id="mobileLinkTitle" class="font-bold text-lg">安卓手机互联</h2><button id="mobileLinkClose" type="button" data-modal-close aria-label="关闭手机互联窗口" class="glass-btn w-11 h-11 rounded-xl">×</button></div>
+            <p class="text-sm text-slate-500 my-3">两台设备连接同一可信 Wi-Fi。手机通过独立入口查看电脑题库、拍照传送；识别与正式保存由电脑确认。</p>
+            <p id="mobileLinkMessage" role="status" aria-live="polite" class="text-sm my-3"></p>
+            <div class="flex gap-2 flex-wrap"><button id="mobileLinkStart" type="button" class="glass-btn glass-btn-primary px-4 py-2 rounded-xl">开启局域网互联</button><button id="mobileLinkStop" type="button" class="glass-btn px-4 py-2 rounded-xl" hidden>关闭互联 / 断开全部设备</button><button id="mobileLinkCode" type="button" class="glass-btn px-4 py-2 rounded-xl" hidden>更换二维码 / 配对码</button></div>
+            <div id="mobileLinkConnection" class="my-4" hidden>
+                <p class="text-sm font-semibold">用安卓手机相机或扫一扫扫码，打开后自动连接</p>
+                <p class="text-xs text-slate-500 my-2">先连接同一 Wi-Fi。若扫码工具无法打开局域网页面，请选择“在浏览器中打开”。</p>
+                <label for="mobileLinkAddress" class="text-sm">连接地址（打不开时可切换后重新扫码）</label><select id="mobileLinkAddress" class="glass-input w-full my-2 px-3 py-2 rounded-xl border border-slate-200 min-h-[44px]"></select>
+                <div class="flex justify-center my-3"><img id="mobileLinkQr" alt="安卓手机扫码连接二维码" class="hidden" width="270" height="270" style="max-width:100%;height:auto;image-rendering:pixelated;background:white;border-radius:8px"></div>
+                <p id="mobileLinkQrStatus" role="status" class="text-sm text-center text-slate-500"></p>
+                <details class="my-3"><summary class="cursor-pointer text-sm py-2">无法扫码？手动输入地址连接</summary><div id="mobileLinkUrls" class="my-2 break-all"></div></details><p class="text-sm">配对码 <strong id="mobileLinkPin" class="text-2xl tracking-widest select-all"></strong></p><p id="mobileLinkDevices" class="text-sm text-slate-500"></p><p class="text-xs text-slate-500">地址随网络变化。若无法打开，请检查电脑防火墙、Wi-Fi 客户端隔离或访客网络；无地址时检查电脑是否已连接局域网。本入口使用 HTTP，请勿做公网端口映射。</p></div>
+            <h3 class="font-semibold mt-5">手机照片收件箱</h3><p class="text-sm text-slate-500 my-2">最多 20 张 / 128 MiB，断网和重启后保留。识别会使用当前 OCR 配置；请核对后保存，处理完再移除。收件箱不属于正式题库备份。</p><div id="mobileLinkInbox"></div>
+        </div>
+    </div>
+
     <!-- SETTINGS MODAL (API Configuration) - Apple Glass Style -->
     <div id="settingsModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="settingsModalTitle" class="fixed inset-0 glass-modal-overlay z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
         <div class="glass-modal rounded-2xl w-full max-w-5xl p-6 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-hidden">
@@ -2726,6 +2744,7 @@
     <script src="/static/js/dashboard.js"></script>
     <script src="/static/js/learning.js"></script>
     <script src="/static/js/workspace.js"></script>
+    <script src="/static/js/mobile-link.js"></script>
     <!-- QA_START -->
     <script src="/static/js/qa-data.js"></script>
     <script src="/static/js/qa.js"></script>

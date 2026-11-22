@@ -1933,7 +1933,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             });
         }
 
-        function openNewQuestionEditor() {
+        function openNewQuestionEditor(onReady) {
             checkAndSwitch(() => {
                 const returnQuestionId = Number(EditorState.questionId || 0);
                 // The list refresh performed by startNewQuestion must not
@@ -1954,6 +1954,7 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
                 }
                 openQuestionEditorModal();
                 setQuestionDetailEditAvailability(false);
+                if (typeof onReady === 'function') onReady();
             });
         }
 

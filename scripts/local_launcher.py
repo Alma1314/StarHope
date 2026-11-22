@@ -28,7 +28,7 @@ UNVERIFIED_PORTS: set[int] = set()
 REPOSITORY = "Alma1314/StarHope"
 IMPORT_CHECK = (
     "import fastapi,uvicorn,sqlalchemy,greenlet,colorama,multipart,dotenv,"
-    "requests,PIL,docx,lxml,defusedxml,olefile,exceptiongroup,sniffio;"
+    "requests,PIL,qrcode,docx,lxml,defusedxml,olefile,exceptiongroup,sniffio;"
     "import pymupdf as fitz;import pdf_inspector"
 )
 

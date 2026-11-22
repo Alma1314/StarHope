@@ -592,6 +592,8 @@ async def app_lifespan(_app: FastAPI):
 
             await asyncio.to_thread(DATABASE_EXPORT_QUEUE.close)
         SUBJECT_TASKS.shutdown(wait=False)
+        import asyncio
+        await asyncio.to_thread(MOBILE_LINK.close)
         LEARNING_SCANS.close()
         LEARNING_UPDATER.close()
         PROFILE_TASKS.shutdown(wait=False)
@@ -630,6 +632,13 @@ async def security_and_heartbeat_middleware(request: Request, call_next):
     global LAST_ACTIVE_TIME
     LAST_ACTIVE_TIME = time.time()
     
+    # Pairing codes, inbox photos and listener controls stay on the authenticated loopback UI.
+    if request.url.path.startswith("/api/mobile-link"):
+        token = request.headers.get("X-Local-Token", "")
+        if (not request.client or request.client.host not in ("127.0.0.1", "::1")
+                or not token.isascii() or not secrets.compare_digest(token, LOCAL_TOKEN)):
+            return JSONResponse(status_code=403, content={"detail": "请从本机题库页面管理手机互联。"})
+
     # Verify local security token for modifying operations
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         if request.url.path != "/api/heartbeat":
@@ -642,6 +651,8 @@ async def security_and_heartbeat_middleware(request: Request, call_next):
                 )
                 
     response = await call_next(request)
+    if request.url.path.startswith("/api/mobile-link"):
+        response.headers["Cache-Control"] = "no-store, private"
     return response
 
 @app.post("/api/heartbeat")
@@ -955,7 +966,7 @@ def read_index():
         # Inject dynamic cache-busting version parameter based on file mtime
         js_files = [
             "api.js", "subject-annotations.js", "editor.js", "semantic.js", "ocr.js", "import.js", "book-import.js", "document-import-session.js",
-            "paper.js", "dashboard.js", "learning.js", "workspace.js", "qa-data.js", "qa.js",
+            "paper.js", "dashboard.js", "learning.js", "workspace.js", "mobile-link.js", "qa-data.js", "qa.js",
         ]
         for js in js_files:
             js_path = str(STATIC_JS_DIR / js)
@@ -3252,6 +3263,28 @@ app.include_router(create_agent_router(
     active_version_code=lambda: get_active_version_code(),
 ))
 
+
+
+# The Android companion has its own opt-in, paired listener; the main UI stays loopback-only.
+from starhope.mobile_link import MobileLink
+
+
+def _mobile_library(query, page):
+    from starhope.agent_reads import AgentReader, AgentReadError
+    try:
+        with AgentReader(DATABASE_PATH, uploads_dir=UPLOAD_DIR,
+                         metadata_path=Path(METADATA_FILE), include_local_paths=False) as reader:
+            result = reader.search(query=query, page=page, page_size=10, profile="teaching",
+                                   include_answers=True, include_seq_num=False)
+        fields = ("id", "content", "answer_markdown", "source", "education_stage", "subject")
+        return {"items": [{key: item.get(key, "") for key in fields} for item in result["items"]],
+                "total": result["total"], "next_page": result["next_page"]}
+    except (AgentReadError, ValueError):
+        raise HTTPException(503, "电脑题库暂不可读取，请稍后刷新。")
+
+
+MOBILE_LINK = MobileLink(_mobile_library)
+app.include_router(MOBILE_LINK.desktop_router())
 
 @app.get("/api/questions")
 def list_questions(

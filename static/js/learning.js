@@ -772,7 +772,15 @@ window.LearningWorkspace = (() => {
             });
         }));
     }
-    return {open: () => {
+    return {receivePhoto: file => {
+        if (!initialized || saving) { showToast('请等待学习档案加载或保存完成。','info'); return false; }
+        const input = $('learningScanFiles');
+        if (input.files.length && !confirm('替换当前尚未提交的扫描文件？已有扫描结果会保留。')) return false;
+        const transfer = new DataTransfer(); transfer.items.add(file); input.files = transfer.files;
+        showPanel('scan'); input.focus();
+        $('learningScanStatus').textContent = '手机照片已带入，请确认学习档案与学段后点击开始扫描。';
+        return true;
+    }, open: () => {
         if (!initialized) { initialize(); loadProfiles().catch(error => message(error.message)); }
         else if (learnerId) { refresh().catch(error => message(error.message)); restoreScan(); }
         else loadProfiles().catch(error => message(error.message));
