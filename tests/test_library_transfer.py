@@ -35,7 +35,8 @@ def isolated_db(path):
         connection.execute("PRAGMA foreign_keys=ON")
     database.Base.metadata.create_all(engine)
     with engine.begin() as connection:
-        connection.exec_driver_sql("PRAGMA user_version=13")
+        from starhope.db_migrations import LATEST_SCHEMA_VERSION
+        connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
     try:
         with sessionmaker(bind=engine)() as session:
             yield session

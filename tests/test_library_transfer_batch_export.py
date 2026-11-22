@@ -24,7 +24,8 @@ def export_library(tmp_path):
     engine = create_engine(f"sqlite:///{path}")
     Base.metadata.create_all(engine)
     with engine.begin() as connection:
-        connection.exec_driver_sql("PRAGMA user_version=14")
+        from starhope.db_migrations import LATEST_SCHEMA_VERSION
+        connection.exec_driver_sql(f"PRAGMA user_version={LATEST_SCHEMA_VERSION}")
         connection.exec_driver_sql("PRAGMA journal_mode=WAL")
     uploads = tmp_path / "uploads"
     uploads.mkdir()

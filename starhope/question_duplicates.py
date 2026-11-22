@@ -15,7 +15,7 @@ mathematically different variant.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from difflib import SequenceMatcher
 import hashlib
 import json
@@ -24,9 +24,11 @@ import unicodedata
 from typing import Iterable, Literal, Mapping, Sequence
 
 from starhope.source_comments import strip_source_attribution_comment
+from starhope.question_stem import clean_question_fields
+from starhope.word_math import iter_word_math_spans, word_literal_ranges
 
 
-FINGERPRINT_VERSION = 3
+FINGERPRINT_VERSION = 4
 SIMHASH_BITS = 128
 SIMHASH_BAND_COUNT = 8
 SIMHASH_BAND_BITS = 16
@@ -83,12 +85,14 @@ _CRITICAL_TOKEN_RE = re.compile(
     r"任意|任一|所有|每个|存在|至少|至多|"
     r"递增|递减|增加|减少|上升|下降|"
     r"大于|小于|等于|最大|最小|奇数|偶数|"
+    r"非负整数|正整数|整数|实数|有理数|无理数|自然数|复数|"
+    r"充分条件|必要条件|充要条件|正确|错误|成立|满足|无解|有解|不|非|且|或|"
     r"[零〇一二两三四五六七八九十百千万亿壹贰叁肆伍陆柒捌玖拾佰仟萬億]+|"
     r"\d+(?:\.\d+)?|\.\d+|"
     r"[A-Za-z]+|[\u0370-\u03ff]+|"
     r"<=>|<->|=>|->|<=|>=|!=|==|"
     r"[≤≥≠≈≡∈∉∋⊂⊆⊄⊊⊃⊇⊅⊋∪∩∀∃∄⇒⇔→←↔∥⊥]|"
-    r"[+\-×÷*/^_=<>|]|"
+    r"[+\-×÷*/^_=<>|!%'′″]|"
     r"[()\[\]{}（）【】,，;；:]"
 )
 _NUMBER_RE = re.compile(
@@ -100,15 +104,11 @@ _CHINESE_NUMBER_CHARACTERS = frozenset(
     "零〇一二两三四五六七八九十百千万亿壹贰叁肆伍陆柒捌玖拾佰仟萬億"
 )
 
-# Punctuation removed only outside complete math spans.  Everything inside
-# ``$...$`` / ``$$...$$`` / ``\(...\)`` / ``\[...\]`` is kept byte-for-byte,
-# as are LaTeX commands, decimal points inside ASCII text and percent signs.
+# Prose punctuation is ignored outside authored math and literal spans.
+# Potential bare-math punctuation and ASCII token boundaries stay significant.
 _PUNCTUATION_IGNORED = frozenset(
     "，。、；：？！“”‘’「」『』（）【】〔〕《》〈〉…—～．"
     ",;:?!\"'()[]{}"
-)
-_MATH_SPAN_RE = re.compile(
-    r"\$\$[\s\S]*?\$\$|\$[^$\n]*\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]"
 )
 
 _FULLWIDTH_TRANSLATION = str.maketrans(
@@ -360,6 +360,7 @@ class QuestionDuplicateInput:
     visible_image_signatures: tuple[str, ...] = ()
     tikz_signatures: tuple[str, ...] = ()
     answer_asset_signatures: tuple[str, ...] = ()
+    source: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "content", str(self.content or ""))
@@ -394,6 +395,7 @@ class QuestionDuplicateInput:
             answer_asset_signatures=_as_signature_tuple(
                 value.get("answer_asset_signatures")
             ),
+            source=str(value.get("source") or ""),
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -404,6 +406,7 @@ class QuestionDuplicateInput:
             "visible_image_signatures": list(self.visible_image_signatures),
             "tikz_signatures": list(self.tikz_signatures),
             "answer_asset_signatures": list(self.answer_asset_signatures),
+            **({"source": self.source} if self.source else {}),
         }
 
 
@@ -437,6 +440,10 @@ class QuestionFingerprint:
     # punctuation outside math spans.  Stored fingerprints rebuilt from the
     # database recompute it, and older mappings simply leave it empty.
     silent_text: str = ""
+
+    @property
+    def silent_hash(self) -> str:
+        return _stable_hash(self.silent_text) if self.silent_text else ""
 
     def __post_init__(self) -> None:
         if self.fingerprint_version < 1:
@@ -832,28 +839,53 @@ def normalize_math_text(value: str) -> str:
 
 
 def _strip_outside_math(text: str) -> str:
-    text = _MARKDOWN_IMAGE_RE.sub("", text)
-    text = _HTML_IMAGE_RE.sub("", text)
-    return "".join(
-        char for char in text
-        if not char.isspace() and char not in _PUNCTUATION_IGNORED
-    )
+    # Bare formulas are common after OCR. Keep punctuation which can carry
+    # mathematical meaning, and spaces separating ASCII words/numbers.
+    text = re.sub(r"\s+", " ", text)
+    parts = []
+    for index, char in enumerate(text):
+        before = text[index - 1] if index else ""
+        after = text[index + 1] if index + 1 < len(text) else ""
+        ascii_before = bool(before) and before.isascii() and before.isalnum()
+        ascii_after = bool(after) and after.isascii() and after.isalnum()
+        if char == " ":
+            if ascii_before and ascii_after:
+                parts.append(char)
+        elif char not in _PUNCTUATION_IGNORED or char in "!'(),;:[]{}（）【】":
+            parts.append(char)
+    return "".join(parts)
 
 
 def punctuation_insensitive_text(content: str) -> str:
-    """Drop images, whitespace and punctuation outside complete math spans.
+    """Drop images and prose-only whitespace/punctuation, preserving math.
 
     Math spans are preserved byte-for-byte, so ``x-1`` never equals ``x1``
-    and ``1.5`` never equals ``15`` when they appear inside ``$...$``.
+    and bare ``n!``, intervals and separate ASCII tokens remain distinct.
     """
 
-    text = str(content or "")
+    text = strip_source_attribution_comment(str(content or ""))
+    # Remove actual images before locating math; a dollar in an alt/title/URL
+    # must not change formula boundaries. Literal code and links stay intact.
+    literal_ranges = word_literal_ranges(text)
+    images = [match for pattern in (_MARKDOWN_IMAGE_RE, _HTML_IMAGE_RE)
+              for match in pattern.finditer(text)
+              if not _is_escaped(text, match.start())
+              and not any(start <= match.start() < end
+                          for start, end in literal_ranges
+                          if not text[start:end].startswith(("![", "<img")))]
+    for match in sorted(images, key=lambda match: match.start(), reverse=True):
+        text = text[:match.start()] + text[match.end():]
+    ranges = word_literal_ranges(text) + [
+        (span.start, span.end) for span in iter_word_math_spans(text)
+    ]
     parts: list[str] = []
     cursor = 0
-    for match in _MATH_SPAN_RE.finditer(text):
-        parts.append(_strip_outside_math(text[cursor : match.start()]))
-        parts.append(match.group(0))
-        cursor = match.end()
+    for start, end in sorted(ranges):
+        if start < cursor:
+            continue
+        parts.append(_strip_outside_math(text[cursor:start]))
+        parts.append(text[start:end])
+        cursor = end
     parts.append(_strip_outside_math(text[cursor:]))
     return "".join(parts)
 
@@ -1061,6 +1093,10 @@ def build_question_fingerprint(
         if isinstance(question, QuestionDuplicateInput)
         else QuestionDuplicateInput.from_mapping(question)
     )
+    content, answer, _ = clean_question_fields(
+        source.content, source.answer_markdown, source.source, source.question_type,
+    )
+    source = replace(source, content=content, answer_markdown=answer)
     canonical_text, stem, choices, markdown_figure_count = _build_canonical_content(
         source.content
     )
@@ -1315,7 +1351,7 @@ def compare_question_fingerprints(
         and left.ordered_choices_hash != right.ordered_choices_hash
     )
 
-    if exact_text:
+    if exact_text and left.silent_text and right.silent_text:
         _append_reason(reasons, "EXACT_TEXT")
         if left.raw_content_hash != right.raw_content_hash:
             _append_reason(reasons, "SAFE_NORMALIZATION_ONLY")
@@ -1335,6 +1371,7 @@ def compare_question_fingerprints(
             score=1.0,
             reasons=tuple(reasons),
             needs_visual_review=needs_visual_review,
+            silent_exact=True,
         )
 
     # Same question after removing images, whitespace and punctuation outside

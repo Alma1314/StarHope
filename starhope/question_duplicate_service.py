@@ -19,12 +19,13 @@ from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
 from PIL import Image, ImageOps
-from sqlalchemy import and_, func, literal, select, union_all
+from sqlalchemy import and_, or_, func, literal, select, union_all
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, noload
 
 from starhope.asset_security import resolve_upload_asset
+from starhope.question_stem import clean_question_fields
 from starhope.database import Question, QuestionFingerprint as StoredFingerprint
 from starhope.question_duplicates import (
     EMPTY_TEXT_BAND,
@@ -222,14 +223,18 @@ def duplicate_input_for_question(
     url_prefix: str,
 ) -> QuestionDuplicateInput:
     display_paths = question.display_image_paths
+    content, answer, source = clean_question_fields(
+        question.content, question.answer_markdown, question.source, question.question_type,
+    )
     return QuestionDuplicateInput(
-        content=question.content or "",
-        answer_markdown=question.answer_markdown or "",
+        content=content,
+        answer_markdown=answer,
+        source=source,
         question_type=question.question_type or "",
         visible_image_signatures=visible_image_signatures(
             select_visible_question_images(
-                question.content or "",
-                question.answer_markdown or "",
+                content,
+                answer,
                 display_paths,
                 question.content_tikz_assets,
                 review=question.review or "",
@@ -244,7 +249,7 @@ def duplicate_input_for_question(
         answer_asset_signatures=(
             visible_image_signatures(
                 select_answer_images(
-                    question.answer_markdown or "",
+                    answer,
                     display_paths,
                     question.answer_tikz_assets,
                 ),
@@ -262,6 +267,7 @@ def prepare_fingerprint_values(fingerprint: QuestionFingerprint) -> dict[str, ob
         "fingerprint_version": fingerprint.fingerprint_version,
         "content_revision_hash": fingerprint.content_revision_hash,
         "exact_hash": fingerprint.exact_hash,
+        "silent_hash": fingerprint.silent_hash,
         "critical_math_hash": fingerprint.critical_math_hash,
         "answer_hash": fingerprint.answer_hash,
         "simhash_hex": fingerprint.simhash_hex,
@@ -401,8 +407,7 @@ def recall_question_ids(
     length_floor = max(1, int(fingerprint.token_count * 0.55))
     length_ceiling = max(length_floor, int(fingerprint.token_count * 1.8) + 4)
     exact_query = db.query(StoredFingerprint.question_id).filter(
-        StoredFingerprint.fingerprint_version == FINGERPRINT_VERSION,
-        StoredFingerprint.exact_hash == fingerprint.exact_hash,
+        _exact_match_condition(fingerprint)
     )
     if exclude_id is not None:
         exact_query = exact_query.filter(
@@ -601,6 +606,7 @@ def _rank_indexed_candidate_ids(
         ranked.append(IndexedCandidate(question, candidate_fingerprint, comparison))
     ranked.sort(
         key=lambda item: (
+            -int(item.comparison.silent_exact),
             -rank[item.comparison.classification],
             -item.comparison.score,
             item.question.id,
@@ -822,6 +828,19 @@ def find_semantic_duplicate_candidates(
     return ranked[:result_limit], advisories[:result_limit], status
 
 
+def _exact_match_condition(fingerprint: QuestionFingerprint):
+    exact = and_(
+        StoredFingerprint.fingerprint_version == FINGERPRINT_VERSION,
+        StoredFingerprint.exact_hash == fingerprint.exact_hash,
+    )
+    if not fingerprint.silent_hash:
+        return exact
+    return or_(exact, and_(
+        StoredFingerprint.fingerprint_version == FINGERPRINT_VERSION,
+        StoredFingerprint.silent_hash == fingerprint.silent_hash,
+    ))
+
+
 def exact_duplicate_ids(
     db: Session,
     fingerprint: QuestionFingerprint,
@@ -829,12 +848,25 @@ def exact_duplicate_ids(
     exclude_id: int | None = None,
 ) -> list[int]:
     query = db.query(StoredFingerprint.question_id).filter(
-        StoredFingerprint.fingerprint_version == FINGERPRINT_VERSION,
-        StoredFingerprint.exact_hash == fingerprint.exact_hash,
+        _exact_match_condition(fingerprint)
     )
     if exclude_id is not None:
         query = query.filter(StoredFingerprint.question_id != int(exclude_id))
     return [row[0] for row in query.limit(50).all()]
+
+
+def silent_duplicate_ids(
+    db: Session, fingerprint: QuestionFingerprint, *, exclude_id: int | None = None,
+) -> list[int]:
+    if not fingerprint.silent_hash:
+        return []
+    query = db.query(StoredFingerprint.question_id).filter(
+        _exact_match_condition(fingerprint),
+        StoredFingerprint.silent_hash != "",
+    )
+    if exclude_id is not None:
+        query = query.filter(StoredFingerprint.question_id != int(exclude_id))
+    return [row[0] for row in query.order_by(StoredFingerprint.question_id).limit(50)]
 
 
 def index_status(db: Session) -> dict[str, object]:

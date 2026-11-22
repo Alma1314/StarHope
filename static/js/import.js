@@ -5923,6 +5923,7 @@
                 content: contentInput ? contentInput.value : String(q.content || ''),
                 answer_markdown: answerInput ? answerInput.value : String(q.answer_markdown || ''),
                 review: String(q.review || ''),
+                source: card.querySelector('.card-source')?.value || String(q.source || ''),
                 question_type: typeInput ? typeInput.value : String(q.question_type || ''),
                 image_paths: safeDuplicateImagePaths([
                     ...(Array.isArray(q.image_paths) ? q.image_paths : []),
@@ -5960,6 +5961,7 @@
                 content: contentInput ? contentInput.value : '',
                 answer_markdown: answerInput ? answerInput.value : '',
                 review: reviewInput ? reviewInput.value : '',
+                source: document.getElementById('editSource')?.value || '',
                 question_type: typeInput ? typeInput.value : '',
                 image_paths: safeDuplicateImagePaths([
                     ...(window.StarHopeImageAssets ? window.StarHopeImageAssets.collect(contentInput ? contentInput.value : '') : []),

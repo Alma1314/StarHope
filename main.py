@@ -107,6 +107,7 @@ from starhope.question_duplicate_service import (
     SEMANTIC_ADVISORY_MAX_ITEMS,
     batch_local_matches,
     exact_duplicate_ids,
+    silent_duplicate_ids,
     find_indexed_candidates,
     find_semantic_duplicate_candidates,
     fingerprint_for_question,
@@ -305,7 +306,7 @@ from starhope.asset_lifecycle import (
     serialize_asset_lifecycle,
 )
 from starhope.paths import RETAINED_UPLOADS_DIR
-from starhope.question_stem import strip_leading_question_number
+from starhope.question_stem import clean_question_fields
 from starhope.question_assets import (
     embedded_question_assets,
     markdown_literal_ranges,
@@ -3377,12 +3378,15 @@ def _duplicate_payload_list(value, *, field_name: str, max_items: int = 50):
 
 
 def _duplicate_input_from_payload(item: dict) -> QuestionDuplicateInput:
-    content = normalize_fillin_macro(str(item.get("content") or ""))
+    content, answer_markdown, source = clean_question_fields(
+        normalize_fillin_macro(str(item.get("content") or "")),
+        str(item.get("answer_markdown") or ""), str(item.get("source") or ""),
+        str(item.get("question_type") or ""),
+    )
     if not content.strip():
         raise ValueError("题干内容不能为空")
     if len(content) > 200_000:
         raise ValueError("单题题干过长")
-    answer_markdown = str(item.get("answer_markdown") or "")
     if len(answer_markdown) > 500_000:
         raise ValueError("单题解析过长")
     image_paths = [
@@ -3419,6 +3423,7 @@ def _duplicate_input_from_payload(item: dict) -> QuestionDuplicateInput:
     return QuestionDuplicateInput(
         content=content,
         answer_markdown=answer_markdown,
+        source=source,
         question_type=str(item.get("question_type") or ""),
         visible_image_signatures=build_visible_image_signatures(
             visible_paths,
@@ -4050,6 +4055,7 @@ def build_prepared_question_fingerprint(
     tikz_code: str,
     tikz_reference_image_path: str,
     review: str = "",
+    source: str = "",
 ):
     hidden_references = {str(tikz_reference_image_path or "").strip()}
     for asset in [*content_tikz_assets, *answer_tikz_assets]:
@@ -4070,6 +4076,7 @@ def build_prepared_question_fingerprint(
         QuestionDuplicateInput(
             content=content,
             answer_markdown=answer_markdown,
+            source=source,
             question_type=question_type,
             visible_image_signatures=build_visible_image_signatures(
                 visible_paths,
@@ -4208,7 +4215,9 @@ def create_question(
         if figure_size not in FIGURE_SIZE_VALUES:
             raise ValueError("无效的插图尺寸")
         # 规范化填空题下划线为 \fillin 宏；题干首部题号属于 source 元数据
-        content = strip_leading_question_number(normalize_fillin_macro(content), source)
+        content, answer_markdown, source = clean_question_fields(
+            normalize_fillin_macro(content), answer_markdown, source, question_type,
+        )
 
         (
             content,
@@ -4277,6 +4286,7 @@ def create_question(
         try:
             question_fingerprint = build_prepared_question_fingerprint(
                 content=content,
+                source=source,
                 answer_markdown=answer_markdown,
                 question_type=question_type,
                 image_paths=parsed_img_paths,
@@ -4293,8 +4303,8 @@ def create_question(
                 "[Duplicate Index] Create fingerprint failed open "
                 f"(type={type(fingerprint_exc).__name__}); background backfill will retry."
             )
-        if duplicate_snapshot_hash and question_fingerprint is not None:
-            if duplicate_snapshot_hash != question_fingerprint.content_revision_hash:
+        if question_fingerprint is not None:
+            if duplicate_snapshot_hash and duplicate_snapshot_hash != question_fingerprint.content_revision_hash:
                 response = duplicate_review_required_response(
                     db,
                     fingerprint=question_fingerprint,
@@ -4305,11 +4315,23 @@ def create_question(
                 db.rollback()
                 rollback_question_asset_promotions(asset_promotions)
                 return response
+            silent_ids = silent_duplicate_ids(
+                db, question_fingerprint, exclude_id=db_question.id,
+            )
+            if silent_ids:
+                response = duplicate_review_required_response(
+                    db, fingerprint=question_fingerprint, question_ids=silent_ids,
+                    message="题库已有该题，已停止重复保存。",
+                    code="duplicate_already_exists",
+                )
+                db.rollback()
+                rollback_question_asset_promotions(asset_promotions)
+                return response
             exact_ids = exact_duplicate_ids(
                 db,
                 question_fingerprint,
                 exclude_id=db_question.id,
-            )
+            ) if duplicate_snapshot_hash else []
             if exact_ids and duplicate_override != "independent":
                 response = duplicate_review_required_response(
                     db,
@@ -4444,7 +4466,9 @@ def update_question(
             if figure_size not in FIGURE_SIZE_VALUES:
                 raise ValueError("无效的插图尺寸")
         # 规范化填空题下划线为 \fillin 宏；题干首部题号属于 source 元数据
-        content = strip_leading_question_number(normalize_fillin_macro(content), source)
+        content, answer_markdown, source = clean_question_fields(
+            normalize_fillin_macro(content), answer_markdown, source, question_type,
+        )
 
         (
             content,
@@ -4548,6 +4572,7 @@ def update_question(
         try:
             question_fingerprint = build_prepared_question_fingerprint(
                 content=content,
+                source=source,
                 answer_markdown=answer_markdown,
                 question_type=question_type,
                 image_paths=parsed_img_paths,
@@ -4567,8 +4592,8 @@ def update_question(
                 "[Duplicate Index] Update fingerprint failed open "
                 f"(type={type(fingerprint_exc).__name__}); background backfill will retry."
             )
-        if duplicate_snapshot_hash and question_fingerprint is not None:
-            if duplicate_snapshot_hash != question_fingerprint.content_revision_hash:
+        if question_fingerprint is not None:
+            if duplicate_snapshot_hash and duplicate_snapshot_hash != question_fingerprint.content_revision_hash:
                 response = duplicate_review_required_response(
                     db,
                     fingerprint=question_fingerprint,
@@ -4579,11 +4604,23 @@ def update_question(
                 db.rollback()
                 rollback_question_asset_promotions(asset_promotions)
                 return response
+            silent_ids = silent_duplicate_ids(
+                db, question_fingerprint, exclude_id=db_question.id,
+            )
+            if silent_ids:
+                response = duplicate_review_required_response(
+                    db, fingerprint=question_fingerprint, question_ids=silent_ids,
+                    message="题库已有该题，已停止重复保存。",
+                    code="duplicate_already_exists",
+                )
+                db.rollback()
+                rollback_question_asset_promotions(asset_promotions)
+                return response
             exact_ids = exact_duplicate_ids(
                 db,
                 question_fingerprint,
                 exclude_id=db_question.id,
-            )
+            ) if duplicate_snapshot_hash else []
             if exact_ids and duplicate_override != "independent":
                 response = duplicate_review_required_response(
                     db,

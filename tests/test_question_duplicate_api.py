@@ -143,7 +143,7 @@ def test_batch_check_finds_batch_local_duplicate_only_when_requested(client):
     assert by_key["paper-3"]["level"] in {"possible_variant", "none"}
 
 
-def test_save_time_recheck_requires_explicit_independent_override(client, db_session):
+def test_save_time_recheck_cannot_override_a_silent_duplicate(client, db_session):
     content = "并发复查题 $0<x<1$。"
     assert _create(client, content).status_code == 200
     checked = _check(
@@ -161,18 +161,19 @@ def test_save_time_recheck_requires_explicit_independent_override(client, db_ses
 
     blocked = _create(client, content, duplicate_snapshot_hash=snapshot)
     assert blocked.status_code == 409
-    assert blocked.json()["code"] == "duplicate_review_required"
+    assert blocked.json()["code"] == "duplicate_already_exists"
     assert db_session.query(Question).count() == 1
 
-    allowed = _create(
+    overridden = _create(
         client,
         content,
         duplicate_snapshot_hash=snapshot,
         duplicate_override="independent",
     )
-    assert allowed.status_code == 200
-    assert db_session.query(Question).count() == 2
-    assert db_session.query(QuestionFingerprint).count() == 2
+    assert overridden.status_code == 409
+    assert overridden.json()["code"] == "duplicate_already_exists"
+    assert db_session.query(Question).count() == 1
+    assert db_session.query(QuestionFingerprint).count() == 1
 
 
 def test_stale_duplicate_snapshot_never_saves_changed_content(client, db_session):
@@ -194,14 +195,16 @@ def test_stale_duplicate_snapshot_never_saves_changed_content(client, db_session
     assert db_session.query(Question).count() == 0
 
 
-def test_missing_precheck_snapshot_keeps_legacy_and_degraded_saves_available(
+def test_missing_precheck_snapshot_still_rejects_silent_duplicates(
     client, db_session
 ):
     content = "旧客户端兼容题 $y=3$。"
 
     assert _create(client, content).status_code == 200
-    assert _create(client, content).status_code == 200
-    assert db_session.query(Question).count() == 2
+    blocked = _create(client, content)
+    assert blocked.status_code == 409
+    assert blocked.json()["code"] == "duplicate_already_exists"
+    assert db_session.query(Question).count() == 1
 
 
 def test_fingerprint_generation_failure_does_not_block_question_save(

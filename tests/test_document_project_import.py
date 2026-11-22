@@ -36,7 +36,7 @@ def environment(tmp_path):
     engine = create_engine(f"sqlite:///{path}")
     Base.metadata.create_all(engine)
     with engine.begin() as connection:
-        connection.exec_driver_sql("PRAGMA user_version=14")
+        connection.exec_driver_sql(f"PRAGMA user_version={db_migrations.LATEST_SCHEMA_VERSION}")
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
     factory = sessionmaker(bind=engine)
     store = DocumentProjectStore(tmp_path / "projects")
@@ -263,7 +263,7 @@ def test_full_backup_manifest_and_archived_database_include_import_receipts(envi
     archive = create_full_backup(database_path=path, uploads_dir=uploads,
         metadata_path=tmp_path/'custom_metadata.json', output_dir=tmp_path/'full-backups', retention=None)
     manifest = verify_full_backup(archive)
-    assert manifest['database']['schema_version'] == 14
+    assert manifest['database']['schema_version'] == db_migrations.LATEST_SCHEMA_VERSION
     assert manifest['database']['row_counts']['document_import_receipts'] == 1
     assert manifest['database']['row_counts']['questions'] == 1
     import zipfile

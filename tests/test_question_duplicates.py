@@ -313,7 +313,7 @@ def test_fingerprint_is_deterministic_serializable_and_has_eight_bands():
     assert rebuilt == original
     assert rebuilt.snapshot_hash == rebuilt.content_revision_hash
     assert rebuilt.critical_math_tokens == rebuilt.critical_tokens
-    assert original.fingerprint_version == FINGERPRINT_VERSION == 3
+    assert original.fingerprint_version == FINGERPRINT_VERSION == 4
     assert len(original.simhash_hex) == 32
     assert original.bands == simhash_bands(original.simhash_hex)
     assert all(0 <= band <= 65535 for band in original.bands)

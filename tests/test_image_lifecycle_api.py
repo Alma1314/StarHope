@@ -411,7 +411,7 @@ def test_shared_temporary_image_can_be_saved_by_two_cards_and_reimported(client,
     path, url = assets("shared", temporary=True)
     original = path.read_bytes()
     saved = []
-    for title in ("第一题", "第二题", "第一题"):
+    for title in ("第一题", "第二题", "第三题"):
         data = _created(client.post(
             "/api/questions",
             data=_payload(content=f"{title} ![共用图]({url})", image_paths=json.dumps([url])),
@@ -425,6 +425,14 @@ def test_shared_temporary_image_can_be_saved_by_two_cards_and_reimported(client,
         assert path.read_bytes() == original
         saved.append(data["question"]["id"])
     assert len(set(saved)) == 3
+    # The same image can be reused, while identical text is now rejected.
+    blocked = client.post("/api/questions", data=_payload(
+        content=f"第一题 ![共用图]({url})", image_paths=json.dumps([url]),
+    ), headers=headers)
+    assert blocked.status_code == 409
+    assert blocked.json()["code"] == "duplicate_already_exists"
+    assert path.read_bytes() == original
+    assert client.get(permanent).content == original
 
 
 @pytest.mark.parametrize("already_saved", [False, True])

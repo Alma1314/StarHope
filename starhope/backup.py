@@ -955,6 +955,8 @@ def verify_full_backup(archive_path: Path) -> dict[str, Any]:
                     V6_QUESTION_FINGERPRINT_INDEXES,
                     V7_QUESTION_FINGERPRINT_COLUMNS,
                     V7_QUESTION_FINGERPRINT_INDEXES,
+                    V8_QUESTION_FINGERPRINT_COLUMNS,
+                    V8_QUESTION_FINGERPRINT_INDEXES,
                     _validate_library_import_receipts,
                     _validate_question_fingerprint_schema,
                 )
@@ -975,7 +977,7 @@ def verify_full_backup(archive_path: Path) -> dict[str, Any]:
                                     else (
                                         V7_QUESTION_FINGERPRINT_COLUMNS
                                         if schema_version == 7
-                                        else None
+                                        else (V8_QUESTION_FINGERPRINT_COLUMNS if schema_version < 22 else None)
                                     )
                                 ),
                                 expected_indexes=(
@@ -984,7 +986,7 @@ def verify_full_backup(archive_path: Path) -> dict[str, Any]:
                                     else (
                                         V7_QUESTION_FINGERPRINT_INDEXES
                                         if schema_version == 7
-                                        else None
+                                        else (V8_QUESTION_FINGERPRINT_INDEXES if schema_version < 22 else None)
                                     )
                                 ),
                             )

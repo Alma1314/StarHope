@@ -20,7 +20,7 @@ from starhope.paths import SCHEMA_SNAPSHOT_DIR
 from starhope.sub_knowledge import normalize_sub_knowledge
 
 
-LATEST_SCHEMA_VERSION = 21
+LATEST_SCHEMA_VERSION = 22
 LEGACY_REQUIRED_TABLES = {
     "questions",
     "question_curriculums",
@@ -58,7 +58,7 @@ V6_QUESTION_FINGERPRINT_COLUMNS = {
     "updated_at",
 }
 V7_QUESTION_FINGERPRINT_COLUMNS = set(V6_QUESTION_FINGERPRINT_COLUMNS)
-QUESTION_FINGERPRINT_COLUMNS = V7_QUESTION_FINGERPRINT_COLUMNS | {
+V8_QUESTION_FINGERPRINT_COLUMNS = V7_QUESTION_FINGERPRINT_COLUMNS | {
     "text_band0",
     "text_band1",
     "text_band2",
@@ -68,6 +68,7 @@ QUESTION_FINGERPRINT_COLUMNS = V7_QUESTION_FINGERPRINT_COLUMNS | {
     "text_band6",
     "text_band7",
 }
+QUESTION_FINGERPRINT_COLUMNS = V8_QUESTION_FINGERPRINT_COLUMNS | {"silent_hash"}
 
 V6_QUESTION_FINGERPRINT_INDEXES = {
     "idx_question_fingerprints_exact": ("fingerprint_version", "exact_hash"),
@@ -125,7 +126,7 @@ V7_QUESTION_FINGERPRINT_INDEXES = {
     ),
 }
 
-QUESTION_FINGERPRINT_INDEXES = {
+V8_QUESTION_FINGERPRINT_INDEXES = {
     **V7_QUESTION_FINGERPRINT_INDEXES,
     "idx_question_fingerprints_text_band0": (
         "fingerprint_version",
@@ -167,6 +168,10 @@ QUESTION_FINGERPRINT_INDEXES = {
         "text_band7",
         "token_count",
     ),
+}
+QUESTION_FINGERPRINT_INDEXES = {
+    **V8_QUESTION_FINGERPRINT_INDEXES,
+    "idx_question_fingerprints_silent": ("fingerprint_version", "silent_hash"),
 }
 
 
@@ -910,6 +915,7 @@ def _ensure_question_fingerprint_table(connection) -> int:
                 fingerprint_version INTEGER NOT NULL,
                 content_revision_hash VARCHAR(64) NOT NULL DEFAULT '',
                 exact_hash VARCHAR(64) NOT NULL DEFAULT '',
+                silent_hash VARCHAR(64) NOT NULL DEFAULT '',
                 critical_math_hash VARCHAR(64) NOT NULL DEFAULT '',
                 answer_hash VARCHAR(64) NOT NULL DEFAULT '',
                 simhash_hex VARCHAR(32) NOT NULL DEFAULT '',
@@ -948,6 +954,23 @@ def _ensure_question_fingerprint_table(connection) -> int:
                 f"({', '.join(columns)})"
             )
 
+    if table_exists:
+        columns = {row[1] for row in connection.exec_driver_sql(
+            'PRAGMA table_info("question_fingerprints")'
+        )}
+        if "silent_hash" not in columns:
+            _validate_question_fingerprint_schema(
+                connection, expected_columns=V8_QUESTION_FINGERPRINT_COLUMNS,
+                expected_indexes=V8_QUESTION_FINGERPRINT_INDEXES,
+            )
+            connection.exec_driver_sql(
+                "ALTER TABLE question_fingerprints "
+                "ADD COLUMN silent_hash VARCHAR(64) NOT NULL DEFAULT ''"
+            )
+            connection.exec_driver_sql(
+                "CREATE INDEX idx_question_fingerprints_silent "
+                "ON question_fingerprints (fingerprint_version, silent_hash)"
+            )
     _validate_question_fingerprint_schema(connection)
     return int(not table_exists)
 
@@ -1213,7 +1236,7 @@ def _upgrade_v6_or_v7_fingerprint_schema(
                     f"({', '.join(columns)})"
                 )
                 added_text_indexes += 1
-            _validate_question_fingerprint_schema(connection)
+            _ensure_question_fingerprint_table(connection)
             figure_layout_stats = _ensure_figure_layout_columns(connection)
             sub_knowledge_stats = _ensure_sub_knowledge_columns(connection)
             knowledge_point_stats = _ensure_knowledge_point_tables(connection)

@@ -87,6 +87,52 @@ def _create_version_five_database(path):
         )
 
 
+def test_v21_adds_silent_index_after_backup_and_preserves_original_rows(tmp_path, monkeypatch):
+    path = tmp_path / "v21.sqlite3"
+    engine = create_engine(f"sqlite:///{path}")
+    database_module.Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DROP INDEX idx_question_fingerprints_silent")
+        connection.exec_driver_sql("ALTER TABLE question_fingerprints DROP COLUMN silent_hash")
+        connection.exec_driver_sql("PRAGMA user_version=21")
+        connection.exec_driver_sql("INSERT INTO questions (id,content) VALUES (1,'原题，保留。')")
+        connection.exec_driver_sql("INSERT INTO question_fingerprints (question_id,fingerprint_version,exact_hash) VALUES (1,3,'old-hash')")
+    monkeypatch.setattr(db_migrations, "SCHEMA_SNAPSHOT_DIR", tmp_path / "snapshots")
+    # Verify a genuinely old backup still uses the old fingerprint contract.
+    from starhope.backup import create_full_backup, verify_full_backup
+    uploads = tmp_path / "uploads"
+    uploads.mkdir()
+    archive = create_full_backup(database_path=path, uploads_dir=uploads,
+        metadata_path=tmp_path / "custom_metadata.json", output_dir=tmp_path / "backups", retention=None)
+    assert verify_full_backup(archive)["database"]["schema_version"] == 21
+
+    validate = db_migrations._validate_question_fingerprint_schema
+    def fail_after_ddl(connection, **kwargs):
+        validate(connection, **kwargs)
+        if not kwargs:
+            raise RuntimeError("injected post-DDL failure")
+    with monkeypatch.context() as context:
+        context.setattr(db_migrations, "_validate_question_fingerprint_schema", fail_after_ddl)
+        with pytest.raises(RuntimeError, match="post-DDL"):
+            db_migrations.migrate_database(engine)
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql("PRAGMA user_version").scalar_one() == 21
+        assert "silent_hash" not in {row[1] for row in connection.exec_driver_sql("PRAGMA table_info(question_fingerprints)")}
+    result = db_migrations.migrate_database(engine)
+    assert result["from_version"] == 21
+    assert result["to_version"] == 22
+    backup = Path(result["backup"])
+    assert backup.is_file()
+    with _sqlite_connection(backup) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 21
+        assert "silent_hash" not in {row[1] for row in connection.execute("PRAGMA table_info(question_fingerprints)")}
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql("SELECT content FROM questions").scalar_one() == "原题，保留。"
+        assert connection.exec_driver_sql("SELECT fingerprint_version,exact_hash,silent_hash FROM question_fingerprints").one() == (3, "old-hash", "")
+        db_migrations._validate_question_fingerprint_schema(connection)
+    assert db_migrations.migrate_database(engine)["backup"] is None
+
+
 def _replace_with_pre_v8_fingerprint_table(connection, indexes):
     connection.execute("DROP TABLE question_fingerprints")
     connection.execute(

@@ -607,6 +607,11 @@ class QuestionFingerprint(Base):
             "exact_hash",
         ),
         Index(
+            "idx_question_fingerprints_silent",
+            "fingerprint_version",
+            "silent_hash",
+        ),
+        Index(
             "idx_question_fingerprints_band0",
             "fingerprint_version",
             "band0",
@@ -715,6 +720,9 @@ class QuestionFingerprint(Base):
         String(64), default="", server_default=text("''"), nullable=False
     )
     exact_hash = Column(
+        String(64), default="", server_default=text("''"), nullable=False
+    )
+    silent_hash = Column(
         String(64), default="", server_default=text("''"), nullable=False
     )
     critical_math_hash = Column(

@@ -94,4 +94,5 @@ def test_create_question_does_not_store_the_leading_number(client, headers):
         headers=headers,
     )
     assert response.status_code == 200
-    assert response.json()["question"]["content"] == "(2018 河北模拟, 5 分) 已知 $x=1$，求 $x+1$。"
+    assert response.json()["question"]["content"] == "已知 $x=1$，求 $x+1$。"
+    assert response.json()["question"]["source"] == "第7题 · 2018 河北模拟, 5 分"
