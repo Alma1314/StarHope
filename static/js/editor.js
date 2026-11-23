@@ -3759,6 +3759,25 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
             // URL inside either cannot conceal its closing delimiter/environment.
             protect(/[hH][tT][tT][pP][sS]?:\/\/[^\s<>"']+/g);
 
+            // Chemistry arguments can contain nested TeX and Chinese reaction
+            // conditions. Keep the complete command in one math fragment.
+            const chemistry = /\\(?:ce|pu)(?![A-Za-z])\s*\{/g;
+            let chemicalMatch;
+            while ((chemicalMatch = chemistry.exec(source)) !== null) {
+                const start = chemicalMatch.index;
+                const escaped = isLatexTokenEscaped(source, start);
+                let end = chemistry.lastIndex, depth = 1;
+                for (; end < source.length && depth; end++) {
+                    if (source[end] === '\\') { end++; continue; }
+                    if (source[end] === '{') depth++;
+                    if (source[end] === '}') depth--;
+                }
+                const original = source.slice(start, end);
+                const marker = save(depth || escaped ? original : '\\(' + original + '\\)');
+                source = source.slice(0, start) + marker + source.slice(end);
+                chemistry.lastIndex = start + marker.length;
+            }
+
             // Bold prose is unpacked after normalization. Normalize geometry
             // within that text now, while keeping the outer textbf protected.
             protect(/\\textbf\{[^{}\n]*\}/g, function(match) {
@@ -4381,6 +4400,11 @@ window.visualViewport?.addEventListener('scroll', repositionKnowledgePointPicker
 
             // Safely escape raw < and > inside math environments to \lt and \gt without lookbehind regex for maximum browser compatibility
             clean = replaceDelimitedMathForPreview(clean, function(match, inner, opening, closing) {
+                if (/\\(?:ce|pu)(?![A-Za-z])\s*\{/.test(inner)) {
+                    // mhchem owns ->, <=> and bonds. The common placeholder
+                    // restore below already HTML-escapes every math fragment.
+                    return match;
+                }
                 let safeInner = inner.replace(/\\</g, '@@ESCAPED_LESS@@')
                                      .replace(/</g, '\\lt ')
                                      .replace(/@@ESCAPED_LESS@@/g, '\\<')

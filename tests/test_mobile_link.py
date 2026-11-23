@@ -54,6 +54,29 @@ def test_unpaired_clients_cannot_read_or_upload_and_no_admin_routes(link):
         assert c.get('/api/connection', headers={'X-Local-Token': 'not-a-session'}).status_code == 401
 
 
+@pytest.mark.parametrize('missing', ('mobile.html', 'js/mobile.js', 'css/mobile.css'))
+def test_incomplete_mobile_assets_fail_before_start_and_return_actionable_error(link, tmp_path, monkeypatch, missing):
+    from starhope import mobile_link
+    assets = tmp_path / 'static'
+    for name in mobile_link.MOBILE_ASSETS:
+        path = assets / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('synthetic asset', encoding='utf-8')
+    (assets / missing).unlink()
+    monkeypatch.setattr(mobile_link, 'STATIC_DIR', assets)
+    with pytest.raises(HTTPException) as error:
+        link.start()
+    assert error.value.status_code == 503
+    assert '重新完整解压' in error.value.detail
+    assert link.server is None and not link.inbox.exists()
+    with client(link, raise_server_exceptions=False) as c:
+        for url in ('/', '/mobile.js', '/mobile.css'):
+            response = c.get(url)
+            assert response.status_code == 503
+            assert '手机页面资源不完整' in response.json()['detail']
+            assert 'no-store' in response.headers['cache-control']
+
+
 def test_host_peer_and_origin_cannot_be_spoofed(link):
     with client(link) as c:
         assert c.get('/', headers={'Host':'evil.example:8765'}).status_code == 403

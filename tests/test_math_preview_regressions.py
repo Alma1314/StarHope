@@ -19,6 +19,9 @@ def run_preview_script(assertions):
         "process.on('uncaughtException', error => { console.error(error.stack); process.exit(1); });\n"
         + "global.window = {StarHopeSafe: {safeImageUrl(v) { return v; }, escapeAttribute(v) { return v; }}};\n"
         + "const katex = require(" + json.dumps(katex_path) + ");\n"
+        + "require('node:vm').runInNewContext(require('node:fs').readFileSync("
+        + json.dumps(str(PROJECT_ROOT / 'static/lib/katex/contrib/mhchem.min.js'))
+        + ", 'utf8'), {katex});\n"
         + source[start:end]
         + r'''
 const assert = require('node:assert/strict');

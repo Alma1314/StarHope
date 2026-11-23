@@ -141,6 +141,7 @@ ROOT_FILE_ALLOWLIST = (
 )
 STATIC_ALLOWLIST = (
     "index.html",
+    "mobile.html",
     "apple-touch-icon.png",
     "favicon.ico",
     "favicon.png",
@@ -149,6 +150,7 @@ STATIC_ALLOWLIST = (
     "js",
     "lib",
 )
+MOBILE_REQUIRED_FILES = ("static/mobile.html", "static/js/mobile.js", "static/css/mobile.css")
 HIDDEN_FILE_ALLOWLIST = {".env.example", ".gitkeep", ".rels"}
 # Reviewed local-only maintenance tools and the source-only release builder.
 # Match project-relative paths so runtime resources and dependency names survive.
@@ -878,6 +880,7 @@ def validate_portable_tree(root):
         "scripts/upgrade_portable.ps1",
         "scripts/upgrade_shutdown.py",
         "static/index.html",
+        *MOBILE_REQUIRED_FILES,
         "static/uploads/.gitkeep",
         *PORTABLE_LAUNCHERS,
         "runtime/win-x64/python/python.exe",
@@ -902,6 +905,7 @@ def validate_portable_archive(path):
     with zipfile.ZipFile(path, "r") as archive:
         names = set(archive.namelist())
         required = {
+            *MOBILE_REQUIRED_FILES,
             "StarHope.bat", "StarHope.command", "StarHope.sh",
             "scripts/portable_launcher.py",
             "scripts/upgrade_portable.sh",
@@ -1149,6 +1153,7 @@ def assert_release_tree_clean(root, platform_name):
         "scripts/release_overlay.py",
         "scripts/local_launcher.py",
         "static/index.html",
+        *MOBILE_REQUIRED_FILES,
         "static/uploads/.gitkeep",
     }
     if platform_name == "windows-x64":
@@ -1408,6 +1413,9 @@ def verify_zip_archive(zip_path, required_members):
             raise RuntimeError("finished release manifest version does not match the app")
         if manifest.get("platform") not in {"macos", "windows-x64"}:
             raise RuntimeError("finished release manifest platform is invalid")
+        missing_mobile = sorted(set(MOBILE_REQUIRED_FILES) - file_infos.keys())
+        if missing_mobile:
+            raise RuntimeError(f"finished release is missing mobile assets: {missing_mobile}")
         overlay = manifest.get("overlay")
         expected_managed_roots = _overlay_managed_roots(manifest.get("platform"))
         if overlay != {

@@ -1293,9 +1293,23 @@ def inspect_and_extract_pdf(
     page_indices: Optional[List[int]] = None,
     *,
     include_source_review_evidence: bool = False,
+    check_cancelled=lambda: None,
 ) -> Dict[str, Any]:
     """Preserve the existing extraction; optionally attest original native pages."""
     result = _inspect_and_extract_pdf(file_bytes, task_id, page_indices)
+    check_cancelled()
+    if any(row.get("needs_ocr") for row in result.get("pages", [])):
+        from starhope.markitdown_helper import recover_pdf_text_pages
+        from starhope.task_manager import TaskCancelled
+        try:
+            recover_pdf_text_pages(file_bytes, result["pages"], check_cancelled=check_cancelled)
+            result.update(_build_result(available=result["available"], pages=result["pages"],
+                pdf_type=("mixed" if any(row.get("needs_ocr") for row in result["pages"])
+                          else "text_based"), error=result.get("error"), confidence=result.get("confidence")))
+        except TaskCancelled:
+            raise
+        except Exception:
+            pass  # Local conversion failure keeps the original OCR route.
     if include_source_review_evidence:
         from starhope.pdf_source_scopes import _capture_native_source_evidence
         evidence = None

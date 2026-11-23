@@ -2255,6 +2255,7 @@ def check_version_update():
     return result
 
 # ----------------- TikZ Render & AI Correction API -----------------
+from starhope.chemistry import chemical_latex_packages, wrap_chemical_drawing
 
 def compile_tikz_to_png(tikz_code: str, *, context="", circle_review=None, label_review=None) -> str:
     """
@@ -2305,6 +2306,7 @@ def compile_tikz_to_png(tikz_code: str, *, context="", circle_review=None, label
 \\usepackage{{amssymb}}
 \\usepackage{{tikz}}
 \\usepackage{{pgfplots}}
+{chemical_latex_packages(tikz_code)}
 \\pgfplotsset{{compat=1.16}}
 \\usetikzlibrary{{patterns}}
 \\usetikzlibrary{{calc,positioning,intersections,arrows}}
@@ -2428,6 +2430,8 @@ def render_tikz_endpoint(tikz_code: str = Form(...), context: str = Form(""),
                          review_labels: bool = Form(False), adjust_labels: bool = Form(False)):
     """接收 TikZ 代码并编译成静态 PNG，返回其相对路径"""
     try:
+        original_code = tikz_code
+        tikz_code = wrap_chemical_drawing(tikz_code)
         circle_review = {}
         if review_labels or adjust_labels:
             preview = compile_tikz_with_label_review(tikz_code, context=context, adjust=adjust_labels,
@@ -2443,6 +2447,8 @@ def render_tikz_endpoint(tikz_code: str = Form(...), context: str = Form(""),
             response = {"status": "success", "image_path": image_path}
         if circle_review:
             response["circle_review"] = circle_review
+        if tikz_code != original_code:
+            response.setdefault("tikz_code", tikz_code)
         return response
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -6957,6 +6963,7 @@ def run_pdf_parsing_task(
                 task_id,
                 page_indices=target_page_indices,
                 include_source_review_evidence=True,
+                check_cancelled=check_pdf_cancelled,
             )
             inspector_pages = {
                 int(page.get("page_index")): page
@@ -6970,6 +6977,10 @@ def run_pdf_parsing_task(
             diagnostics["pdf_native_repair"] = [
                 {"page_number": index + 1, **page["native_repair"]}
                 for index, page in inspector_pages.items() if page.get("native_repair")
+            ]
+            diagnostics["pdf_markitdown"] = [
+                {"page_number": index + 1, **page["markitdown"]}
+                for index, page in inspector_pages.items() if page.get("markitdown")
             ]
         DOCUMENT_TASKS.check_cancelled(task_id)
 
@@ -7179,12 +7190,15 @@ def run_pdf_parsing_task(
                          and local_idx not in pages_requiring_ocr else
                          ("regional" if plan else "full_vision") if local_idx in pages_requiring_ocr else "native"),
                 "structure_repaired": inspector_pages.get(page_num, {}).get("native_repair", {}).get("status") == "repaired",
+                "text_recovered": inspector_pages.get(page_num, {}).get("source") == "markitdown",
                 "native_characters": plan["native_characters"] if plan else 0,
                 "region_count": len(plan["regions"]) if plan else 0,
                 "image_area_ratio": plan["area_ratio"] if plan else (1 if local_idx in pages_requiring_ocr else 0),
             })
         diagnostics["pdf_extraction"] = {
             "native_pages": native_page_count,
+            "markitdown_pages": sum(inspector_pages.get(page_num, {}).get("source") == "markitdown"
+                                    for page_num in target_page_indices),
             "repaired_pages": sum(
                 inspector_pages.get(page_num, {}).get("native_repair", {}).get("status") == "repaired"
                 and not inspector_pages.get(page_num, {}).get("needs_ocr")

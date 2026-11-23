@@ -32,6 +32,7 @@ from docx.oxml.ns import nsdecls, qn
 from docx.shared import Cm, Emu, Inches, Pt, RGBColor
 
 from starhope.runtime_components import find_usable_pandoc
+from .chemistry import chemical_latex_packages
 from starhope.question_types import PAPER_TYPE_ORDER, custom_type_labels, is_written_question_type, paper_type_order
 from starhope.geometry_symbols import normalize_school_math_symbols
 from starhope.markdown_tables import find_markdown_tables, normalize_table_cell_math
@@ -1052,6 +1053,7 @@ def _formula_fallback_png(formula: str) -> bytes | None:
         math_source = rf"$\displaystyle {prepared_formula}$"
     tex = rf"""\documentclass[preview,border=2pt]{{standalone}}
 \usepackage{{amsmath,amssymb,mathtools,cancel,extarrows,yhmath}}
+{chemical_latex_packages(prepared_formula)}
 \begin{{document}}
 {math_source}
 \end{{document}}

@@ -14,6 +14,7 @@ from .paper_layout import item_solution_space_cm
 from .content_locks import _reference_literal_ranges
 from .question_assets import image_reference_spans, markdown_literal_ranges
 from .math_markdown import _replace_delimited_math, _replace_latex_environments
+from .chemistry import chemical_latex_packages
 
 import hashlib
 import os
@@ -1394,7 +1395,10 @@ def build_latex_document(
             lines.append("")
 
     lines.append(r"\end{document}")
-    return _with_content_source_tex_notice("\n".join(lines))
+    document = "\n".join(lines)
+    if "chemfig" in chemical_latex_packages(document):
+        document = document.replace(r"\begin{document}", "\\usepackage{chemfig}\n\\begin{document}", 1)
+    return _with_content_source_tex_notice(document)
 
 def collect_referenced_images(
     questions_data: list,
@@ -1545,6 +1549,11 @@ def compile_tex_to_pdf(tex_content: str, image_paths: list = None) -> tuple:
     print(f"[PDF_CACHE_MISS] Compiling TeX via xelatex. Key: {cache_key[:10]}...", flush=True)
     with tempfile.TemporaryDirectory() as temp_dir:
         tex_path = os.path.join(temp_dir, "paper.tex")
+        # Use the shipped class and styles on minimal TeX installations too.
+        try:
+            shutil.copytree(TEMPLATES_DIR / "exam-zh", temp_dir, dirs_exist_ok=True)
+        except OSError:
+            return None, "试卷模板读取失败，请完整更新程序并检查模板文件权限。"
         # Copy images into temp_dir
         for img_p in image_paths:
             try:
@@ -1966,6 +1975,9 @@ def build_answer_sheet_latex(title: str, subtitle: str, questions_data: list) ->
             )
         tex_str = tex_str.replace(default_line, replacement)
 
+    chemistry = chemical_latex_packages(tex_str)
+    if chemistry:
+        tex_str = tex_str.replace(r"\begin{document}", chemistry + "\n\\begin{document}", 1)
     return r"\tracinglostchars=3\relax " + tex_str
 
 def create_tex_zip_package(title: str, tex_content: str, ans_tex_content: str, image_paths: list, answer_sheet_tex: str = None, preflight_report: dict = None) -> bytes:

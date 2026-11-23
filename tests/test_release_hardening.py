@@ -568,6 +568,7 @@ def _make_minimal_windows_tree(root, *, include_launcher_helper=True):
         "scripts/release_overlay.py",
         "scripts/local_launcher.py",
         "static/index.html",
+        *build_release.MOBILE_REQUIRED_FILES,
         "static/uploads/.gitkeep",
         "python/python.exe",
         "python/_sqlite3.pyd",
@@ -620,6 +621,20 @@ def test_windows_release_tree_requires_launcher_helper(tmp_path):
         build_release.assert_release_tree_clean(tmp_path, "windows-x64")
 
 
+@pytest.mark.parametrize('platform_name', ('windows-x64', 'macos'))
+@pytest.mark.parametrize('missing', (
+    'static/mobile.html', 'static/js/mobile.js', 'static/css/mobile.css',
+))
+def test_release_requires_complete_mobile_page(tmp_path, platform_name, missing):
+    if platform_name == 'windows-x64':
+        _make_minimal_windows_tree(tmp_path)
+    else:
+        _make_minimal_macos_tree(tmp_path)
+    (tmp_path / missing).unlink()
+    with pytest.raises(RuntimeError, match=missing):
+        build_release.assert_release_tree_clean(tmp_path, platform_name)
+
+
 def _make_minimal_macos_tree(root):
     for relative_path in (
         "main.py",
@@ -629,6 +644,7 @@ def _make_minimal_macos_tree(root):
         "scripts/release_overlay.py",
         "scripts/local_launcher.py",
         "static/index.html",
+        *build_release.MOBILE_REQUIRED_FILES,
         "static/uploads/.gitkeep",
         "启动题库系统.command",
     ):
@@ -725,6 +741,7 @@ def test_release_copy_excludes_internal_tools_and_preserves_runtime_imports(
     assert not (staged / "Scripts/Resources").exists()
     for relative_path in (
         "main.py",
+        "static/mobile.html",
         "scripts/backup.py",
         "scripts/restore.py",
         "scripts/search_questions.py",

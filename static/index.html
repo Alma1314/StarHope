@@ -59,6 +59,7 @@
     <!-- KaTeX CSS & JS -->
     <link rel="stylesheet" href="/static/lib/katex/katex.min.css">
     <script src="/static/lib/katex/katex.min.js"></script>
+    <script src="/static/lib/katex/contrib/mhchem.min.js"></script>
     <script src="/static/lib/katex/contrib/auto-render.min.js"></script>
     
     <!-- Marked.js for Markdown -->
@@ -751,6 +752,7 @@
                         <details id="contentTabContent-manual" class="space-y-3 hidden"><summary>公式输入速查（可选）</summary>
                             <p class="text-xs text-slate-400"><i class="fa-solid fa-circle-info"></i> 您可以直接在下方的题干编辑框中直接手写 LaTeX/Markdown 混合内容。配图可以直接上传插图进行定位。</p>
                             <div class="flex flex-wrap gap-1.5">
+                                <button type="button" class="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md cursor-pointer hover:bg-slate-200 font-mono" onclick="insertContentHelper('$\\ce{2H2 + O2 -> 2H2O}$')">化学反应式</button>
                                 <button type="button" class="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md cursor-pointer hover:bg-slate-200 font-mono" onclick="insertContentHelper('$x^2$')">$x^2$ (行内公式)</button>
                                 <button type="button" class="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md cursor-pointer hover:bg-slate-200 font-mono" onclick="insertContentHelper('\\dfrac{a}{b}')">$\dfrac{a}{b}$ (分数)</button>
                                 <button type="button" class="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md cursor-pointer hover:bg-slate-200 font-mono" onclick="insertContentHelper('\\sqrt{x}')">$\sqrt{x}$ (开根)</button>
@@ -772,10 +774,11 @@
                     <div class="border-t border-slate-100 pt-5 space-y-3">
                         <div class="flex justify-between items-center">
                             <label for="editContent" class="editor-field-label">题干</label>
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center justify-end gap-2">
                                 <button type="button" id="normalizeContentFractionsBtn" onclick="normalizeEditorFractions('editContent', this)" class="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:opacity-50" data-tooltip="规范完整数学环境中的分式：主体放大，上下标与内层保持紧凑；核对预览后保存">
                                     <i class="fa-solid fa-divide" aria-hidden="true"></i><span>规范分式</span>
                                 </button>
+                                <button type="button" onclick="openChemicalStructureWorkbench('content')" class="inline-flex min-h-[44px] items-center rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-700 cursor-pointer">化学结构式</button>
                                 <button type="button" id="openContentTikzWorkbenchBtn" onclick="openContentTikzWorkbench()" class="answer-tikz-entry inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 shadow-sm transition-colors duration-200 hover:border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30" data-tooltip="新增一幅题干 TikZ 绘图，不会覆盖已有绘图">
                                     <i class="fa-solid fa-compass-drafting" aria-hidden="true"></i>
                                     <span>新增绘图</span>
@@ -995,10 +998,11 @@
                     <div class="space-y-3">
                         <div class="flex justify-between items-center">
                             <label for="editAnswerMarkdown" class="editor-field-label">答案与解析</label>
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center justify-end gap-2">
                                 <button type="button" id="normalizeAnswerFractionsBtn" onclick="normalizeEditorFractions('editAnswerMarkdown', this)" class="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:opacity-50" data-tooltip="规范完整数学环境中的分式：主体放大，上下标与内层保持紧凑；核对预览后保存">
                                     <i class="fa-solid fa-divide" aria-hidden="true"></i><span>规范分式</span>
                                 </button>
+                                <button type="button" onclick="openChemicalStructureWorkbench('answer')" class="inline-flex min-h-[44px] items-center rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-700 cursor-pointer">化学结构式</button>
                                 <button type="button" id="openAnswerTikzWorkbenchBtn" onclick="openAnswerTikzWorkbench()" class="answer-tikz-entry inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 shadow-sm transition-colors duration-200 hover:border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer" data-tooltip="新增一幅解答 TikZ 绘图，不会覆盖已有绘图">
                                     <i class="fa-solid fa-compass-drafting" aria-hidden="true"></i>
                                     <span>新增绘图</span>
@@ -2833,7 +2837,7 @@
 
                     <details id="answerTikzSourceDetails" class="mt-3 rounded-xl border border-slate-200 bg-white">
                         <summary class="flex min-h-[44px] cursor-pointer items-center justify-between gap-3 px-3 py-2 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/25"><span class="flex items-center gap-1.5"><i class="fa-solid fa-code text-indigo-500" aria-hidden="true"></i>TikZ 源码（高级编辑）</span><span class="text-[10px] font-normal text-slate-400">可手动修改后重新编译</span></summary>
-                        <div class="border-t border-slate-100 p-3"><textarea id="answerTikzWorkbenchCode" rows="9" spellcheck="false" placeholder="\begin{tikzpicture} ... \end{tikzpicture}" class="w-full resize-y rounded-xl border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100 outline-none selection:bg-indigo-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"></textarea></div>
+                        <div class="border-t border-slate-100 p-3"><p class="mb-2 text-xs text-slate-500">化学结构式可输入 \chemfig{...}，编译后插入；需本机 TeX Live / MiKTeX / MacTeX 安装 chemfig。<button type="button" onclick="setChemicalStructureExample('benzene')" class="underline text-teal-700">苯环示例</button> · <button type="button" onclick="setChemicalStructureExample('ethanol')" class="underline text-teal-700">乙醇示例</button> · <button type="button" onclick="setChemicalStructureExample('stereo')" class="underline text-teal-700">立体键示例</button></p><textarea id="answerTikzWorkbenchCode" rows="9" spellcheck="false" placeholder="\begin{tikzpicture} ... \end{tikzpicture}" class="w-full resize-y rounded-xl border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100 outline-none selection:bg-indigo-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"></textarea></div>
                     </details>
 
                     <div class="mt-4 flex shrink-0 flex-col-reverse gap-2 border-t border-slate-200/70 pt-4 sm:flex-row sm:justify-end">

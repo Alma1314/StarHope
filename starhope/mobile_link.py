@@ -33,6 +33,12 @@ PRIVATE_NETWORKS = tuple(ipaddress.ip_network(value) for value in
 # Slow 2.4 GHz Wi-Fi still needs headroom for a single phone photo upload.
 UPLOAD_BODY_TIMEOUT_SECONDS = 120
 THUMBNAIL_MAX_EDGE = 360
+MOBILE_ASSETS = ("mobile.html", "js/mobile.js", "css/mobile.css")
+
+
+def check_mobile_assets():
+    if not all((STATIC_DIR / name).is_file() for name in MOBILE_ASSETS):
+        raise HTTPException(503, "手机页面资源不完整，请在电脑重新完整解压或更新程序后重启互联。")
 
 
 def private_ipv4(value):
@@ -94,6 +100,7 @@ class MobileLink:
         with self.lock:
             if self.thread and self.thread.is_alive():
                 raise HTTPException(409, "互联服务正在运行或停止，请稍后刷新。")
+            check_mobile_assets()
             self._check_root()
             check_directory_access(self.inbox, label="手机照片收件箱")
             harden_private_path(self.inbox, directory=True)
@@ -413,14 +420,17 @@ class MobileLink:
 
         @app.get("/")
         def page():
+            check_mobile_assets()
             return FileResponse(STATIC_DIR / "mobile.html")
 
         @app.get("/mobile.js")
         def script():
+            check_mobile_assets()
             return FileResponse(STATIC_DIR / "js" / "mobile.js")
 
         @app.get("/mobile.css")
         def style():
+            check_mobile_assets()
             return FileResponse(STATIC_DIR / "css" / "mobile.css")
 
         @app.post("/api/pair")

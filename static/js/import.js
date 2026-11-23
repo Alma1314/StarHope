@@ -2822,6 +2822,8 @@
             const nativePages = count('native_pages');
             const repairedPages = Number.isSafeInteger(extraction.repaired_pages) && extraction.repaired_pages > 0
                 && extraction.repaired_pages <= nativePages ? extraction.repaired_pages : 0;
+            const recoveredPages = Number.isSafeInteger(extraction.markitdown_pages) && extraction.markitdown_pages > 0
+                && extraction.markitdown_pages <= nativePages ? extraction.markitdown_pages : 0;
             const visionCalls = Number.isSafeInteger(vision?.calls) && vision.calls > 0 ? vision.calls : 0;
             const retryCount = Number.isSafeInteger(vision?.retries) && vision.retries >= 0
                 && vision.retries < visionCalls ? vision.retries : null;
@@ -2832,6 +2834,7 @@
                 : '';
             return `PDF 提取方式：原生直提 ${nativePages} 页` +
                 (repairedPages ? `（其中本地公式结构修复 ${repairedPages} 页）` : '') +
+                (recoveredPages ? `（其中本地文字恢复 ${recoveredPages} 页，未调用视觉模型）` : '') +
                 `，局部识别 ${count('regional_pages')} 页，` +
                 `整页识别 ${count('full_vision_pages')} 页。` +
                 (count('native_characters_reused') ? `局部页保留原生文字 ${count('native_characters_reused')} 字符。` : '') + requestSummary;
@@ -8552,6 +8555,28 @@
                 });
             };
 
+            window.setChemicalStructureExample = function(name) {
+                if (tikzWorkbenchState.busy) return;
+                const source = document.getElementById('answerTikzWorkbenchCode');
+                const examples = {
+                    benzene: String.raw`\chemfig{*6(=-=-=-)}`,
+                    ethanol: String.raw`\chemfig{CH_3-CH_2-OH}`,
+                    stereo: String.raw`\chemfig{H_3C-C(-[:90]OH)(<:[:30]H)>[:-30]CH_2-CH_3}`
+                };
+                if (source.value.trim() && !confirm('用化学结构式示例替换当前绘图源码？')) return;
+                source.value = examples[name] || examples.benzene;
+                source.dispatchEvent(new Event('input'));
+            };
+            window.openChemicalStructureWorkbench = function(target = 'content') {
+                if (tikzWorkbenchState.busy) return;
+                window.openTikzWorkbench(target);
+                document.getElementById('answerTikzWorkbenchHeading').textContent = '新增化学结构式';
+                document.getElementById('tikzWorkbenchDescription').textContent = '输入 chemfig 源码并点击编译预览，确认后插入题干或解答；本地编译不调用 AI。';
+                document.getElementById('answerTikzSourceDetails').open = true;
+                window.setChemicalStructureExample('benzene');
+                document.getElementById('answerTikzWorkbenchCode').focus();
+            };
+
             window.openContentTikzWorkbench = function(assetId = null) {
                 window.openTikzWorkbench('content', assetId);
             };
@@ -8585,7 +8610,7 @@
                 const formData = new FormData();
                 formData.append('tikz_code', tikzCode);
                 formData.append('context', tikzContextText());
-                formData.append('review_labels', 'true');
+                formData.append('review_labels', String(!/\\chemfig(?![A-Za-z])/.test(tikzCode)));
                 if (adjustLabels) formData.append('adjust_labels', 'true');
                 const response = await fetch('/api/render_tikz', { method: 'POST', body: formData });
                 const data = await response.json().catch(() => ({}));
@@ -8705,6 +8730,7 @@
             window.applyTikzWorkbench = function() {
                 const tikzCode = document.getElementById('answerTikzWorkbenchCode').value.trim();
                 const imagePath = window.StarHopeSafe.safeImageUrl(tikzWorkbenchState.compiledPath);
+                const imageDescription = /\\chemfig(?![A-Za-z])/.test(tikzCode) ? '化学结构式' : 'TikZ 几何图';
                 if (!imagePath || !tikzCode || tikzCode !== tikzWorkbenchState.compiledCode) {
                     showToast('源码已改动或尚未编译，请先点击“编译预览”。', 'error');
                     return;
@@ -8741,11 +8767,11 @@
                         if (oldPath && contentInput.value.includes(oldPath)) {
                             contentInput.value = contentInput.value.split(oldPath).join(imagePath);
                         } else if (!contentInput.value.includes(imagePath)) {
-                            insertMarkdownAtSavedCursor(contentInput, `![TikZ 几何图](${imagePath})`);
+                            insertMarkdownAtSavedCursor(contentInput, `![${imageDescription}](${imagePath})`);
                         }
                         TikzState.contentAssets.splice(editingIndex, 1, nextAsset);
                     } else {
-                        insertMarkdownAtSavedCursor(contentInput, `![TikZ 几何图](${imagePath})`);
+                        insertMarkdownAtSavedCursor(contentInput, `![${imageDescription}](${imagePath})`);
                         TikzState.contentAssets.push(nextAsset);
                     }
                     if (!uploadedImages.includes(imagePath)) uploadedImages.push(imagePath);
@@ -8783,11 +8809,11 @@
                     if (answerInput.value.includes(oldPath)) {
                         answerInput.value = answerInput.value.split(oldPath).join(imagePath);
                     } else {
-                        insertMarkdownAtSavedCursor(answerInput, `![TikZ 几何图](${imagePath})`);
+                        insertMarkdownAtSavedCursor(answerInput, `![${imageDescription}](${imagePath})`);
                     }
                     TikzState.answerAssets.splice(editingIndex, 1, nextAsset);
                 } else {
-                    insertMarkdownAtSavedCursor(answerInput, `![TikZ 几何图](${imagePath})`);
+                    insertMarkdownAtSavedCursor(answerInput, `![${imageDescription}](${imagePath})`);
                     TikzState.answerAssets.push(nextAsset);
                 }
 

@@ -187,7 +187,7 @@ def _physical_assessment(page, row, font_cache):
             figure_ownership={"status": "proved", "method": "all_vectors_consumed_as_supported_math_or_fillins"},
             repair_sha256=_sha(_json(repair)))
         return report
-    if row.get("source") not in {"pdf-inspector", "pymupdf"}:
+    if row.get("source") not in {"pdf-inspector", "pymupdf", "markitdown"}:
         return reject("native_origin_not_individually_attested", True)
     if page.get_drawings():
         return reject("native_vector_or_figure_ownership_unproved", True)
