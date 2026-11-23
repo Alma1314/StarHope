@@ -1,6 +1,6 @@
-"""Build the verified four-runtime portable StarHope archive.
+"""Build the verified three-runtime portable StarHope archive.
 
-One staging folder contains Windows, macOS (arm64/x64) and Linux CPython
+One staging folder contains Windows, macOS (Apple Silicon) and Linux CPython
 runtimes plus a shared application/data root.  The release builder deliberately
 fails closed: downloaded runtimes must match their pinned SHA-256 values,
 cached downloads are rechecked on every build, and only an explicit application
@@ -66,10 +66,6 @@ PORTABLE_RUNTIMES = {
         "aarch64-apple-darwin",
         "42031ed5f0d38777335252c8c77d64708c8010dd67c128246bdec25000672666",
     ),
-    "macos-x64": (
-        "x86_64-apple-darwin",
-        "f6c82fcf867b4aaadd373ac97699ad95fbb9c96f9ecf9b25775943aa5458b87f",
-    ),
     "linux-x64": (
         "x86_64-unknown-linux-gnu",
         "3fe0d7c0538eb5d190c34582992d26230532551355cbd789fabc6591621cfc07",
@@ -80,7 +76,7 @@ PORTABLE_TARGETS = (PORTABLE_WINDOWS_TARGET, *PORTABLE_RUNTIMES)
 PORTABLE_LAUNCHERS = ("StarHope.bat", "StarHope.command", "StarHope.sh")
 PORTABLE_REQUIRED_MODULES = (
     "fastapi", "uvicorn", "sqlalchemy", "greenlet", "colorama", "pymupdf",
-    "pdf_inspector", "sqlite_vec", "cozo_embedded", "pycozo",
+    "pdf_inspector", "sqlite_vec", "cozo_embedded", "pycozo", "markitdown", "pdfminer", "pdfplumber",
 )
 
 # Microsoft Visual C++ Runtime used by the pinned Windows wheels.  The
@@ -684,7 +680,10 @@ def install_target_dependencies(site_packages, python_platform):
         *resolve_target_requirements("3.14"),
     ]
     print(f"Running command: {subprocess.list2cmdline(cmd)}")
-    subprocess.check_call(cmd, cwd=BASE_DIR)
+    environment = os.environ.copy()
+    if python_platform == "aarch64-apple-darwin":
+        environment["MACOSX_DEPLOYMENT_TARGET"] = "14.0"
+    subprocess.check_call(cmd, cwd=BASE_DIR, env=environment)
     _prune_dependency_test_artifacts(site_packages)
 
 
@@ -828,8 +827,6 @@ def host_portable_target():
         machine = host_platform.machine().lower()
         if machine in {"arm64", "aarch64"}:
             return "macos-arm64"
-        if machine in {"x86_64", "amd64"}:
-            return "macos-x64"
         return ""
     if os.name == "nt":
         return "win-x64"
@@ -857,6 +854,7 @@ def validate_standalone_runtime(target, target_root):
     smoke = (
         "import fastapi,uvicorn,sqlalchemy,greenlet,colorama,pymupdf;"
         "import pdf_inspector,sqlite_vec,cozo_embedded,pycozo;"
+        "from markitdown.converters import PdfConverter;import pdfminer,pdfplumber;"
         "sqlite_vec.loadable_path();import starhope.paths,scripts.portable_launcher"
     )
     subprocess.check_call(
@@ -868,6 +866,9 @@ def validate_standalone_runtime(target, target_root):
 
 def validate_portable_tree(root):
     root = Path(root)
+    runtime_root = root / "runtime"
+    if runtime_root.is_dir() and any(p.name.casefold() == "macos-x64" for p in runtime_root.iterdir()):
+        raise RuntimeError("portable staging tree contains the retired Intel macOS runtime")
     required = {
         "main.py",
         "pyproject.toml",
@@ -904,6 +905,8 @@ def validate_portable_archive(path):
     validate_zip(path, Path(path).name)
     with zipfile.ZipFile(path, "r") as archive:
         names = set(archive.namelist())
+        if any(name.replace("\\", "/").casefold().startswith("runtime/macos-x64/") for name in names):
+            raise RuntimeError("finished portable archive contains the retired Intel macOS runtime")
         required = {
             *MOBILE_REQUIRED_FILES,
             "StarHope.bat", "StarHope.command", "StarHope.sh",
@@ -1288,6 +1291,9 @@ def validate_windows_runtime(root):
         root / "python" / "site-packages" / "colorama",
         root / "python" / "site-packages" / "pymupdf",
         root / "python" / "site-packages" / "pdf_inspector",
+        root / "python" / "site-packages" / "markitdown",
+        root / "python" / "site-packages" / "pdfminer",
+        root / "python" / "site-packages" / "pdfplumber",
         root / "python" / "site-packages" / "sqlite_vec",
         root / "python" / "site-packages" / "cozo_embedded",
         root / "python" / "site-packages" / "pycozo",
@@ -1318,6 +1324,7 @@ def validate_windows_runtime(root):
             "ctypes.WinDLL(str(runtime)); "
             "import sqlite3, fastapi, uvicorn, sqlalchemy, greenlet, colorama; "
             "import pymupdf, pdf_inspector, sqlite_vec, cozo_embedded, pycozo; "
+            "from markitdown.converters import PdfConverter; import pdfminer,pdfplumber; "
             "import starhope.ai_json, scripts; "
             "assert sqlite_vec.loadable_path().endswith('vec0')"
         )

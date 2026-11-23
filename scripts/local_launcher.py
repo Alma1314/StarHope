@@ -31,7 +31,8 @@ REPOSITORY = "Alma1314/StarHope"
 IMPORT_CHECK = (
     "import fastapi,uvicorn,sqlalchemy,greenlet,colorama,multipart,dotenv,"
     "requests,PIL,qrcode,docx,lxml,defusedxml,olefile,exceptiongroup,sniffio;"
-    "import pymupdf as fitz;import pdf_inspector"
+    "import pymupdf as fitz;import pdf_inspector;"
+    "from markitdown.converters import PdfConverter;import pdfminer,pdfplumber"
 )
 
 
@@ -299,8 +300,13 @@ def prepare_python(root: Path) -> tuple[Path, Path | None]:
     if sys.platform != "darwin":
         # Windows BAT already selects the embedded interpreter or source venv.
         return Path(sys.executable), None
+    from scripts.portable_launcher import runtime_target
+    try:
+        runtime_target()
+    except RuntimeError as exc:
+        raise LauncherError(str(exc)) from exc
     python = root / "venv" / "bin" / "python"
-    supported = "import sys;raise SystemExit(0 if sys.version_info >= (3,14) else 1)"
+    supported = "import sys;raise SystemExit(0 if sys.version_info[:2] == (3,14) else 1)"
     if python.is_file() and environment_works(python, supported, root):
         return python, None
     backup = None

@@ -1303,9 +1303,10 @@ def inspect_and_extract_pdf(
         from starhope.task_manager import TaskCancelled
         try:
             recover_pdf_text_pages(file_bytes, result["pages"], check_cancelled=check_cancelled)
-            result.update(_build_result(available=result["available"], pages=result["pages"],
-                pdf_type=("mixed" if any(row.get("needs_ocr") for row in result["pages"])
-                          else "text_based"), error=result.get("error"), confidence=result.get("confidence")))
+            if any(row.get("source") == "markitdown" for row in result["pages"]):
+                result.update(_build_result(available=result["available"], pages=result["pages"],
+                    pdf_type=("mixed" if any(row.get("needs_ocr") for row in result["pages"])
+                              else "text_based"), error=result.get("error"), confidence=result.get("confidence")))
         except TaskCancelled:
             raise
         except Exception:

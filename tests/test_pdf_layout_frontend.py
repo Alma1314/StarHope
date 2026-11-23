@@ -747,6 +747,10 @@ const pdfScenarios = {
       assert.equal(pdfExtractionReportSummary({...extraction,repaired_pages:value}),legacy,'invalid repair counts cannot imply success');
     }
     assert.equal(pdfExtractionReportSummary({native_pages:0,repaired_pages:1}).includes('本地公式结构修复'),false);
+    assert.ok(pdfExtractionReportSummary({...extraction,markitdown_pages:1}).includes('本地文字恢复 1 页，未调用视觉模型'));
+    for (const value of [undefined,null,0,-1,0.5,'1',true,NaN,Infinity,3]) {
+      assert.equal(pdfExtractionReportSummary({...extraction,markitdown_pages:value}),pdfExtractionReportSummary(extraction));
+    }
     for (const value of [null,{},'invalid',[{page_number:1,status:'fallback',notes:{},reason:null}]]) {
       assert.deepEqual(pdfLayoutNotes({pdf_native_repair:value}),[]);
     }

@@ -35,7 +35,7 @@ def review_script():
         section("function validateParsedQuestionBeforeImport", "function confirmClearAllParsed"),
         section("function clearAllParsedSources()", "function getCheckedUnsavedIndices"),
         section("function getCheckedUnsavedIndices", "// LaTeX TITLE AUTO-EXTRACTION HELPERS"),
-        section("async function generateSingleAnswer", "window.generateSingleAnswer ="),
+        section("function parsedSolveImagePaths", "window.generateSingleAnswer ="),
     ])
     setup = r"""
 const assert = require('node:assert/strict');

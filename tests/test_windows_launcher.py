@@ -240,6 +240,9 @@ def test_portable_missing_dependency_shows_import_error_without_pip(tmp_path, mo
 
 def test_mac_rebuild_failure_restores_existing_venv(tmp_path, monkeypatch):
     monkeypatch.setattr(launcher.sys, "platform", "darwin")
+    from scripts import portable_launcher
+    monkeypatch.setattr(portable_launcher.platform, "machine", lambda: "arm64")
+    monkeypatch.setattr(portable_launcher.platform, "mac_ver", lambda: ("14.0", (), "arm64"))
     monkeypatch.setattr(launcher, "environment_works", lambda *_: False)
     (tmp_path / ".system_generated").mkdir()
     venv = tmp_path / "venv"

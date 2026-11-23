@@ -6,7 +6,7 @@ stay on the existing OCR path; this is an alternative extractor, not a proof.
 from __future__ import annotations
 
 import json
-import os
+from importlib.util import find_spec
 from pathlib import Path
 import re
 import subprocess
@@ -79,8 +79,12 @@ def recover_pdf_text_pages(file_bytes: bytes, pages: list[dict], *, check_cancel
     ponytail: at most ten pages per import, one 30-second child process; expand
     only after profiling real documents, rather than multiplying local work.
     """
-    rejected = [row for row in pages if row.get("needs_ocr") and row.get("source") != "pdf-inspector-legacy"]
-    if not rejected:
+    from starhope.pdf_inspector_helper import _PAINT_VISIBILITY_REASON
+    # A physically proved obstruction cannot be repaired by another text
+    # extractor. Reuse that rejection without reopening the original PDF.
+    rejected = [row for row in pages if row.get("needs_ocr") and row.get("source") != "pdf-inspector-legacy"
+                and _PAINT_VISIBILITY_REASON not in row.get("quality_reasons", [])]
+    if not rejected or find_spec("markitdown") is None:
         return
     import pymupdf as fitz
     from starhope.pdf_source_scopes import _physical_assessment

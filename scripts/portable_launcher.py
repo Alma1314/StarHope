@@ -19,7 +19,15 @@ def runtime_target():
     """Return the bundled runtime directory name for this host."""
     if sys.platform == "darwin":
         machine = platform.machine().lower()
-        return "macos-arm64" if machine in {"arm64", "aarch64"} else "macos-x64"
+        if machine in {"arm64", "aarch64"}:
+            try:
+                major = int(platform.mac_ver()[0].split(".")[0])
+            except (ValueError, IndexError):
+                raise RuntimeError("无法确认 macOS 版本，当前程序要求 macOS 14 或更新版本。") from None
+            if major < 14:
+                raise RuntimeError("当前程序要求 Apple Silicon 与 macOS 14 或更新版本。")
+            return "macos-arm64"
+        raise RuntimeError("macOS 仅支持 Apple Silicon，请使用原生 arm64 Python，不支持 Intel 或 Rosetta x64。")
     if sys.platform.startswith("linux"):
         return "linux-x64"
     if os.name == "nt":

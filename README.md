@@ -2,7 +2,7 @@
 
 **StarHope** 是一个专为学生打造的、完全运行在您自己电脑上的轻量级半自动化题库与组卷排版工作台。
 
-它支持数学公式与几何图形秒级实时预览，深度集成一键组卷、A4 仿真画布排版、高考级 PDF / Word 试卷导出、AI 辅助解题以及一键 OCR 题目识别。项目无需复杂的前端编译：Windows 10/11 x64 便携包内置 Python 与匹配的 VC++ 运行库，解压即可双击启动；macOS 便携包自动检测本机 Python 3.14+ 并准备独立运行环境。
+它支持数学公式与几何图形秒级实时预览，深度集成一键组卷、A4 仿真画布排版、高考级 PDF / Word 试卷导出、AI 辅助解题以及一键 OCR 题目识别。项目无需复杂的前端编译：Windows 10/11 x64 便携包内置 Python 与匹配的 VC++ 运行库，解压即可双击启动；当前源码与后续 macOS 构建仅支持 Apple Silicon（macOS 14+），使用原生 arm64 Python 3.14 并准备独立运行环境。
 ---
 
 ## ✨ 核心亮点
@@ -134,6 +134,14 @@ $\ce{CH3-CH2-OH}$
 - **组合关键词筛选**（当前源码）：在「本地题库」「草稿箱」或「智能组卷」展开「筛选」，点击「添加条件」。可分别指定题干、解析、教师评析、来源、标签或全部文本，选择「包含」或「排除」。题目须满足所有包含项，命中任一排除项即从结果中剔除。收起面板后可从摘要逐项移除。题库、草稿箱和组卷的筛选均在工具栏下方浮出。组卷手动列表与 AI 选题共用条件，已选题目会保留。
 - **精确题号搜索與图片过滤**：搜索框输入 `#123` 可精确查找界面显示的第 123 题；输入纯数字则同时匹配题号与题文。搜索会自动排除题干、解析和教师评析中的图片路径，避免文件名数字造成误命中（图片说明文字仍可搜索）。教师评析中的图片随题目保存、草稿与完整备份一并保留。
 
+### MarkItDown 本地提取加速（源码开发版）
+
+接入 [Microsoft MarkItDown](https://github.com/microsoft/markitdown)，在 PDF 原生提取失败后，尝试本地恢复简单中文文字页，通过原页字形、可见性与单栏顺序检查后再进入拆题，减少这些页面的视觉模型输入。公式、扫描页、配图、双栏和不能证实完整的内容继续使用原识别流程；Word 仍保留现有 OMML / MathType 专用提取。
+
+使用 Python 3.14，在源码目录执行 `uv sync --frozen --extra dev`，或在项目虚拟环境执行 `python -m pip install .`，安装后正常重启即可自动使用，无需另行启用。它只做离线转换，不配置额外密钥或调用 MarkItDown 的云端 OCR。每次最多尝试10个原生提取失败页，本地转换共享30秒预算；失败继续原流程，不丢原稿。提取报告显示实际「本地文字恢复」页数，后续 AI 拆题仍可能消耗 token，未做真实供应商节费比例测试。
+
+当前源码和后续构建仅支持 Windows x64、Apple Silicon macOS 14+ arm64 与 Linux x64，已移除 Intel macOS / Rosetta x64 支持。现有正式 Release 和 U 盘副本尚未因此更新，不将源码能力视为已发布下载包功能。
+
 ### 学习档案与 AI 犯错点画像（源码开发版）
 
 学习档案按「今日计划、练习核对、扫描录入、错题复习、学习画像」分区，学段与学科范围在上方统一选择。切换分区会保留未提交的作答、已选答案与扫描文件；从推荐题或记录依据进入时自动打开练习核对区。记录数量概览和知识掌握统计在学习画像区，首页「快速开始」可直接进入学习档案。各工作区共用明暗主题、表单和操作样式，手机底栏与分区入口支持触控操作。
@@ -185,7 +193,7 @@ $\ce{CH3-CH2-OH}$
 如果您不熟悉命令行或 Python 环境，请直接前往 [**V3.1.0 发布页面**](https://github.com/Alma1314/StarHope/releases/tag/V3.1.0)，在 Assets 中下载对应系统的 ZIP 附件并**完整解压**：
 
 * **Windows 用户**：使用 Windows 10/11 x64，下载 [`StarHope-Windows-x64.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-Windows-x64.zip)（内置完整 Python 3.14.10 与应用本地 VC++ 运行时，无需另行安装），完整解压后双击 **`启动题库系统.bat`**。
-* **macOS 用户**：下载 [`StarHope-macOS.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-macOS.zip)。**macOS 包不内置 Python，运行前请先确认本机已安装 Python 3.14 或更高版本**。首次准备或修复项目隔离环境 `venv` 时需保持联网，随后双击 **`启动题库系统.command`**。
+* **macOS 用户**：下载 [`StarHope-macOS.zip`](https://github.com/Alma1314/StarHope/releases/download/V3.1.0/StarHope-macOS.zip)。**当前源码和后续 macOS 包仅支持 Apple Silicon、macOS 14+ 与原生 arm64 Python 3.14**（不内置 Python；已有下载版以对应 Release 说明为准）。首次准备或修复项目隔离环境 `venv` 时需保持联网，随后双击 **`启动题库系统.command`**。
 
 两个启动器会自动检查 Python 与依赖；若题库服务已在运行，会直接打开网页，无需先关闭再重开。端口冲突或启动失败时会直接显示具体原因与服务日志。
 
@@ -199,7 +207,7 @@ $\ce{CH3-CH2-OH}$
    cd math-question-bank
    ```
 
-2. **安装依赖**（要求 Python 3.14+）：
+2. **安装依赖**（当前源码要求 Python 3.14）：
    ```bash
    uv sync
    ```
@@ -284,9 +292,9 @@ $\ce{CH3-CH2-OH}$
 
 ### 当前源码的 Python 与 Pillow 策略
 
-**当前开发版本要求 Python 3.14 或更高版本**，Windows 便携包内嵌 CPython 3.14.10，运行时统一使用 Pillow 13.0.0，不再保留 Python 3.10 / Pillow 12.3.0 兼容分支。依赖声明位于 `pyproject.toml`，开发、CI 与发布构建统一使用 uv，锁文件为 `uv.lock`。
+**当前开发版本要求 Python 3.14**（MarkItDown 依赖尚不支持 Python 3.15），Windows 便携包内嵌 CPython 3.14.10，运行时统一使用 Pillow 13.0.0，不再保留 Python 3.10 / Pillow 12.3.0 兼容分支。依赖声明位于 `pyproject.toml`，开发、CI 与发布构建统一使用 uv，锁文件为 `uv.lock`。
 
-从旧版升级时，请先创建完整备份并通过网页电源按钮正常停服，再用 Python 3.14+ 重建项目 `venv` 并安装依赖。源码/macOS 双击启动会按 `pyproject.toml` 变化补齐依赖；直接命令行启动前请重新执行 `uv sync`。仅迁移 Python 环境不改变数据库结构；如同时回退程序版本，仍须遵守下面的数据库回退规则。
+从旧版升级时，请先创建完整备份并通过网页电源按钮正常停服，再用 Python 3.14 重建项目 `venv` 并安装依赖。源码/macOS 双击启动会按 `pyproject.toml` 变化补齐依赖；直接命令行启动前请重新执行 `uv sync`。仅迁移 Python 环境不改变数据库结构；如同时回退程序版本，仍须遵守下面的数据库回退规则。
 
 ### 数据库升级与退回旧版
 

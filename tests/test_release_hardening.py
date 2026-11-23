@@ -285,7 +285,12 @@ def test_cross_platform_requirements_are_locked_and_target_explicit():
     project = _pyproject()["project"]
     package_lines = project["dependencies"]
     assert package_lines
-    assert project["requires-python"] == ">=3.14"
+    assert project["requires-python"] == ">=3.14,<3.15"
+    acceleration = package_lines
+    assert "markitdown==0.1.9" in acceleration
+    assert "pdfminer-six==20260107" in acceleration
+    assert "pdfplumber==0.11.11" in acceleration
+    assert all("==" in line and ";" not in line for line in acceleration)
     assert "pillow==13.0.0" in package_lines
     assert all("==" in line and ";" not in line for line in package_lines)
     assert "colorama==0.4.6" in package_lines
@@ -379,6 +384,9 @@ def test_windows_runtime_application_root_and_cache_safety(tmp_path, monkeypatch
         "python/site-packages/colorama",
         "python/site-packages/pymupdf",
         "python/site-packages/pdf_inspector",
+        "python/site-packages/markitdown",
+        "python/site-packages/pdfminer",
+        "python/site-packages/pdfplumber",
         "python/site-packages/sqlite_vec",
         "python/site-packages/cozo_embedded",
         "python/site-packages/pycozo",
@@ -1237,7 +1245,8 @@ def test_launchers_use_shared_environment_and_startup_flow():
     shared = (PROJECT_ROOT / "scripts/local_launcher.py").read_text(encoding="utf-8")
     assert "scripts.local_launcher" in mac
     assert "scripts.windows_launcher" in windows
-    assert "sys.version_info >= (3, 14)" in mac
+    assert "sys.version_info[:2] == (3, 14)" in mac
+    assert "sys.version_info[:2] == (3,14)" in shared
     assert "find_supported_python" in mac
     assert "STARHOPE_NO_PAUSE" in windows
     assert "STARHOPE_NO_PAUSE" in mac

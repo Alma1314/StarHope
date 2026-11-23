@@ -17,10 +17,10 @@ from scripts import build_release, portable_launcher, upgrade_shutdown
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_portable_targets_pin_all_four_desktop_runtimes(monkeypatch):
+def test_portable_targets_pin_three_supported_desktop_runtimes(monkeypatch):
     monkeypatch.delenv("STARHOPE_PBS_BASE_URL", raising=False)
     assert build_release.PORTABLE_TARGETS == (
-        "win-x64", "macos-arm64", "macos-x64", "linux-x64",
+        "win-x64", "macos-arm64", "linux-x64",
     )
     for target, (triple, digest) in build_release.PORTABLE_RUNTIMES.items():
         assert len(digest) == 64
@@ -34,6 +34,19 @@ def test_portable_targets_pin_all_four_desktop_runtimes(monkeypatch):
         assert build_release.pbs_download_url(triple).startswith(
             "https://github.com/astral-sh/python-build-standalone/"
         )
+
+
+def test_macos_dependency_install_targets_macos_14_independent_of_host(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_release, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(build_release, "uv_executable", lambda: "uv")
+    monkeypatch.setenv("MACOSX_DEPLOYMENT_TARGET", "13.0")
+    calls = []
+    monkeypatch.setattr(build_release.subprocess, "check_call", lambda command, **options: calls.append((command, options)))
+    build_release.install_target_dependencies(tmp_path / "packages", "aarch64-apple-darwin")
+    assert calls[0][1]["env"]["MACOSX_DEPLOYMENT_TARGET"] == "14.0"
+    command = calls[0][0]
+    assert command[command.index("--python-platform") + 1] == "aarch64-apple-darwin"
+    assert "markitdown==0.1.9" in command
 
 
 def test_tar_validator_rejects_traversal_before_extraction(tmp_path):
@@ -50,7 +63,6 @@ def test_tar_validator_rejects_traversal_before_extraction(tmp_path):
     ("system", "machine", "expected"),
     [
         ("darwin", "arm64", "macos-arm64"),
-        ("darwin", "x86_64", "macos-x64"),
         ("linux", "x86_64", "linux-x64"),
     ],
 )
@@ -59,7 +71,62 @@ def test_portable_launcher_selects_the_matching_runtime(
 ):
     monkeypatch.setattr(portable_launcher.sys, "platform", system)
     monkeypatch.setattr(portable_launcher.platform, "machine", lambda: machine)
+    monkeypatch.setattr(portable_launcher.platform, "mac_ver", lambda: ("14.0", (), machine))
     assert portable_launcher.runtime_target() == expected
+
+
+@pytest.mark.parametrize("version", ["13.6", "12.0", ""])
+def test_apple_silicon_requires_macos_14_before_dependency_loading(monkeypatch, version):
+    monkeypatch.setattr(portable_launcher.sys, "platform", "darwin")
+    monkeypatch.setattr(portable_launcher.platform, "machine", lambda: "arm64")
+    monkeypatch.setattr(portable_launcher.platform, "mac_ver", lambda: (version, (), "arm64"))
+    with pytest.raises(RuntimeError, match="macOS 14"):
+        portable_launcher.runtime_target()
+
+
+def test_intel_macos_is_rejected_by_runtime_and_source_launchers(monkeypatch, tmp_path):
+    from scripts import local_launcher
+    monkeypatch.setattr(portable_launcher.sys, "platform", "darwin")
+    monkeypatch.setattr(portable_launcher.platform, "machine", lambda: "x86_64")
+    assert build_release.host_portable_target() == ""
+    with pytest.raises(RuntimeError, match="Apple Silicon"):
+        portable_launcher.runtime_target()
+    with pytest.raises(local_launcher.LauncherError, match="Apple Silicon"):
+        local_launcher.prepare_python(tmp_path)
+    assert not list(tmp_path.iterdir()), "Unsupported platforms must not modify the environment"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX entry points")
+@pytest.mark.parametrize("name", ["StarHope.command", "StarHope.sh", "启动题库系统.command", "scripts/upgrade_portable.sh"])
+def test_shell_entry_points_reject_intel_macos_before_start_or_upgrade(tmp_path, name):
+    root = tmp_path / "app"
+    target = root / name
+    target.parent.mkdir(parents=True)
+    shutil.copy2(ROOT / name, target)
+    if "upgrade" in name:
+        (root / "StarHope-Portable.zip").touch()
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    uname = fake_bin / "uname"
+    uname.write_text('#!/bin/sh\ncase "$1" in -s) echo Darwin;; -m) echo x86_64;; esac\n')
+    uname.chmod(0o755)
+    environment = {**os.environ, "PATH": str(fake_bin) + os.pathsep + os.defpath, "STARHOPE_NO_PAUSE": "1"}
+    result = subprocess.run(["bash", str(target)], env=environment, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 1
+    assert "Intel" in result.stderr
+    assert not (root / "data_backup").exists()
+
+
+@pytest.mark.parametrize("name", ["macos-x64", "MACOS-X64"])
+def test_retired_intel_runtime_is_rejected_in_staging_and_final_zip(tmp_path, name):
+    (tmp_path / "runtime" / name).mkdir(parents=True)
+    with pytest.raises(RuntimeError, match="retired Intel"):
+        build_release.validate_portable_tree(tmp_path)
+    archive = tmp_path / "retired.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr(f"runtime/{name}/", b"")
+    with pytest.raises(RuntimeError, match="retired Intel"):
+        build_release.validate_portable_archive(archive)
 
 
 def test_portable_environment_shares_one_dependency_folder_and_app_root(tmp_path):
@@ -133,7 +200,7 @@ def _portable_target():
     system = platform.system()
     machine = platform.machine().lower()
     if system == "Darwin":
-        return "macos-arm64" if machine in {"arm64", "aarch64"} else "macos-x64"
+        return "macos-arm64" if machine in {"arm64", "aarch64"} else ""
     if system == "Linux" and machine in {"x86_64", "amd64"}:
         return "linux-x64"
     return ""

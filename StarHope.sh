@@ -6,7 +6,7 @@ if [ -f "StarHope-Portable.zip" ]; then
 fi
 case "$(uname -s):$(uname -m)" in
   Darwin:arm64) target=macos-arm64 ;;
-  Darwin:x86_64) target=macos-x64 ;;
+  Darwin:x86_64) echo "[E_RUNTIME] Intel macOS is not supported. Use Apple Silicon with native arm64 Python." >&2; exit 1 ;;
   Linux:x86_64) target=linux-x64 ;;
   *) echo "[E_RUNTIME] Unsupported platform: $(uname -s) $(uname -m)" >&2; exit 1 ;;
 esac
