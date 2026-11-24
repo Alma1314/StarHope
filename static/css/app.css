@@ -5768,6 +5768,12 @@ button[aria-disabled="true"]:hover,
 #importInputPane > .import-config-card { flex: 0 0 auto; min-height: 0; }
 #importInputPane #texDropzone { min-height: 130px; }
 #importInputPane :is(label, input, button), #texFileName { font-size: 14px !important; }
+/* Bulk imports can produce hundreds of cards; skip layout/paint for the ones
+   offscreen (previews are also rendered lazily by import.js). */
+#parsedCardsContainer > .glass-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 520px;
+}
 .parsed-card-footer { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
 .parsed-card-image-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; max-width: 100%; max-height: 64px; overflow: auto; }
 .parsed-card-image-badges:empty { display: none; }

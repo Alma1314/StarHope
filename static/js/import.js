@@ -5802,6 +5802,7 @@
             runBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>开始解析</span>';
 
             // 清空解析结果数据
+            resetParsedCardPreviewRendering();
             replaceParsedQuestions([]);
             if (typeof updateSelectedCount === 'function') {
                 updateSelectedCount();
@@ -6836,8 +6837,48 @@
             return question;
         }
 
+        // Card previews (Markdown + KaTeX) are deferred until a card is near
+        // the viewport so bulk imports don't freeze the page. The observer is
+        // stored on the function itself to keep this slice self-contained.
+        function resetParsedCardPreviewRendering() {
+            const observer = resetParsedCardPreviewRendering.observer;
+            if (observer) {
+                observer.disconnect();
+                resetParsedCardPreviewRendering.observer = null;
+            }
+            if (typeof window.IntersectionObserver !== 'function') return;
+            resetParsedCardPreviewRendering.observer = new window.IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    const state = entry.target.__parsedPreviewState;
+                    if (!state) return;
+                    state.visible = entry.isIntersecting;
+                    if (state.visible && state.pending) renderParsedCardPreviewNow(entry.target);
+                });
+            }, {root: null, rootMargin: '600px 0px'});
+        }
+
+        function renderParsedCardPreviewNow(card) {
+            const state = card.__parsedPreviewState;
+            if (state) {
+                state.pending = false;
+                state.rendered = true;
+            }
+            if (typeof card.__renderParsedPreview === 'function') card.__renderParsedPreview();
+        }
+
+        function requestParsedCardPreview(card) {
+            const state = card.__parsedPreviewState;
+            if (!state) {
+                if (typeof card.__renderParsedPreview === 'function') card.__renderParsedPreview();
+                return;
+            }
+            state.pending = true;
+            if (state.visible) renderParsedCardPreviewNow(card);
+        }
+
         function renderParsedQuestionsList(questions) {
             const options = arguments.length > 1 && arguments[1] ? arguments[1] : {};
+            resetParsedCardPreviewRendering();
             const defaultEducationStage = document.getElementById('importEducationStage')?.value || '未标注';
             questions.forEach(question => applyImportDefaultEducationStage(question, defaultEducationStage));
             const container = document.getElementById('parsedCardsContainer');
@@ -7024,7 +7065,7 @@
                 const triggerPreview = () => {
                     renderParsedCardPreview(card, textInput.value, ansInput.value);
                 };
-                const debouncedPreview = debounce(triggerPreview, 200);
+                const debouncedPreview = debounce(() => requestParsedCardPreview(card), 200);
 
                 textInput.addEventListener('input', () => {
                     updateParsedSavedState(index);
@@ -7043,7 +7084,15 @@
                     typeInput.addEventListener('change', () => invalidateParsedDuplicateCheck(index));
                 }
 
-                triggerPreview();
+                card.__renderParsedPreview = triggerPreview;
+                const previewObserver = resetParsedCardPreviewRendering.observer;
+                // Keep the first screenful deterministic; defer the rest.
+                if (previewObserver && index >= 3) {
+                    card.__parsedPreviewState = {visible: false, pending: true, rendered: false};
+                    previewObserver.observe(card);
+                } else {
+                    triggerPreview();
+                }
                 card.addEventListener('change', () => updateParsedSavedState(index));
             });
 
