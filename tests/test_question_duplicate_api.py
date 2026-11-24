@@ -581,7 +581,7 @@ _ID53_CONTENT = (
 )
 
 
-def test_text_fragment_fallback_recalls_real_prefix_trimmed_variant(
+def test_text_fragment_fallback_rejects_prefix_with_missing_conditions(
     db_session, tmp_path
 ):
     stored_question = Question(
@@ -613,9 +613,7 @@ def test_text_fragment_fallback_recalls_real_prefix_trimmed_variant(
         diagnostics=diagnostics,
     )
 
-    assert [candidate.question.id for candidate in candidates] == [52]
-    assert candidates[0].comparison.classification == "possible_variant"
-    assert "NUMBER_CHANGED" in candidates[0].comparison.reasons
+    assert candidates == []
     assert diagnostics["primary_candidate_count"] == 0
     assert diagnostics["text_fallback_used"] is True
     assert diagnostics["text_candidate_count"] == 1

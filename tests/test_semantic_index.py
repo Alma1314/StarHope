@@ -142,13 +142,37 @@ def test_semantic_router_returns_recall_results(monkeypatch, tmp_path, db_sessio
 
     similar = client.get(f"/api/semantic/similar/{first.id}?limit=2").json()
     assert [item["id"] for item in similar["results"]][0] == second.id
+    assert len(similar["results"]) == 1  # Unrelated geometry must not fill the limit.
     assert "不代表重复判定" in similar["score_note"]
+
+    for subject, stage in (("物理", first.education_stage), ("数学", "小学")):
+        distractor = Question(content=first.content, subject=subject, education_stage=stage)
+        db_session.add(distractor)
+        db_session.commit()
+        text = question_embedding_text(distractor)
+        index.upsert(distractor.id, "m1", source_hash("m1", text),
+                     _fake_embed([question_embedding_text(first)], None)[0])
+    # Filter before recall: higher scoring cross-subject/stage rows cannot
+    # occupy the candidate limit, even when the wording is identical.
+    assert [item["id"] for item in client.get(
+        f"/api/semantic/similar/{first.id}?limit=1"
+    ).json()["results"]] == [second.id]
 
     searched = client.post("/api/semantic/search", data={
         "query": "等差数列", "limit": 2, "subject": "数学",
     }).json()
     assert searched["results"][0]["id"] in {first.id, second.id}
     assert all(item["subject"] == "数学" for item in searched["results"])
+
+    vector = _fake_embed([question_embedding_text(first)], None)[0]
+    for score, expected_ids in ((0.89, []), (0.91, [second.id])):
+        perpendicular = [-vector[1], vector[0]]
+        near = [score * a + math.sqrt(1 - score ** 2) * b
+                for a, b in zip(vector, perpendicular)]
+        index.upsert(second.id, "m1", "boundary-test", near)
+        assert [item["id"] for item in client.get(
+            f"/api/semantic/similar/{first.id}?limit=2"
+        ).json()["results"]] == expected_ids
 
     monkeypatch.setattr(semantic_index, "resolve_embedding_config", lambda environment=None: None)
     assert client.get(f"/api/semantic/similar/{first.id}").status_code == 503

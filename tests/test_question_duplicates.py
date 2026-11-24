@@ -426,7 +426,7 @@ def test_text_skeleton_recalls_month_and_number_variant_without_weakening_math()
     assert scan.groups[0].strongest_classification == "possible_variant"
 
 
-def test_real_52_53_style_suffix_variant_is_recalled_by_text_band():
+def test_suffix_missing_substantial_conditions_is_recalled_but_not_classified():
     longer = fingerprint(
         "某位同学暑假期间要在八月上旬完成一定量的英语单词的记忆，"
         "计划是：第一天记忆 $300$ 个单词，第一天后的每一天，在复习"
@@ -450,10 +450,19 @@ def test_real_52_53_style_suffix_variant_is_recalled_by_text_band():
     assert shared
     assert scan.candidate_pair_count == 1
     assert scan.compared_pair_count == 1
-    assert scan.groups[0].member_indexes == (0, 1)
-    assert scan.groups[0].strongest_classification == "possible_variant"
-    reasons = scan.groups[0].comparisons[0].comparison.reasons
-    assert "NUMBER_CHANGED" in reasons
+    assert scan.groups == ()
+
+
+def test_shared_formula_with_different_task_is_not_a_variant():
+    result = compare_questions(
+        {"content": r"已知函数 $f(x)=x^2-2x+1$，求它的零点。"},
+        {"content": r"已知函数 $f(x)=x^2-2x+1$，讨论其图像的对称性。"},
+    )
+    assert result.classification == "none"
+    assert find_batch_duplicate_groups((
+        fingerprint(r"已知函数 $f(x)=x^2-2x+1$，求它的零点。"),
+        fingerprint(r"已知函数 $f(x)=x^2-2x+1$，讨论其图像的对称性。"),
+    )).groups == ()
 
 
 def test_input_mapping_and_comparison_are_api_friendly():

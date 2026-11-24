@@ -37,7 +37,7 @@ EMBEDDING_MAX_CHARS = 12000
 EMBEDDING_BATCH_SIZE = 16
 # Advisory-only duplicate hint.  Scores at or above this value are shown to
 # the teacher as "语义疑似改写" but never change the duplicate level.
-SEMANTIC_ADVISORY_THRESHOLD = 0.88
+SEMANTIC_ADVISORY_THRESHOLD = 0.90
 SEMANTIC_ADVISORY_QUERY_TIMEOUT_SECONDS = 30
 _VECTOR_TABLE = "vec_question_embeddings"
 _IMAGE_REF = re.compile(r"!\[[^\]]*\]\([^)]*\)")
@@ -649,8 +649,16 @@ def create_semantic_router(get_db, indexer: SemanticIndexer | None = None):
         if config is None:
             raise HTTPException(503, "未配置向量服务；请设置 EMBEDDING_API_KEY 与 EMBEDDING_API_BASE")
         vector = _question_vector(db, indexer, question_id, config)
-        scored = indexer.index.search(vector, limit + 1, model=config.model)
-        scored = [item for item in scored if item[0] != question_id][:limit]
+        question = db.get(Question, question_id)
+        allowed = {int(row[0]) for row in db.query(Question.id).filter(
+            Question.subject == question.subject,
+            Question.education_stage == question.education_stage,
+            Question.id != question_id,
+        ).all()}
+        scored = indexer.index.search(
+            vector, limit, model=config.model, allowed_ids=allowed
+        ) if allowed else []
+        scored = [item for item in scored if item[1] >= SEMANTIC_ADVISORY_THRESHOLD]
         return {
             "status": "success",
             "question_id": question_id,

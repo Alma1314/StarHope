@@ -1414,15 +1414,35 @@ def compare_question_fingerprints(
         len(re.sub(r"\s+", "", left.canonical_text)),
         len(re.sub(r"\s+", "", right.canonical_text)),
     )
-    probable_threshold = 0.94 if substantive_length < 20 else 0.88
-    variant_threshold = 0.75 if substantive_length < 20 else 0.68
+    # Shared symbols and empty structural slots can inflate the combined
+    # score. Require literal overlap independently of mathematical structure.
+    token_ratio = SequenceMatcher(
+        None, _LEXICAL_TOKEN_RE.findall(left.canonical_text),
+        _LEXICAL_TOKEN_RE.findall(right.canonical_text), autojunk=False
+    ).ratio()
+    text_ratio = SequenceMatcher(
+        None, left.canonical_text, right.canonical_text, autojunk=False
+    ).ratio()
+    text_overlap = _multiset_jaccard(
+        _char_ngrams(left.canonical_text), _char_ngrams(right.canonical_text)
+    )
+    literal_match = max(text_ratio, token_ratio) >= 0.80 and text_overlap >= (
+        0.30 if substantive_length < 20 else 0.40
+    )
+    probable_threshold = 0.96 if substantive_length < 20 else 0.92
+    variant_threshold = 0.78 if substantive_length < 20 else 0.76
+    single_math_change = (
+        len(left.critical_tokens) == len(right.critical_tokens)
+        and sum(a != b for a, b in zip(left.critical_tokens, right.critical_tokens)) == 1
+    )
 
-    if critical_matches and score >= probable_threshold:
+    if literal_match and critical_matches and score >= probable_threshold:
         classification = "probable"
-    elif not critical_matches and (
+    elif literal_match and not critical_matches and (
         score >= variant_threshold
         or (
-            score >= 0.60
+            score >= 0.65
+            and single_math_change
             and bool(left.critical_tokens)
             and _critical_shape(left.critical_tokens)
             == _critical_shape(right.critical_tokens)

@@ -143,7 +143,7 @@
         const list = nodeList();
         if (!list) return;
         if (!results.length) {
-            note(`没有召回候选（已索引 ${Number(indexed) || 0} 题）。若索引不足，请先建立向量索引后再试。`);
+            note(`没有达到相似度要求的同学科、同学段候选（已索引 ${Number(indexed) || 0} 题）。`);
             return;
         }
         results.forEach(item => {
