@@ -54,6 +54,23 @@ def test_unpaired_clients_cannot_read_or_upload_and_no_admin_routes(link):
         assert c.get('/api/connection', headers={'X-Local-Token': 'not-a-session'}).status_code == 401
 
 
+def test_mobile_page_serves_only_its_local_rendering_libraries(link):
+    from starhope.mobile_link import MOBILE_LIB_ASSETS
+    with client(link) as c:
+        page = c.get('/')
+        assert page.status_code == 200
+        assert '/static/lib/katex/katex.min.css' in page.text
+        assert '/static/lib/marked/marked.min.js' in page.text
+        assert "style-src 'self' 'unsafe-inline'" in page.headers['content-security-policy']
+        for name in MOBILE_LIB_ASSETS:
+            response = c.get('/static/lib/' + name)
+            assert response.status_code == 200, name
+        assert c.get('/static/lib/katex/fonts/KaTeX_Main-Regular.woff2').status_code == 200
+        assert c.get('/static/lib/index.html').status_code == 404
+        assert c.get('/static/lib/katex/fonts/not-a-font.js').status_code == 404
+        assert c.get('/static/lib/katex/../index.html').status_code == 404
+
+
 @pytest.mark.parametrize('missing', ('mobile.html', 'js/mobile.js', 'css/mobile.css'))
 def test_incomplete_mobile_assets_fail_before_start_and_return_actionable_error(link, tmp_path, monkeypatch, missing):
     from starhope import mobile_link

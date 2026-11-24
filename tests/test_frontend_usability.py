@@ -3063,3 +3063,16 @@ def test_generated_tailwind_classes_use_configured_scales():
         )
     }
     assert used_standard_steps <= standard_steps
+
+
+def test_readonly_question_surfaces_use_the_shared_markdown_renderer():
+    # Only the editable question/answer boxes may show raw source. Read-only
+    # lists and candidate previews must go through the shared renderer.
+    for name in ("semantic.js", "subject-annotations.js", "document-import-session.js",
+                 "book-import.js", "learning.js"):
+        source = _read(STATIC_JS_DIR / name)
+        assert "renderQuestionPreviewContent" in source, name
+    for name in ("semantic.js", "subject-annotations.js", "document-import-session.js",
+                 "book-import.js"):
+        source = _read(STATIC_JS_DIR / name)
+        assert "createElement('pre')" not in source, name

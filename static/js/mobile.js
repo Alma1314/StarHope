@@ -20,6 +20,86 @@
         return (error && error.message) || '操作失败，请重试。';
     }
 
+    // Shared questions are read-only on the phone: render the same Markdown and
+    // math as the desktop. Raw source stays in the desktop editor only.
+    function protectMobileLiterals(source) {
+        const stash = [];
+        const text = String(source || '').replace(
+            /```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`|<(?:code|pre)\b[\s\S]*?<\/(?:code|pre)>/gi,
+            match => {
+                const token = '\u0000S' + stash.length + '\u0000';
+                stash.push(match);
+                return token;
+            }
+        );
+        return { text, restore: value => value.replace(/\u0000S(\d+)\u0000/g, (_, index) => stash[Number(index)]) };
+    }
+
+    function mobileFillins(source) {
+        const math = /(\$\$[\s\S]*?\$\$|\$[^$\n]*\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\))/g;
+        const blank = '<span class="mobile-fillin"></span>';
+        const outside = text => text.replace(/\\fillin(?:\[[^\]]*\])?(?:\[[^\]]*\])?/g, blank);
+        const inside = text => text.replace(/\\fillin(?:\[[^\]]*\])?(?:\[[^\]]*\])?/g, '\\underline{\\hspace{1.5cm}}');
+        let output = '', last = 0, match;
+        while ((match = math.exec(source)) !== null) {
+            output += outside(source.slice(last, match.index)) + inside(match[0]);
+            last = match.index + match[0].length;
+        }
+        return output + outside(source.slice(last));
+    }
+
+    function mobileQuestionMarkdown(source) {
+        const literals = protectMobileLiterals(source);
+        let text = literals.text;
+        // The mobile app intentionally does not serve uploads, so images are
+        // replaced with a readable note instead of broken image tags.
+        text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, '（配图请在电脑查看）')
+            .replace(/<img\b[^>]*>/gi, '（配图请在电脑查看）');
+        text = text.replace(/\\begin\{(equation|align|gather|multline)(\*?)\}([\s\S]*?)\\end\{\1\2\}/g,
+            (whole, env, _star, body) => {
+                const name = env === 'equation' ? '' : env === 'align' ? 'aligned' : 'gathered';
+                return name ? `$$\\begin{${name}}${body}\\end{${name}}$$` : `$$${body}$$`;
+            });
+        text = text.replace(/\\begin\{choices\}(?:\[[^\]]*\])?([\s\S]*?)\\end\{choices\}/g, (whole, body) => {
+            const items = body.split(/\\item(?![A-Za-z])/).slice(1).map(item => item.trim()).filter(Boolean);
+            if (!items.length) return whole;
+            return '\n\n' + items.map((item, index) =>
+                `**${'ABCDEFGH'[index] || index + 1}.** ${item}`).join('\n\n') + '\n\n';
+        });
+        text = mobileFillins(text);
+        return literals.restore(text);
+    }
+
+    function renderMobileQuestion(target, source, options = {}) {
+        const text = String(source || '');
+        target.replaceChildren();
+        if (!text.trim()) {
+            target.textContent = options.empty || '暂无内容';
+            return;
+        }
+        try {
+            target.innerHTML = window.DOMPurify.sanitize(window.marked.parse(mobileQuestionMarkdown(text)));
+            window.renderMathInElement(target, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false,
+                errorColor: '#b45309',
+                ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'],
+                macros: {
+                    '\\iu': '\\mathrm{i}', '\\upi': '\\mathrm{i}',
+                    '\\eu': '\\mathrm{e}', '\\upe': '\\mathrm{e}',
+                    '\\degree': '^{\\circ}', '\\celsius': '^{\\circ}\\mathrm{C}'
+                }
+            });
+        } catch (error) {
+            target.textContent = text;
+        }
+    }
+
     // Compress only photos that exceed the upload size or resolution budget.
     const MAX_IMAGE_EDGE = 3000;
     function needsShrink(size, width, height, limitBytes) {
@@ -188,14 +268,28 @@
         if (generation !== serial || !token) return;
         $('questions').replaceChildren();
         for (const item of result.items) {
-            const article = document.createElement('article'), title = document.createElement('h3'), body = document.createElement('pre');
+            const article = document.createElement('article'), title = document.createElement('h3');
+            const body = document.createElement('div'), detail = document.createElement('details');
+            const summary = document.createElement('summary'), answer = document.createElement('div');
+            const source = document.createElement('p');
             title.textContent = `#${item.id} · ${item.education_stage || '未标注'} · ${item.subject || '数学'}`;
-            body.textContent = item.content;
-            const detail = document.createElement('details'), summary = document.createElement('summary'), answer = document.createElement('pre');
-            summary.textContent = '查看答案与来源'; answer.textContent = (item.answer_markdown || '暂无答案') + '\n\n' + (item.source || '未标注来源');
-            detail.append(summary, answer); article.append(title, body, detail); $('questions').append(article);
+            body.className = 'mobile-question-body';
+            renderMobileQuestion(body, item.content);
+            summary.textContent = '查看答案与来源';
+            answer.className = 'mobile-answer-body';
+            source.className = 'mobile-source';
+            source.textContent = item.source ? '来源：' + item.source : '未标注来源';
+            let answerRendered = false;
+            detail.addEventListener('toggle', () => {
+                if (!detail.open || answerRendered) return;
+                answerRendered = true;
+                renderMobileQuestion(answer, item.answer_markdown, { empty: '暂无答案' });
+            });
+            detail.append(summary, answer, source);
+            article.append(title, body, detail);
+            $('questions').append(article);
         }
-        $('bankSummary').textContent = `共 ${result.total} 题 · 第 ${page} 页（题文原文，含 LaTeX 标记）`;
+        $('bankSummary').textContent = `共 ${result.total} 题 · 第 ${page} 页 · 题文与答案已渲染`;
         $('prev').disabled = page <= 1; $('next').disabled = !result.next_page;
     }
     $('searchForm').addEventListener('submit', action(() => { page = 1; return loadBank(); }));

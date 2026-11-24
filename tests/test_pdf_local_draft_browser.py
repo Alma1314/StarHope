@@ -266,7 +266,7 @@ def test_rule_rebuilt_machine_source_replaces_swallowed_card_and_preserves_teach
     assert browser.evaluate('parsedQuestionsData[0].project_incoming_candidate.answer_markdown') == '原版第1题答案 $1$。'
     assert browser.evaluate("document.querySelector('#parsed-card-0 .document-project-candidate button').textContent") == '采用本次候选'
     browser.evaluate("document.querySelector('#parsed-card-0 .document-project-candidate').open=true;true")
-    assert browser.evaluate("document.querySelector('#parsed-card-0 .document-project-candidate pre').textContent.includes('原版第1题答案')")
+    assert browser.evaluate("document.querySelector('#parsed-card-0 .document-project-candidate .document-project-candidate-preview').textContent.includes('原版第1题答案')")
     _click(browser, '#parsed-card-0 .document-project-candidate button')
     assert browser.evaluate('parsedQuestionsData[0].content') == '原版第1题 $x+1=2$。'
     assert browser.evaluate('parsedQuestionsData[0].answer_markdown') == '原版第1题答案 $1$。'

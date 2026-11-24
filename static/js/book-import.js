@@ -8,6 +8,18 @@ function syncBookImportOptions() {
     if (generate) { generate.disabled = book && Boolean(window.currentPdfFile); if (generate.disabled) generate.checked = false; }
 }
 
+function renderBookImportQuestion(host, source, options = {}) {
+    host.replaceChildren();
+    const text = String(source || '');
+    if (typeof window.renderQuestionPreviewContent === 'function') {
+        try {
+            window.renderQuestionPreviewContent(host, text, options);
+            return;
+        } catch (_) { /* fall back to plain text below */ }
+    }
+    host.textContent = text;
+}
+
 function renderParsedSubjectFields(card, question, index) {
     const host = document.createElement('div');
     host.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2';
@@ -64,16 +76,31 @@ function renderBookImportReport(report) {
         const item = document.createElement('details'); item.className = 'border-t pt-2';
         const summary = document.createElement('summary'); summary.className = 'cursor-pointer';
         summary.textContent = ['待配对原答案', answer.chapter, answer.section, answer.number, `PDF第${answer.start_page}–${answer.end_page}页`].filter(Boolean).join(' · '); item.append(summary);
-        const text = document.createElement('pre'); text.className = 'whitespace-pre-wrap break-words max-h-48 overflow-auto py-2';
-        text.textContent = answer.content; item.append(text);
+        const text = document.createElement('div'); text.className = 'book-import-answer-preview ui-rendered-question';
+        item.addEventListener('toggle', () => renderBookImportQuestion(text, answer.content), { once: true });
+        item.append(text);
         const label = document.createElement('label'); label.textContent = '人工指定题卡：';
         const select = document.createElement('select'); select.className = 'glass-select max-w-full px-2 py-2 rounded-lg';
         const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = '请选择并对照原书确认'; select.append(placeholder);
         parsedQuestionsData.forEach((question, index) => {
             const option = document.createElement('option'); option.value = String(index);
-            option.textContent = `第${index + 1}题 · ${(question.source || question.content || '').slice(0, 120)}`; select.append(option);
+            const type = typeof getTypeText === 'function' ? getTypeText(question.question_type) : (question.question_type || '未标题型');
+            const source = String(question.source || '').slice(0, 80);
+            option.textContent = `第${index + 1}题 · ${type}${source ? ' · ' + source : ''}`; select.append(option);
         });
         label.append(select); item.append(label);
+        const questionPreview = document.createElement('div');
+        questionPreview.className = 'book-import-question-preview ui-rendered-question';
+        questionPreview.hidden = true;
+        item.append(questionPreview);
+        select.addEventListener('change', () => {
+            const question = select.value === '' ? null : parsedQuestionsData[Number(select.value)];
+            if (!question) {
+                questionPreview.hidden = true; questionPreview.replaceChildren(); return;
+            }
+            questionPreview.hidden = false;
+            renderBookImportQuestion(questionPreview, question.content || '');
+        });
         const button = document.createElement('button'); button.type = 'button'; button.className = 'glass-btn px-3 py-2 rounded-lg'; button.textContent = '确认配对并填入';
         button.addEventListener('click', () => {
             if (select.value === '') return;

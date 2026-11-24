@@ -442,3 +442,18 @@ def test_concurrent_daily_creation_replays_the_same_set(isolated):
     with ThreadPoolExecutor(max_workers=4) as pool: results = list(pool.map(create, range(4)))
     assert all(result == results[0] for result in results)
     with factory() as db: assert len(json.loads(db.get(Learner, learner['id']).daily_practice)['plans']) == 1
+
+
+def test_preview_excerpt_never_cuts_inside_formulas_or_environments():
+    assert learning.preview_excerpt('短题 $x+1$', 160) == '短题 $x+1$'
+    long_formula = '题干开头。' + '$' + 'x+1' * 80 + '$' + '后续正文'
+    cut = learning.preview_excerpt(long_formula, 30)
+    assert cut.endswith('…') and '$' not in cut
+    cases = '题目前文 $a$ ' + r'\begin{cases}' + 'x=1' * 100
+    cut = learning.preview_excerpt(cases, 40)
+    assert cut.endswith('…') and r'\begin{cases}' not in cut
+    nested = '前文 $' + r'\begin{aligned}' + 'x=1' * 100
+    cut = learning.preview_excerpt(nested, 30)
+    assert cut.endswith('…') and '$' not in cut and r'\begin{aligned}' not in cut
+    escaped = '价格 \\$5 ' + '内容' * 100
+    assert learning.preview_excerpt(escaped, 8).startswith('价格 \\$5')

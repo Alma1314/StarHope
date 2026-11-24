@@ -61,8 +61,20 @@ const SubjectAnnotations = (() => {
             const heading = node('label', undefined, card); heading.style.cssText = 'display:flex;align-items:center;gap:8px;min-height:44px;';
             const check = node('input', undefined, heading); check.type = 'checkbox'; check.checked = true;
             heading.append(document.createTextNode(' 题目 #' + item.id));
-            const detail = node('details', undefined, card); node('summary', '查看原题文本（图片未提供给本次 AI）', detail);
-            const content = node('pre', item.content, detail); content.style.whiteSpace = 'pre-wrap'; content.style.maxHeight = '180px'; content.style.overflow = 'auto';
+            const detail = node('details', undefined, card); node('summary', '查看题目（图片未提供给本次 AI）', detail);
+            const content = node('div', undefined, detail); content.className = 'subject-annotation-preview';
+            const fillPreview = () => {
+                content.replaceChildren();
+                const source = String(item.content || '');
+                if (typeof window.renderQuestionPreviewContent === 'function') {
+                    try {
+                        window.renderQuestionPreviewContent(content, source, { includeImages: false });
+                        return;
+                    } catch (_) { /* fall back to plain text below */ }
+                }
+                content.textContent = source;
+            };
+            detail.addEventListener('toggle', fillPreview, { once: true });
             function select(labelText, choices, current) {
                 const label = node('label', labelText, card); label.style.display = 'block';
                 const input = node('select', undefined, label); input.className = 'glass-select w-full px-2 py-2 rounded-xl'; input.style.minHeight = '44px';

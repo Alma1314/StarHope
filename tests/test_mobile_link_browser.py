@@ -26,7 +26,8 @@ def test_android_pair_photo_library_and_desktop_scan_handoff(browser, tmp_path):
         qr_url=decode_qr(base64.b64decode(encoded))
         browser.command('screenshot',str(tmp_path/'desktop-qr.png'))
         unique = '安卓合成题-' + uuid.uuid4().hex
-        fixture = {'content': unique + ' $x+1=2$ <img src=x onerror=alert(1)>', 'subject':'物理',
+        fixture = {'content': unique + ' $x+1=2$ 填空：\\fillin <img src=x onerror=alert(1)>'
+                              + ' \\begin{choices}\\item $A$\\item $B$\\end{choices}', 'subject':'物理',
                    'education_stage':'高中','question_type':'detailed_answer','difficulty':'medium', 'answer_markdown':'$x=1$'}
         assert browser.evaluate("""(async()=>{const form=new FormData();for(const [key,value] of Object.entries(""" + json.dumps(fixture) + """))form.append(key,value);return(await fetch('/api/questions',{method:'POST',body:form})).status;})()""") == 200
         browser.command('set', 'viewport', '393', '851')
@@ -40,7 +41,14 @@ def test_android_pair_photo_library_and_desktop_scan_handoff(browser, tmp_path):
         assert browser.evaluate('document.documentElement.scrollWidth<=innerWidth')
         browser.evaluate("document.getElementById('bankTab').click();true")
         wait("document.getElementById('questions').textContent.includes(" + json.dumps(unique) + ")")
+        wait("document.querySelector('#questions .katex')")
         assert browser.evaluate("document.getElementById('questions').querySelectorAll('img,script').length") == 0
+        body_text = browser.evaluate("document.querySelector('#questions .mobile-question-body').textContent")
+        assert '（配图请在电脑查看）' in body_text
+        assert '\\fillin' not in body_text and '\\begin{choices}' not in body_text
+        assert browser.evaluate("document.querySelector('#questions .mobile-fillin') !== null")
+        browser.evaluate("document.querySelector('#questions details').open=true;true")
+        wait("document.querySelector('#questions .mobile-answer-body .katex')")
         browser.evaluate("""document.getElementById('photoTab').click();(async()=>{const canvas=document.createElement('canvas');canvas.width=3200;canvas.height=200;const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg'));const transfer=new DataTransfer();transfer.items.add(new File([blob],'synthetic-camera.jpg',{type:'image/jpeg'}));const camera=document.getElementById('camera');camera.files=transfer.files;camera.dispatchEvent(new Event('change'));return true;})()""")
         wait("!document.getElementById('send').disabled")
         wait("document.getElementById('photoInfo').textContent.includes('已压缩')")

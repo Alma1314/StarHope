@@ -6425,6 +6425,21 @@ button[aria-disabled="true"]:hover,
     .mb-kp-tools .glass-input { flex-basis: 100%; }
 }
 
+/* Read-only question previews render Markdown and math; only editable
+   question/answer boxes keep the raw LaTeX source. */
+.semantic-question-row { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.semantic-question-row-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.semantic-question-preview { max-height: 9rem; overflow: auto; overflow-wrap: anywhere; font-size: 11px; line-height: 1.65; }
+.subject-annotation-preview, .document-project-candidate-preview, .book-import-answer-preview,
+.book-import-question-preview { max-height: 14rem; overflow: auto; overflow-wrap: anywhere; }
+.subject-annotation-preview { max-height: 180px; }
+.document-project-candidate-preview { font-size: 11px; }
+.document-project-candidate-preview .ui-rendered-question { margin-bottom: 6px; }
+.book-import-answer-preview, .book-import-question-preview { padding: 4px 0; }
+.learning-question-preview { max-height: 9rem; overflow: auto; font-size: 13px; }
+.ui-rendered-question img, .semantic-question-preview img,
+.subject-annotation-preview img, .learning-question-preview img { max-width: 100%; max-height: 220px; object-fit: contain; }
+
 /* Local learning records share the existing offline workspace shell. */
 .learning-shell { max-width: 1440px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
 .learning-heading, .learning-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }

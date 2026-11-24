@@ -481,11 +481,35 @@
         summary.textContent = candidate.pdf_source_verification ? '原页核验建议 · 当前校对稿已保留'
             : metadataOnly ? '分类建议 · 当前人工稿已保留' : '新分析结果候选 · 当前人工稿已保留';
         panel.appendChild(summary);
-        const content = document.createElement('pre');content.className = 'whitespace-pre-wrap break-words max-h-60 overflow-auto my-2';
-        content.textContent = (metadataOnly ? '' : String(candidate.content || '') + '\n\n答案与解析：\n' + String(candidate.answer_markdown || '') + '\n\n') +
-            '分类建议：' + [candidate.category_compulsory, candidate.category_chapter, candidate.category_knowledge].filter(Boolean).join(' / ')
+        const content = document.createElement('div');
+        content.className = 'document-project-candidate-preview my-2';
+        const renderBlock = (title, source) => {
+            const text = String(source || '');
+            if (!text.trim()) return;
+            const label = document.createElement('p'); label.className = 'font-semibold'; label.textContent = title;
+            const body = document.createElement('div'); body.className = 'ui-rendered-question';
+            if (typeof window.renderQuestionPreviewContent === 'function') {
+                try {
+                    window.renderQuestionPreviewContent(body, text, { includeImages: false });
+                } catch (_) { body.textContent = text; }
+            } else body.textContent = text;
+            content.append(label, body);
+        };
+        if (!metadataOnly) {
+            renderBlock('候选题干', candidate.content);
+            renderBlock('答案与解析', candidate.answer_markdown);
+        }
+        const metadata = document.createElement('p');
+        metadata.className = 'mt-2 whitespace-pre-wrap';
+        metadata.textContent = '分类建议：' + [candidate.category_compulsory, candidate.category_chapter, candidate.category_knowledge].filter(Boolean).join(' / ')
             + '\n知识点建议：' + (candidate.knowledge_points || []).map(item => item.name || item.code).join('、');
+        content.appendChild(metadata);
         panel.appendChild(content);
+        // The preview is rendered while the panel is collapsed, so choices
+        // need a fresh width measurement when the teacher opens it.
+        panel.addEventListener('toggle', () => {
+            if (panel.open && typeof window.adaptChoicesGridLayout === 'function') window.adaptChoicesGridLayout(content);
+        });
         panel.appendChild(projectButton(metadataOnly ? '采用分类建议' : '采用本次候选', () => {
             if (parsedQuestionsData[index] !== question) return;
             if (typeof blockImportResetWhileSaving === 'function' && blockImportResetWhileSaving()) return;

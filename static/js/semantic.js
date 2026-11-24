@@ -31,13 +31,34 @@
 
     function row(children, border = true) {
         const line = document.createElement('div');
-        line.className = 'rounded-lg px-2 py-1.5 text-[11px] leading-relaxed';
+        line.className = 'semantic-question-row rounded-lg px-2 py-1.5 text-[11px] leading-relaxed';
         if (border) {
             line.style.border = '1px solid rgba(148, 163, 184, .35)';
             line.style.background = 'rgba(255, 255, 255, .55)';
         }
         children.forEach(child => line.appendChild(child));
         return line;
+    }
+
+    function head(children) {
+        const line = document.createElement('div');
+        line.className = 'semantic-question-row-head';
+        children.forEach(child => line.appendChild(child));
+        return line;
+    }
+
+    function questionPreview(text) {
+        const preview = document.createElement('div');
+        preview.className = 'semantic-question-preview';
+        const source = String(text || '');
+        if (typeof window.renderQuestionPreviewContent === 'function') {
+            try {
+                window.renderQuestionPreviewContent(preview, source, { includeImages: false });
+                return preview;
+            } catch (_) { /* fall back to plain text below */ }
+        }
+        preview.textContent = source;
+        return preview;
     }
 
     function chip(label) {
@@ -59,10 +80,8 @@
         return button;
     }
 
-    function summary(node, fallbackId) {
-        const prefix = node && node.seq_num != null ? `#${node.seq_num} ` : `#${fallbackId} `;
-        const content = node && node.content ? node.content : '';
-        return prefix + content;
+    function label(node, fallbackId) {
+        return node && node.seq_num != null ? `#${node.seq_num}` : `#${fallbackId}`;
     }
 
     function indexQuestionNodes(nodes) {
@@ -113,8 +132,8 @@
             const otherId = edge.source_id === currentQuestionId ? edge.target_id : edge.source_id;
             const arrow = edge.source_id === currentQuestionId ? '→' : '←';
             const text = document.createElement('span');
-            text.textContent = `${arrow} ${summary(nodes[otherId], otherId)}`;
-            const label = chip(RELATION_LABELS[edge.relation_type] || edge.relation_type);
+            text.textContent = `${arrow} ${label(nodes[otherId], otherId)}`;
+            const kind = chip(RELATION_LABELS[edge.relation_type] || edge.relation_type);
             const remove = actionButton('移除', async () => {
                 try {
                     await readJson(await fetch(`/api/question-relations/${edge.id}`, { method: 'DELETE' }));
@@ -123,7 +142,7 @@
                     if (typeof showToast === 'function') showToast(error.message, 'error');
                 }
             });
-            list.appendChild(row([label, text, remove]));
+            list.appendChild(row([head([kind, text, remove]), questionPreview(nodes[otherId]?.content)]));
         });
     }
 
@@ -148,10 +167,10 @@
         }
         results.forEach(item => {
             const text = document.createElement('span');
-            text.textContent = `${summary(item, item.id)} · ${Number(item.score).toFixed(3)}`;
+            text.textContent = `${label(item, item.id)} · 相似度 ${Number(item.score).toFixed(3)}`;
             const variant = actionButton('标为变式', () => createRelation(item.id, 'variant_of'));
             const method = actionButton('同解法', () => createRelation(item.id, 'same_method'));
-            list.appendChild(row([text, variant, method]));
+            list.appendChild(row([head([text, variant, method]), questionPreview(item.content)]));
         });
     }
 

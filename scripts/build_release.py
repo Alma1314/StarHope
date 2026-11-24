@@ -146,7 +146,13 @@ STATIC_ALLOWLIST = (
     "js",
     "lib",
 )
-MOBILE_REQUIRED_FILES = ("static/mobile.html", "static/js/mobile.js", "static/css/mobile.css")
+MOBILE_REQUIRED_FILES = (
+    "static/mobile.html", "static/js/mobile.js", "static/css/mobile.css",
+    "static/lib/katex/katex.min.css", "static/lib/katex/katex.min.js",
+    "static/lib/katex/contrib/auto-render.min.js", "static/lib/katex/contrib/mhchem.min.js",
+    "static/lib/katex/fonts/KaTeX_Main-Regular.woff2",
+    "static/lib/marked/marked.min.js", "static/lib/dompurify/purify.min.js",
+)
 HIDDEN_FILE_ALLOWLIST = {".env.example", ".gitkeep", ".rels"}
 # Reviewed local-only maintenance tools and the source-only release builder.
 # Match project-relative paths so runtime resources and dependency names survive.

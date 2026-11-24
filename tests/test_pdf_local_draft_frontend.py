@@ -233,7 +233,7 @@ const localScenarios={
   assert.equal(merged[0].project_incoming_candidate.content,changed.content);assert.notEqual(merged[0].project_incoming_candidate.metadata_only,true);
   show(merged);const panel=document.getElementById('parsed-card-0').querySelector('.document-project-candidate');
   assert.equal(panel.querySelector('button').textContent,'采用本次候选');
-  assert.ok(panel.querySelector('pre').textContent.includes('本地恢复的原版答案'));
+  assert.ok(panel.querySelectorAll('.ui-rendered-question').some(node=>node.textContent.includes('本地恢复的原版答案')));
   panel.querySelector('button').dispatchEvent(new Event('click'));
   assert.equal(parsedQuestionsData[0].content,changed.content);assert.equal(parsedQuestionsData[0].answer_markdown,changed.answer_markdown);
   assert.deepEqual(parsedQuestionsData[0].image_paths,changed.image_paths);assert.equal(parsedQuestionsData[0].source,changed.source);

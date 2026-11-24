@@ -8,6 +8,7 @@ import ipaddress
 import io
 import json
 import os
+import re
 import stat
 import secrets
 import socket
@@ -34,10 +35,22 @@ PRIVATE_NETWORKS = tuple(ipaddress.ip_network(value) for value in
 UPLOAD_BODY_TIMEOUT_SECONDS = 120
 THUMBNAIL_MAX_EDGE = 360
 MOBILE_ASSETS = ("mobile.html", "js/mobile.js", "css/mobile.css")
+# Local-only rendering dependencies; the phone never reaches the desktop app,
+# so these exact files (plus KaTeX fonts) are served through the mobile app.
+MOBILE_LIB_ASSETS = (
+    "katex/katex.min.css",
+    "katex/katex.min.js",
+    "katex/contrib/auto-render.min.js",
+    "katex/contrib/mhchem.min.js",
+    "marked/marked.min.js",
+    "dompurify/purify.min.js",
+)
+MOBILE_REQUIRED_LIB_FILES = MOBILE_LIB_ASSETS + ("katex/fonts/KaTeX_Main-Regular.woff2",)
+_MOBILE_FONT_PATH = re.compile(r"^katex/fonts/[A-Za-z0-9_.-]+\.(?:woff2?|ttf)$")
 
 
 def check_mobile_assets():
-    if not all((STATIC_DIR / name).is_file() for name in MOBILE_ASSETS):
+    if not all((STATIC_DIR / name).is_file() for name in (*MOBILE_ASSETS, *(f"lib/{name}" for name in MOBILE_REQUIRED_LIB_FILES))):
         raise HTTPException(503, "手机页面资源不完整，请在电脑重新完整解压或更新程序后重启互联。")
 
 
@@ -411,7 +424,7 @@ class MobileLink:
                     self.upload_slots.release()
             response.headers.update({"Cache-Control": "no-store", "Referrer-Policy": "no-referrer",
                 "X-Content-Type-Options": "nosniff", "Content-Security-Policy":
-                "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"})
+                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"})
             return response
 
         @app.exception_handler(OSError)
@@ -432,6 +445,16 @@ class MobileLink:
         def style():
             check_mobile_assets()
             return FileResponse(STATIC_DIR / "css" / "mobile.css")
+
+        @app.get("/static/lib/{asset_path:path}")
+        def library_asset(asset_path: str):
+            check_mobile_assets()
+            if asset_path not in MOBILE_LIB_ASSETS and not _MOBILE_FONT_PATH.fullmatch(asset_path):
+                raise HTTPException(404, "资源不存在。")
+            path = STATIC_DIR / "lib" / asset_path
+            if not path.is_file():
+                raise HTTPException(404, "资源不存在。")
+            return FileResponse(path)
 
         @app.post("/api/pair")
         async def pair(request: Request):

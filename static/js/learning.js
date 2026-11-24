@@ -19,6 +19,17 @@ window.LearningWorkspace = (() => {
         if (host) host.append(element);
         return element;
     }
+    function renderQuestionText(host, source, options = {}) {
+        host.replaceChildren();
+        const text = String(source || '');
+        if (typeof window !== 'undefined' && typeof window.renderQuestionPreviewContent === 'function') {
+            try {
+                window.renderQuestionPreviewContent(host, text, options);
+                return;
+            } catch (_) { /* fall back to plain text below */ }
+        }
+        host.textContent = text;
+    }
     function message(value) { $('learningStatus').textContent = value; }
     const resourceLinks = [
         {name: 'GeoGebra', note: '动态几何、函数与立体绘图', url: 'https://www.geogebra.org/'},
@@ -244,8 +255,15 @@ window.LearningWorkspace = (() => {
         const host = $('learningHistory'); host.replaceChildren();
         if (!data.items.length) node('p', '还没有作答记录。', host, 'text-sm text-slate-500');
         data.items.forEach(row => {
-            const button = node('button', `${row.subject} · ${outcomes[row.outcome]} · ${row.assessment_source === 'scan_ai' ? '扫描作答' : row.origin === 'manual' ? '手工录入' : '在线练习'}`, host, 'learning-row'); button.type = 'button';
-            node('small', row.content_excerpt, button); node('small', new Date(row.created_at).toLocaleString(), button);
+            const card = node('div', undefined, host, 'learning-row');
+            node('strong', `${row.subject} · ${outcomes[row.outcome]} · ${row.assessment_source === 'scan_ai' ? '扫描作答' : row.origin === 'manual' ? '手工录入' : '在线练习'}`, card, 'text-sm');
+            const preview = node('div', undefined, card, 'learning-preview learning-question-preview');
+            if (typeof window !== 'undefined' && typeof window.renderQuestionPreviewContent === 'function') {
+                try { window.renderQuestionPreviewContent(preview, row.content_excerpt, { includeImages: false }); }
+                catch (_) { preview.textContent = row.content_excerpt; }
+            } else preview.textContent = row.content_excerpt;
+            node('small', new Date(row.created_at).toLocaleString(), card);
+            const button = node('button', '查看记录', card, 'glass-btn rounded-lg px-2 py-1 text-xs mt-2'); button.type = 'button';
             button.addEventListener('click', action(() => openAttempt(row.id)));
         });
         $('learningHistoryPage').textContent = `第 ${historyPage} 页 · 共 ${data.total} 条`;
@@ -259,7 +277,12 @@ window.LearningWorkspace = (() => {
         if (!rows.length) node('p', '完成核对或录入扫描分析后，这里会按日期安排回顾。', host, 'text-sm text-slate-500');
         rows.forEach(row => {
             const card = node('div', undefined, host, 'learning-row');
-            node('strong', `${row.subject || '未知学科'} · ${row.content_excerpt}`, card, 'text-sm');
+            node('strong', row.subject || '未知学科', card, 'text-sm');
+            const preview = node('div', undefined, card, 'learning-preview learning-question-preview');
+            if (typeof window !== 'undefined' && typeof window.renderQuestionPreviewContent === 'function') {
+                try { window.renderQuestionPreviewContent(preview, row.content_excerpt, { includeImages: false }); }
+                catch (_) { preview.textContent = row.content_excerpt; }
+            } else preview.textContent = row.content_excerpt;
             node('small', `原题 #${row.question_id ?? '已删除'} · 间隔 ${row.interval_days} 天 · 连续正确 ${row.streak} 次`, card, 'text-xs text-slate-500');
             if (row.question_id) {
                 const button = node('button', '复习这道题', card, 'glass-btn rounded-lg px-2 py-1 text-xs mt-2'); button.type = 'button';
@@ -277,7 +300,11 @@ window.LearningWorkspace = (() => {
         rows.forEach(row => {
             const card = node('div', undefined, host, 'learning-row');
             node('strong', `${row.subject} · ${outcomes[row.outcome]} · 错 ${row.wrong_count} 次`, card, 'text-sm');
-            node('small', row.content_excerpt, card);
+            const preview = node('div', undefined, card, 'learning-preview learning-question-preview');
+            if (typeof window !== 'undefined' && typeof window.renderQuestionPreviewContent === 'function') {
+                try { window.renderQuestionPreviewContent(preview, row.content_excerpt, { includeImages: false }); }
+                catch (_) { preview.textContent = row.content_excerpt; }
+            } else preview.textContent = row.content_excerpt;
             const toolbar = node('div', undefined, card, 'learning-toolbar mt-2');
             if (row.question_id) {
                 const again = node('button', '再练一次', toolbar, 'glass-btn rounded-lg px-2 py-1 text-xs'); again.type = 'button';
@@ -371,7 +398,12 @@ window.LearningWorkspace = (() => {
         const host = $('learningQuestions'); host.replaceChildren();
         if (!rows.length) node('p', '没有找到题目。请调整条件，或先向题库导入题目。', host, 'text-sm text-slate-500');
         rows.forEach(row => {
-            const button = node('button', `#${row.id} · ${row.education_stage || '未标注'} · ${row.subject || '数学'} · ${String(row.content || '').slice(0, 120)}`, host, 'learning-row'); button.type = 'button';
+            const card = node('div', undefined, host, 'learning-row learning-question-choice');
+            node('strong', `#${row.id} · ${row.education_stage || '未标注'} · ${row.subject || '数学'}`, card, 'text-sm');
+            const preview = node('div', undefined, card, 'learning-preview learning-question-preview');
+            renderQuestionText(preview, row.content, { includeImages: false });
+            const button = node('button', '选择此题', card, 'glass-btn rounded-lg px-2 py-1 text-xs mt-2');
+            button.type = 'button';
             button.addEventListener('click', action(() => chooseQuestion(row.id)));
         });
         $('learningQuestionsPage').textContent = `第 ${questionPage} 页`;
@@ -631,7 +663,11 @@ window.LearningWorkspace = (() => {
                 const card = node('div', undefined, host, 'learning-row');
                 const state = row.completed ? outcomes[row.outcome] : row.available ? '未作答' : '不可用';
                 node('strong', `${index + 1}. #${row.id} · ${state}`, card, 'text-sm');
-                node('p', row.content_excerpt, card, 'text-sm whitespace-pre-wrap');
+                const preview = node('div', undefined, card, 'learning-preview learning-question-preview');
+                if (typeof window !== 'undefined' && typeof window.renderQuestionPreviewContent === 'function') {
+                    try { window.renderQuestionPreviewContent(preview, row.content_excerpt, { includeImages: false }); }
+                    catch (_) { preview.textContent = row.content_excerpt; }
+                } else preview.textContent = row.content_excerpt;
                 node('p', row.reason, card, 'text-xs text-slate-500 mt-2');
                 const toolbar = node('div', undefined, card, 'learning-toolbar mt-2');
                 if (row.available && !row.completed) {
@@ -662,7 +698,11 @@ window.LearningWorkspace = (() => {
         result.items.forEach(row => {
             const card = node('div', undefined, host, 'learning-row');
             node('strong', `#${row.id} · ${row.education_stage} · ${row.subject}`, card, 'text-sm');
-            node('p', row.content_excerpt, card, 'text-sm whitespace-pre-wrap');
+            const preview = node('div', undefined, card, 'learning-preview learning-question-preview');
+            if (typeof window !== 'undefined' && typeof window.renderQuestionPreviewContent === 'function') {
+                try { window.renderQuestionPreviewContent(preview, row.content_excerpt, { includeImages: false }); }
+                catch (_) { preview.textContent = row.content_excerpt; }
+            } else preview.textContent = row.content_excerpt;
             node('p', row.reason, card, 'text-xs text-slate-500 mt-2');
             const toolbar = node('div', undefined, card, 'learning-toolbar mt-2');
             const start = node('button', '练习这道题', toolbar, 'glass-btn px-3 py-2 rounded-xl'); start.type = 'button';

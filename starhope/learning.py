@@ -6,6 +6,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import threading
 import time
 import unicodedata
@@ -51,6 +52,81 @@ def validate_error_types(values):
 
 def _utcnow():
     return dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+
+
+_MATH_PAIRS = {"\\(": "\\)", "\\[": "\\]"}
+
+
+def _open_preview_construct(text):
+    """Index of the innermost unclosed math span or LaTeX environment, if any."""
+    stack = []
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "\\":
+            pair = text[index:index + 2]
+            if pair in _MATH_PAIRS:
+                stack.append(("delim", pair, index))
+                index += 2
+                continue
+            if pair in ("\\)", "\\]"):
+                if stack and stack[-1][0] == "delim" and _MATH_PAIRS[stack[-1][1]] == pair:
+                    stack.pop()
+                index += 2
+                continue
+            if pair == "\\\\":
+                index += 2
+                continue
+            match = re.match(r"\\begin\{([^{}]*)\}", text[index:])
+            if match:
+                stack.append(("env", match.group(1), index))
+                index += match.end()
+                continue
+            match = re.match(r"\\end\{([^{}]*)\}", text[index:])
+            if match:
+                if stack and stack[-1][0] == "env" and stack[-1][1] == match.group(1):
+                    stack.pop()
+                index += match.end()
+                continue
+            index += 2
+            continue
+        if char == "$":
+            if text.startswith("$$", index):
+                if stack and stack[-1][0] == "math" and stack[-1][1] == "$$":
+                    stack.pop()
+                else:
+                    stack.append(("math", "$$", index))
+                index += 2
+                continue
+            if stack and stack[-1][0] == "math" and stack[-1][1] == "$":
+                stack.pop()
+            else:
+                stack.append(("math", "$", index))
+            index += 1
+            continue
+        index += 1
+    # Nested constructs must all be removed: backing off only the innermost
+    # opener would leave the enclosing formula unbalanced.
+    return stack[0][2] if stack else None
+
+
+def preview_excerpt(text, limit):
+    """Bounded excerpt that never cuts through an open formula or environment.
+
+    Read-only lists render this excerpt; a raw mid-formula cut would show
+    broken KaTeX source instead of the question.
+    """
+    source = str(text or "")
+    if len(source) <= limit:
+        return source
+    cut = source[:limit]
+    unsafe = _open_preview_construct(cut)
+    if unsafe is not None:
+        cut = cut[:unsafe]
+    cut = re.sub(r"\\[A-Za-z]*$", "", cut.rstrip()).rstrip()
+    if not cut:
+        cut = source[:limit].rstrip()
+    return cut + "…"
 
 
 def _update_review(db, learner_id, row):
@@ -145,7 +221,7 @@ def attempt_dict(row, *, full=False):
               "difficulty": row.difficulty, "topics": json.loads(row.topics), "outcome": row.outcome,
               "elapsed_seconds": row.elapsed_seconds, "origin": row.origin, "notes": row.notes,
               "revision": row.revision, "created_at": row.created_at.isoformat() + "Z",
-              "content_excerpt": row.content[:160], "student_answer_excerpt": row.student_answer[:160]}
+              "content_excerpt": preview_excerpt(row.content, 160), "student_answer_excerpt": row.student_answer[:160]}
     assessment = json.loads(row.assessment or "{}")
     result["error_types"] = assessment.get("error_types", [])
     result["assessment_source"] = assessment.get("source", "manual")
@@ -241,7 +317,7 @@ def recommendation_items(db, learner_id, education_stage, subject, limit, *, day
     def adopt(row, reason, evidence, kind):
         if row.id not in seen and len(selected) < limit:
             seen.add(row.id)
-            selected.append({"id": row.id, "content_excerpt": row.content[:240], "subject": row.subject,
+            selected.append({"id": row.id, "content_excerpt": preview_excerpt(row.content, 240), "subject": row.subject,
                 "education_stage": row.education_stage, "difficulty": row.difficulty,
                 "reason": reason, "evidence_ids": evidence, "kind": kind})
     due = base.add_columns(LearningReview.last_attempt_id).join(LearningReview, LearningReview.question_id == Question.id).filter(
@@ -323,7 +399,7 @@ def daily_plan_result(db, learner, education_stage, subject):
         attempt = latest.get(item["identity"])
         result["items"].append({"id": item["id"], "reason": item["reason"], "kind": item["kind"],
             "evidence_ids": [identifier for identifier in item["evidence_ids"] if identifier in existing_evidence], "available": available,
-            "content_excerpt": question.content[:240] if available else "原题已删除或题目资料已变化，请从其他推荐中选择练习。",
+            "content_excerpt": preview_excerpt(question.content, 240) if available else "原题已删除或题目资料已变化，请从其他推荐中选择练习。",
             "education_stage": question.education_stage if available else education_stage, "subject": question.subject if available else subject,
             "completed": attempt is not None, "attempt_id": attempt.id if attempt else None,
             "outcome": attempt.outcome if attempt else None})
@@ -369,7 +445,7 @@ def profile_basis(db, learner):
         "automatic_graded": summary["automatic_graded"], "ungraded": summary["ungraded"],
         "practice_focus": practice_focus(summary),
         "recent_attempts": [{"id": row.id, "subject": row.subject, "outcome": row.outcome,
-            "content_excerpt": row.content[:500], "answer_excerpt": row.student_answer[:500],
+            "content_excerpt": preview_excerpt(row.content, 500), "answer_excerpt": row.student_answer[:500],
             "notes_excerpt": row.notes[:200], "elapsed_seconds": row.elapsed_seconds} for row in recent],
         "scope_note": "最多40个低得分知识点和20条核对记录（区分AI自动分析与人工复核）；不含姓名、原答案、图片或整库"}
     for sample, row in zip(basis["recent_attempts"], recent):
@@ -717,7 +793,7 @@ def create_learning_router(get_db, *, updater=None):
                 "due_at": scheduled.due_at.isoformat() + "Z",
                 "interval_days": scheduled.interval_days, "streak": scheduled.streak,
                 "subject": (question.subject or "数学") if question else "",
-                "content_excerpt": (question.content or "")[:160] if question else "原题已删除，可删除本排程"})
+                "content_excerpt": preview_excerpt(question.content, 160) if question else "原题已删除，可删除本排程"})
         return {"total": base.count(), "items": items}
 
     def attempt(db, learner_id, attempt_id):

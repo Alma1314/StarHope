@@ -108,7 +108,9 @@ assert.equal(friendlyError(new Error('配对码错误')),'配对码错误');
 
 def test_phone_page_exposes_progress_retake_and_lan_help():
     html = (ROOT/'static/mobile.html').read_text()
-    for marker in ('id="uploadProgress"', 'id="retake"', 'id="connectionHelp"', 'AP 隔离'):
+    for marker in ('id="uploadProgress"', 'id="retake"', 'id="connectionHelp"', 'AP 隔离',
+                   '/static/lib/katex/katex.min.css', '/static/lib/marked/marked.min.js',
+                   '/static/lib/dompurify/purify.min.js', '/static/lib/katex/contrib/auto-render.min.js'):
         assert marker in html
 
 def test_desktop_mobile_panel_offers_copy_and_lan_checks():
@@ -131,4 +133,54 @@ class DataTransfer{constructor(){this.files=[];this.items={add:file=>this.files.
 const file={phone:true};assert.equal(receivePhoto(file),false);assert.equal(input.files[0],original);
 saving=false;assert.equal(receivePhoto(file),false);assert.equal(input.files[0],original);
 accept=true;assert.equal(receivePhoto(file),true);assert.equal(input.files[0],file);assert.equal(panel,'scan');
+""")
+
+
+def test_phone_bank_markdown_transforms_choices_fillins_and_images():
+    source = (ROOT/'static/js/mobile.js').read_text()
+    start = source.index('function protectMobileLiterals')
+    functions = source[start:source.index('// Compress only photos', start)]
+    run("""
+const assert=require('node:assert/strict');
+global.window={};
+""" + functions + """
+const markdown=mobileQuestionMarkdown;
+const choices=markdown('选择：\\\\begin{choices}\\\\item $x$\\\\item $y$\\\\end{choices}');
+assert.ok(choices.includes('**A.** $x$')&&choices.includes('**B.** $y$'));
+assert.ok(!choices.includes('\\\\begin{choices}'));
+const fill=markdown('填空\\\\fillin 与 $x=\\\\fillin$');
+assert.ok(fill.includes('class="mobile-fillin"'));
+assert.ok(fill.includes('\\\\underline{\\\\hspace{1.5cm}}'));
+const image=markdown('题干 ![图](/static/uploads/a.png) 结束');
+assert.ok(image.includes('（配图请在电脑查看）')&&!image.includes('/static/uploads/'));
+const code=markdown('示例 `\\\\fillin` 保持原样');
+assert.ok(code.includes('`\\\\fillin`')&&!code.includes('mobile-fillin'));
+const display=markdown('\\\\begin{align}a&=1\\\\\\\\b&=2\\\\end{align}');
+assert.ok(display.startsWith('$$\\\\begin{aligned}')&&display.endsWith('\\\\end{aligned}$$'));
+""")
+
+
+def test_phone_bank_renders_markdown_then_math_and_falls_back_to_text():
+    source = (ROOT/'static/js/mobile.js').read_text()
+    start = source.index('function protectMobileLiterals')
+    functions = source[start:source.index('// Compress only photos', start)]
+    run("""
+const assert=require('node:assert/strict');
+let math=null, sanitized=null;
+const target={innerHTML:'',textContent:'',replaceChildren(){this.innerHTML='';this.textContent='';}};
+global.window={marked:{parse:value=>'<p>'+value+'</p>'},DOMPurify:{sanitize:value=>{sanitized=value;return value;}},
+ renderMathInElement:(node,options)=>{math={node,options};}};
+""" + functions + """
+const renderQuestion=renderMobileQuestion;
+renderQuestion(target,'题 $x+1$');
+assert.ok(target.innerHTML.includes('题 $x+1$'));
+assert.ok(sanitized.includes('题 $x+1$'));
+assert.equal(math.node,target);
+assert.ok(math.options.throwOnError===false);
+assert.ok(math.options.macros['\\\\iu']==='\\\\mathrm{i}');
+renderQuestion(target,'  ');
+assert.equal(target.textContent,'暂无内容');
+window.renderMathInElement=()=>{throw new Error('katex failed');};
+renderQuestion(target,'原始题干');
+assert.equal(target.textContent,'原始题干');
 """)

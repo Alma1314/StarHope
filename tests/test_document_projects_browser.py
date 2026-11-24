@@ -158,7 +158,7 @@ def test_project_autosave_conflict_copy_restore_and_page_workflow(browser, width
     assert browser.evaluate("document.querySelector('#parsed-card-0 .card-content-textarea').value") == '409冲突时保留的本机稿 $x^3$。'
     assert browser.evaluate("!!document.querySelector('.document-project-candidate')&&!document.querySelector('.document-project-candidate').open")
     _click(browser, '.document-project-candidate > summary')
-    assert browser.evaluate("document.querySelector('.document-project-candidate pre').textContent.includes('本次新分析得到的候选题干')")
+    assert browser.evaluate("document.querySelector('.document-project-candidate .document-project-candidate-preview').textContent.includes('本次新分析得到的候选题干')")
     _click(browser, '.document-project-candidate > button')
     assert browser.evaluate("document.querySelector('#parsed-card-0 .card-content-textarea').value") == '本次新分析得到的候选题干 $x+4$。'
     assert browser.evaluate("document.querySelector('.document-project-candidate')===null")
